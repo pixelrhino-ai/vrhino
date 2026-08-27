@@ -1,5 +1,7 @@
 # VRhino Linux CUDA Public Alpha
 
+New to VRhino? Start with the [installation guide](docs/install.md).
+
 This Alpha provides the first ordinary-user VRhino workflow:
 
 ```text
@@ -16,7 +18,7 @@ boundary. It bundles the required CUDA/cuDNN user-space runtime and media
 encoder and contains no model weights.
 
 The release was qualified on Ubuntu 22.04 with glibc 2.35. See
-`docs/alpha-limitations.md` for the exact scope.
+[Alpha limitations](docs/alpha-limitations.md) for the exact scope.
 
 Published release artifact:
 
