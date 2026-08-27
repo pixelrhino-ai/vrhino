@@ -1,0 +1,594 @@
+VRhino Public Alpha Third-Party Notices
+
+VRhino proprietary components are governed by
+`licenses/VRHINO-BINARY-LICENSE.txt`. Third-party components remain governed
+by their own licenses. Nothing in the VRhino binary license restricts rights
+granted under a third-party license.
+
+This self-contained candidate includes the GPL media helper under `media/`.
+FFmpeg 4.4.2 is built with --enable-gpl and libx264 commit
+5db6aa6cab1b146e07b60cc1736a01f21da01154; --enable-nonfree is absent.
+License texts, copyright notices, exact source archives, build configuration,
+patch declaration and build recipe are retained under `media/licenses/` and
+`media/sources/`. The public compliance summary and source mapping are under
+`licenses/media/`. The proprietary executables do not directly link or
+dynamically load libav* or libx264; they invoke the helper as a separate
+process over an RGB24 stdin pipe.
+
+NVIDIA runtime components (conditionally redistributable under the referenced
+NVIDIA application-distribution terms):
+- CUDA Runtime 12.8.90 — LicenseRef-NVIDIA-CUDA-EULA
+- cuBLAS/cuBLASLt 12.8.4.1 — LicenseRef-NVIDIA-CUDA-EULA
+- cuDNN split runtime 9.8.0.87 — LicenseRef-NVIDIA-cuDNN
+- NVRTC/NVRTC builtins 12.8.93 — LicenseRef-NVIDIA-CUDA-EULA
+- nvJitLink 12.8.93 — LicenseRef-NVIDIA-CUDA-EULA
+  Exact files, hashes, source-package/manifest identities, applicable terms,
+  and the host-driver boundary are recorded in
+  `licenses/nvidia/NVIDIA-COMPONENTS.txt`. The CUDA EULA, cuDNN terms, and
+  NVIDIA notices are retained under `licenses/nvidia/`. NVIDIA does not sponsor
+  or endorse VRhino.
+
+Dynamic Ubuntu-built components:
+- libbrotli1 1.0.9-2build6 (source brotli 1.0.9-2build6)
+  License: MIT
+  Notice/license: licenses/dynamic/libbrotli1.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/brotli/1.0.9-2build6/brotli_1.0.9.orig.tar.gz#f9e8d81d0405ba66d181529af42a3354f838c939095ff99930da6aa9cdf6fe46;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/brotli/1.0.9-2build6/brotli_1.0.9-2build6.debian.tar.xz#18bade39edd19e24c6a115b0053f84ebb909a9386c9a657ee6768b49a2af9974;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/brotli/1.0.9-2build6/brotli_1.0.9-2build6.dsc#DSC-SIGNED-METADATA
+- libcom-err2 1.46.5-2ubuntu1.2 (source e2fsprogs 1.46.5-2ubuntu1.2)
+  License: LicenseRef-SIPB-com-err
+  Notice/license: licenses/dynamic/libcom-err2.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/e2fsprogs/1.46.5-2ubuntu1.2/e2fsprogs_1.46.5-2ubuntu1.2.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/e2fsprogs/1.46.5-2ubuntu1.2/e2fsprogs_1.46.5-2ubuntu1.2.debian.tar.xz#b04fad2b12787628497127e6fab76de11c54229e08a406eba126df13f5224fdf;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/e2fsprogs/1.46.5-2ubuntu1.2/e2fsprogs_1.46.5.orig.tar.gz.asc#b1e248ed73d4d67ac0cf7760e780e0a5cd2db85bbb9a5dcc235538b596128916;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/e2fsprogs/1.46.5-2ubuntu1.2/e2fsprogs_1.46.5.orig.tar.gz#b7430d1e6b7b5817ce8e36d7c8c7c3249b3051d0808a96ffd6e5c398e4e2fbb9
+- libcurl4 7.81.0-1ubuntu1.25 (source curl 7.81.0-1ubuntu1.25)
+  License: curl
+  Notice/license: licenses/dynamic/libcurl4.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/curl/7.81.0-1ubuntu1.25/curl_7.81.0-1ubuntu1.25.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/curl/7.81.0-1ubuntu1.25/curl_7.81.0-1ubuntu1.25.debian.tar.xz#03946cc81cc0902b2003f6e6c4e9cdcb69faa588e34565c5a2361204e0c5bc10;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/curl/7.81.0-1ubuntu1.25/curl_7.81.0.orig.tar.gz.asc#e0f0053bef0afd5c8bed7973f94f92a731c91b9152d64ce9c55fd3bb633aa735;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/curl/7.81.0-1ubuntu1.25/curl_7.81.0.orig.tar.gz#ac8e1087711084548d788ef18b9b732c8de887457b81f616fc681d1044b32f98
+- libffi8 3.4.2-4 (source libffi 3.4.2-4)
+  License: MIT
+  Notice/license: licenses/dynamic/libffi8.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libffi/3.4.2-4/libffi_3.4.2-4.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libffi/3.4.2-4/libffi_3.4.2.orig.tar.gz#540fb721619a6aba3bdeef7d940d8e9e0e6d2c193595bc243241b77ff9e93620;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libffi/3.4.2-4/libffi_3.4.2-4.debian.tar.xz#06d936d00d43e7999d0bce0aa2e0f1550109295b8093de77e6453acb9eacfd19
+- libgcc-s1 12.3.0-1ubuntu1~22.04 (source gcc-12 12.3.0-1ubuntu1~22.04)
+  License: GPL-3.0-or-later WITH GCC-exception-3.1
+  Notice/license: licenses/dynamic/libgcc-s1.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/gcc-12/12.3.0-1ubuntu1~22.04/gcc-12_12.3.0-1ubuntu1~22.04.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/gcc-12/12.3.0-1ubuntu1~22.04/gcc-12_12.3.0-1ubuntu1~22.04.debian.tar.xz#023f6a9caf0d4ebc5b158f305802c22f6c49e51824fe62c7cce75b9b45bfecb4;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/gcc-12/12.3.0-1ubuntu1~22.04/gcc-12_12.3.0.orig.tar.gz#62b0fc89b6d41f9df2470d0fb4995f6ff5885f910518a2c6a44a6888ea5a9ea1
+- libgmp10 2:6.2.1+dfsg-3ubuntu1 (source gmp 2:6.2.1+dfsg-3ubuntu1)
+  License: LGPL-3.0-or-later OR GPL-2.0-or-later
+  Notice/license: licenses/dynamic/libgmp10.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/gmp/2:6.2.1+dfsg-3ubuntu1/gmp_6.2.1+dfsg.orig.tar.xz#c6ba08e3f079260ab90ff44ab8801eae134cd62cd78f4aa56317c0e70daa40cb;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/gmp/2:6.2.1+dfsg-3ubuntu1/gmp_6.2.1+dfsg-3ubuntu1.debian.tar.xz#371f81cd30902da41fb4cd084fa2d4e5e353c1f812e79184158479cc96aedd76;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/gmp/2:6.2.1+dfsg-3ubuntu1/gmp_6.2.1+dfsg-3ubuntu1.dsc#DSC-SIGNED-METADATA
+- libgnutls30 3.7.3-4ubuntu1.5 (source gnutls28 3.7.3-4ubuntu1.5)
+  License: LGPL-2.1-or-later
+  Notice/license: licenses/dynamic/libgnutls30.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/gnutls28/3.7.3-4ubuntu1.5/gnutls28_3.7.3-4ubuntu1.5.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/gnutls28/3.7.3-4ubuntu1.5/gnutls28_3.7.3-4ubuntu1.5.debian.tar.xz#b96adcb580001b5d4347638517f20a467ed1a7a6fde74a645600df291653dc9b;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/gnutls28/3.7.3-4ubuntu1.5/gnutls28_3.7.3.orig.tar.xz.asc#a2f95ac5d7dd951bddef01ec9930616dd1a5226173b3dc7896b3bed411c91d9a;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/gnutls28/3.7.3-4ubuntu1.5/gnutls28_3.7.3.orig.tar.xz#fc59c43bc31ab20a6977ff083029277a31935b8355ce387b634fa433f8f6c49a
+- libgssapi-krb5-2 1.19.2-2ubuntu0.4 (source krb5 1.19.2-2ubuntu0.4)
+  License: LicenseRef-MIT-Kerberos
+  Notice/license: licenses/dynamic/libgssapi-krb5-2.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/krb5/1.19.2-2ubuntu0.4/krb5_1.19.2-2ubuntu0.4.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/krb5/1.19.2-2ubuntu0.4/krb5_1.19.2-2ubuntu0.4.debian.tar.xz#05b84abd0d1df14141ebaa882f4072d10322f12c5b2df69466ca84a535ee7994;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/krb5/1.19.2-2ubuntu0.4/krb5_1.19.2.orig.tar.gz#10453fee4e3a8f8ce6129059e5c050b8a65dab1c257df68b99b3112eaa0cdf6a
+- libhogweed6 3.7.3-1build2 (source nettle 3.7.3-1build2)
+  License: LGPL-3.0-or-later OR GPL-2.0-or-later
+  Notice/license: licenses/dynamic/libhogweed6.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/nettle/3.7.3-1build2/nettle_3.7.3-1build2.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/nettle/3.7.3-1build2/nettle_3.7.3-1build2.debian.tar.xz#ee9dda53e8a7c14ec91c3655fa59d685aa21873d1f279f8deaba4581880eba69;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/nettle/3.7.3-1build2/nettle_3.7.3.orig.tar.gz#661f5eb03f048a3b924c3a8ad2515d4068e40f67e774e8a26827658007e3bcf0
+- libidn2-0 2.3.2-2build1 (source libidn2 2.3.2-2build1)
+  License: LGPL-3.0-or-later OR GPL-2.0-or-later
+  Notice/license: licenses/dynamic/libidn2-0.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libidn2/2.3.2-2build1/libidn2_2.3.2.orig.tar.gz#76940cd4e778e8093579a9d195b25fff5e936e9dc6242068528b437a76764f91;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libidn2/2.3.2-2build1/libidn2_2.3.2.orig.tar.gz.asc#3d533d0b18e031e90fbee0e552e1a034ef0b5bb11298019f0b99c0c85132ff9a;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libidn2/2.3.2-2build1/libidn2_2.3.2-2build1.debian.tar.xz#4111fae48e55185111ea05a70618114aa6c76f440d384f5985008c0cab3a9132;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libidn2/2.3.2-2build1/libidn2_2.3.2-2build1.dsc#DSC-SIGNED-METADATA
+- libk5crypto3 1.19.2-2ubuntu0.4 (source krb5 1.19.2-2ubuntu0.4)
+  License: LicenseRef-MIT-Kerberos
+  Notice/license: licenses/dynamic/libk5crypto3.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/krb5/1.19.2-2ubuntu0.4/krb5_1.19.2-2ubuntu0.4.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/krb5/1.19.2-2ubuntu0.4/krb5_1.19.2-2ubuntu0.4.debian.tar.xz#05b84abd0d1df14141ebaa882f4072d10322f12c5b2df69466ca84a535ee7994;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/krb5/1.19.2-2ubuntu0.4/krb5_1.19.2.orig.tar.gz#10453fee4e3a8f8ce6129059e5c050b8a65dab1c257df68b99b3112eaa0cdf6a
+- libkeyutils1 1.6.1-2ubuntu3 (source keyutils 1.6.1-2ubuntu3)
+  License: LGPL-2.0-or-later
+  Notice/license: licenses/dynamic/libkeyutils1.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/keyutils/1.6.1-2ubuntu3/keyutils_1.6.1.orig.tar.bz2#c8b15722ae51d95b9ad76cc6d49a4c2cc19b0c60f72f61fb9bf43eea7cbd64ce;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/keyutils/1.6.1-2ubuntu3/keyutils_1.6.1-2ubuntu3.debian.tar.xz#e9e8992edcc28599fb59ca1dc9ecbfb6b35175fb712f86b13bf4dc35397631f9;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/keyutils/1.6.1-2ubuntu3/keyutils_1.6.1-2ubuntu3.dsc#DSC-SIGNED-METADATA
+- libkrb5-3 1.19.2-2ubuntu0.4 (source krb5 1.19.2-2ubuntu0.4)
+  License: LicenseRef-MIT-Kerberos
+  Notice/license: licenses/dynamic/libkrb5-3.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/krb5/1.19.2-2ubuntu0.4/krb5_1.19.2-2ubuntu0.4.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/krb5/1.19.2-2ubuntu0.4/krb5_1.19.2-2ubuntu0.4.debian.tar.xz#05b84abd0d1df14141ebaa882f4072d10322f12c5b2df69466ca84a535ee7994;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/krb5/1.19.2-2ubuntu0.4/krb5_1.19.2.orig.tar.gz#10453fee4e3a8f8ce6129059e5c050b8a65dab1c257df68b99b3112eaa0cdf6a
+- libkrb5support0 1.19.2-2ubuntu0.4 (source krb5 1.19.2-2ubuntu0.4)
+  License: LicenseRef-MIT-Kerberos
+  Notice/license: licenses/dynamic/libkrb5support0.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/krb5/1.19.2-2ubuntu0.4/krb5_1.19.2-2ubuntu0.4.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/krb5/1.19.2-2ubuntu0.4/krb5_1.19.2-2ubuntu0.4.debian.tar.xz#05b84abd0d1df14141ebaa882f4072d10322f12c5b2df69466ca84a535ee7994;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/krb5/1.19.2-2ubuntu0.4/krb5_1.19.2.orig.tar.gz#10453fee4e3a8f8ce6129059e5c050b8a65dab1c257df68b99b3112eaa0cdf6a
+- libldap-2.5-0 2.5.18+dfsg-0ubuntu0.22.04.3 (source openldap 2.5.18+dfsg-0ubuntu0.22.04.3)
+  License: LicenseRef-OpenLDAP-2.8
+  Notice/license: licenses/dynamic/libldap-2.5-0.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/openldap/2.5.18+dfsg-0ubuntu0.22.04.3/openldap_2.5.18+dfsg-0ubuntu0.22.04.3.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/openldap/2.5.18+dfsg-0ubuntu0.22.04.3/openldap_2.5.18+dfsg-0ubuntu0.22.04.3.debian.tar.xz#32ce21da17662566729699dd3b521f0029206586619ce302c336a0be70a3bbdb;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/openldap/2.5.18+dfsg-0ubuntu0.22.04.3/openldap_2.5.18+dfsg.orig.tar.gz#862ed229656836dc8d900b2124c45062c1ca723bf378746f6eaecb8abb5678b9
+- libnettle8 3.7.3-1build2 (source nettle 3.7.3-1build2)
+  License: LGPL-3.0-or-later OR GPL-2.0-or-later
+  Notice/license: licenses/dynamic/libnettle8.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/nettle/3.7.3-1build2/nettle_3.7.3-1build2.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/nettle/3.7.3-1build2/nettle_3.7.3-1build2.debian.tar.xz#ee9dda53e8a7c14ec91c3655fa59d685aa21873d1f279f8deaba4581880eba69;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/nettle/3.7.3-1build2/nettle_3.7.3.orig.tar.gz#661f5eb03f048a3b924c3a8ad2515d4068e40f67e774e8a26827658007e3bcf0
+- libnghttp2-14 1.43.0-1ubuntu0.2 (source nghttp2 1.43.0-1ubuntu0.2)
+  License: MIT
+  Notice/license: licenses/dynamic/libnghttp2-14.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/nghttp2/1.43.0-1ubuntu0.2/nghttp2_1.43.0-1ubuntu0.2.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/nghttp2/1.43.0-1ubuntu0.2/nghttp2_1.43.0-1ubuntu0.2.debian.tar.xz#4517ea82d0a218a4a4c870724f9498b88bf3d8971113ebc746bf24a0df12af22;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/nghttp2/1.43.0-1ubuntu0.2/nghttp2_1.43.0.orig.tar.bz2#556f24653397c71ebb8270b3c5e5507f0893e6eac2c6eeda6be2ecf6e1f50f62
+- libp11-kit0 0.24.0-6build1 (source p11-kit 0.24.0-6build1)
+  License: BSD-3-Clause
+  Notice/license: licenses/dynamic/libp11-kit0.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/p11-kit/0.24.0-6build1/p11-kit_0.24.0-6build1.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/p11-kit/0.24.0-6build1/p11-kit_0.24.0-6build1.debian.tar.xz#885af30d506c1b29b094f928ba31cdf9acdc64bfad6f3064f7c4fd4b275ee857;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/p11-kit/0.24.0-6build1/p11-kit_0.24.0.orig.tar.xz.asc#f9996976ae08e48ac652d2aad3f0528a75f87eaa6c17cf076ec00e7ce2fbaeed;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/p11-kit/0.24.0-6build1/p11-kit_0.24.0.orig.tar.xz#81e6140584f635e4e956a1b93a32239acf3811ff5b2d3a5c6094e94e99d2c685
+- libpsl5 0.21.0-1.2build2 (source libpsl 0.21.0-1.2build2)
+  License: MIT
+  Notice/license: licenses/dynamic/libpsl5.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libpsl/0.21.0-1.2build2/libpsl_0.21.0.orig.tar.gz#055aa87ec166c7afb985d0816c07ff440e1eb899881a318c51c69a0aeea8e279;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libpsl/0.21.0-1.2build2/libpsl_0.21.0-1.2build2.debian.tar.xz#4ab5fc2819b8592be9822a13dab8fd5fb8b3fa862c11f6e15d576679589a8e36;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libpsl/0.21.0-1.2build2/libpsl_0.21.0-1.2build2.dsc#DSC-SIGNED-METADATA
+- librtmp1 2.4+20151223.gitfa8646d.1-2build4 (source rtmpdump 2.4+20151223.gitfa8646d.1-2build4)
+  License: LGPL-2.1-or-later
+  Notice/license: licenses/dynamic/librtmp1.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/rtmpdump/2.4+20151223.gitfa8646d.1-2build4/rtmpdump_2.4+20151223.gitfa8646d.1-2build4.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/rtmpdump/2.4+20151223.gitfa8646d.1-2build4/rtmpdump_2.4+20151223.gitfa8646d.1-2build4.debian.tar.xz#e6fe0958bdea80d75d643cc2cb95c9c57c2b7855f646e3be476e713770ed6269;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/rtmpdump/2.4+20151223.gitfa8646d.1-2build4/rtmpdump_2.4+20151223.gitfa8646d.1.orig.tar.gz#5c032f5c8cc2937eb55a81a94effdfed3b0a0304b6376147b86f951e225e3ab5
+- libsasl2-2 2.1.27+dfsg2-3ubuntu1.2 (source cyrus-sasl2 2.1.27+dfsg2-3ubuntu1.2)
+  License: BSD-4-Clause
+  Notice/license: licenses/dynamic/libsasl2-2.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/cyrus-sasl2/2.1.27+dfsg2-3ubuntu1.2/cyrus-sasl2_2.1.27+dfsg2-3ubuntu1.2.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/cyrus-sasl2/2.1.27+dfsg2-3ubuntu1.2/cyrus-sasl2_2.1.27+dfsg2-3ubuntu1.2.debian.tar.xz#1b152ebdeb96d901f801d286e4d3e5e78bcf262d4d3b9c937c216770aeaeb262;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/cyrus-sasl2/2.1.27+dfsg2-3ubuntu1.2/cyrus-sasl2_2.1.27+dfsg2.orig.tar.xz#f3d90671718e7dc1d46db7ccbad548d60ffe1edd1e9a620e5d3b779e6a0a9326
+- libssh-4 0.9.6-2ubuntu0.22.04.3 (source libssh 0.9.6-2ubuntu0.22.04.3)
+  License: LicenseRef-LGPL-2.1-or-later-with-OpenSSL-exception
+  Notice/license: licenses/dynamic/libssh-4.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libssh/0.9.6-2ubuntu0.22.04.3/libssh_0.9.6-2ubuntu0.22.04.3.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libssh/0.9.6-2ubuntu0.22.04.3/libssh_0.9.6-2ubuntu0.22.04.3.debian.tar.xz#76b37874ba544091e45d94bc7f84f0f59818288cf6768beae0ef1053a0c7ce7e;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libssh/0.9.6-2ubuntu0.22.04.3/libssh_0.9.6.orig.tar.xz.asc#050d4e532a614c20b4830ebc210bb28acee2ed458e694c8aedfe2ab152688298;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libssh/0.9.6-2ubuntu0.22.04.3/libssh_0.9.6.orig.tar.xz#86bcf885bd9b80466fe0e05453c58b877df61afa8ba947a58c356d7f0fab829b
+- libssl3 3.0.2-0ubuntu1.19 (source openssl 3.0.2-0ubuntu1.19)
+  License: Apache-2.0
+  Notice/license: licenses/dynamic/libssl3.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/openssl/3.0.2-0ubuntu1.19/openssl_3.0.2-0ubuntu1.19.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/openssl/3.0.2-0ubuntu1.19/openssl_3.0.2-0ubuntu1.19.debian.tar.xz#bc86f7e22e7d1d5df646d29993f7bd854eb597916da307f3a49378a00f0a1948;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/openssl/3.0.2-0ubuntu1.19/openssl_3.0.2.orig.tar.gz.asc#764d220aaa6d5e9c13b4239b61f3b8de57aa53fa8362f56ceeada0a10264a8f1;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/openssl/3.0.2-0ubuntu1.19/openssl_3.0.2.orig.tar.gz#98e91ccead4d4756ae3c9cde5e09191a8e586d9f4d50838e7ec09d6411dfdb63
+- libstdc++6 12.3.0-1ubuntu1~22.04 (source gcc-12 12.3.0-1ubuntu1~22.04)
+  License: GPL-3.0-or-later WITH GCC-exception-3.1
+  Notice/license: licenses/dynamic/libstdc++6.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/gcc-12/12.3.0-1ubuntu1~22.04/gcc-12_12.3.0-1ubuntu1~22.04.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/gcc-12/12.3.0-1ubuntu1~22.04/gcc-12_12.3.0-1ubuntu1~22.04.debian.tar.xz#023f6a9caf0d4ebc5b158f305802c22f6c49e51824fe62c7cce75b9b45bfecb4;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/gcc-12/12.3.0-1ubuntu1~22.04/gcc-12_12.3.0.orig.tar.gz#62b0fc89b6d41f9df2470d0fb4995f6ff5885f910518a2c6a44a6888ea5a9ea1
+- libtasn1-6 4.18.0-4build1 (source libtasn1-6 4.18.0-4build1)
+  License: LGPL-2.1-or-later
+  Notice/license: licenses/dynamic/libtasn1-6.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libtasn1-6/4.18.0-4build1/libtasn1-6_4.18.0-4build1.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libtasn1-6/4.18.0-4build1/libtasn1-6_4.18.0-4build1.debian.tar.xz#a5cf1f5bab3537d6fe25803e170ad3321c9a7451fd2769a16fb7f1890bd35abf;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libtasn1-6/4.18.0-4build1/libtasn1-6_4.18.0.orig.tar.gz.asc#68edccaf988071e0c0154495e82be0b783553a49762381435accc79f2fdb463d;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libtasn1-6/4.18.0-4build1/libtasn1-6_4.18.0.orig.tar.gz#4365c154953563d64c67a024b607d1ee75c6db76e0d0f65709ea80a334cd1898
+- libunistring2 1.0-1 (source libunistring 1.0-1)
+  License: LGPL-3.0-or-later OR GPL-2.0-or-later
+  Notice/license: licenses/dynamic/libunistring2.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libunistring/1.0-1/libunistring_1.0-1.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libunistring/1.0-1/libunistring_1.0.orig.tar.xz#5bab55b49f75d77ed26b257997e919b693f29fd4a1bc22e0e6e024c246c72741;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libunistring/1.0-1/libunistring_1.0-1.debian.tar.xz#7cf35dfd1de973ee3944930d215750c7de27ececd91616ad129ac5a238b1538f
+- libzstd1 1.4.8+dfsg-3build1 (source libzstd 1.4.8+dfsg-3build1)
+  License: LicenseRef-Ubuntu-libzstd-mixed
+  Notice/license: licenses/dynamic/libzstd1.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libzstd/1.4.8+dfsg-3build1/libzstd_1.4.8+dfsg-3build1.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libzstd/1.4.8+dfsg-3build1/libzstd_1.4.8+dfsg-3build1.debian.tar.xz#60d554776b4fbee2aa81eb9990cbe156636b1ec4e4213b73fd190057680241ba;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/libzstd/1.4.8+dfsg-3build1/libzstd_1.4.8+dfsg.orig.tar.xz#1e8ce5c4880a6d5bd8d3186e4186607dd19b64fc98a3877fc13aeefd566d67c5
+- zlib1g 1:1.2.11.dfsg-2ubuntu9.2 (source zlib 1:1.2.11.dfsg-2ubuntu9.2)
+  License: Zlib
+  Notice/license: licenses/dynamic/zlib1g.copyright; applicable licenses/common text
+  Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/zlib/1:1.2.11.dfsg-2ubuntu9.2/zlib_1.2.11.dfsg-2ubuntu9.2.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/zlib/1:1.2.11.dfsg-2ubuntu9.2/zlib_1.2.11.dfsg-2ubuntu9.2.debian.tar.xz#5678d0b3d1e609297e5a3dedfcb3474bab1cafe82c0c29aec2cef01e49a88d39;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/zlib/1:1.2.11.dfsg-2ubuntu9.2/zlib_1.2.11.dfsg.orig.tar.gz#80c481411a4fe8463aeb8270149a0e80bb9eaf7da44132b6e16f2b5af01bc899
+
+Static/compiled components:
+- tokenizers-cpp c586c52f93f7b060753bd2388eb96a105cb7374d
+  License: Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/tokenizers-cpp/LICENSE
+  Source: https://github.com/mlc-ai/tokenizers-cpp/tree/c586c52f93f7b060753bd2388eb96a105cb7374d
+- SentencePiece e0f0f966959108415183d6cbe7a9051ca8bc2da1
+  License: Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/sentencepiece/LICENSE
+  Source: https://github.com/google/sentencepiece/tree/e0f0f966959108415183d6cbe7a9051ca8bc2da1
+- Abseil (SentencePiece vendored) 255c84dadd029fd8ad25c5efb5933e47beaa00c7
+  License: Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/sentencepiece/abseil-cpp/LICENSE
+  Source: SentencePiece third_party/abseil-cpp
+- Darts clone (SentencePiece vendored) SentencePiece e0f0f966 snapshot
+  License: BSD-3-Clause
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/sentencepiece/darts_clone/LICENSE
+  Source: SentencePiece third_party/darts_clone
+- esaxx (SentencePiece vendored) SentencePiece e0f0f966 snapshot
+  License: MIT
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/sentencepiece/esaxx/LICENSE
+  Source: SentencePiece third_party/esaxx
+- protobuf-lite (SentencePiece vendored) SentencePiece e0f0f966 snapshot
+  License: BSD-3-Clause
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/sentencepiece/protobuf-lite/LICENSE
+  Source: SentencePiece third_party/protobuf-lite
+- msgpack-c 092bc69b6e815980bce7808595c914dd3a29f905
+  License: BSL-1.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/msgpack
+  Source: tokenizers-cpp msgpack submodule
+- cuDNN Frontend 1.11.0
+  License: MIT
+  Incorporated in: libexec/vrhino-real;libexec/vrhino-native-real
+  Notice: licenses/static/cudnn-frontend/LICENSE.txt
+  Source: https://github.com/NVIDIA/cudnn-frontend
+- Rust crate ahash 0.8.12
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/ahash-0.8.12
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate aho-corasick 1.1.5
+  License: Unlicense OR MIT
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/aho-corasick-1.1.5
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate base64 0.13.1
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/base64-0.13.1
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate bitflags 2.13.1
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/bitflags-2.13.1
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate castaway 0.2.4
+  License: MIT
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/castaway-0.2.4
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate cc 1.4.4
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/cc-1.4.4
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate cfg-if 1.0.4
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/cfg-if-1.0.4
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate compact_str 0.9.1
+  License: MIT
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/compact_str-0.9.1
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate crossbeam-deque 0.8.7
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/crossbeam-deque-0.8.7
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate crossbeam-epoch 0.9.20
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/crossbeam-epoch-0.9.20
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate crossbeam-utils 0.8.22
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/crossbeam-utils-0.8.22
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate darling 0.20.11
+  License: MIT
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/darling-0.20.11
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate darling_core 0.20.11
+  License: MIT
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/darling_core-0.20.11
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate darling_macro 0.20.11
+  License: MIT
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/darling_macro-0.20.11
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate dary_heap 0.3.9
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/dary_heap-0.3.9
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate derive_builder 0.20.2
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/derive_builder-0.20.2
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate derive_builder_core 0.20.2
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/derive_builder_core-0.20.2
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate derive_builder_macro 0.20.2
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/derive_builder_macro-0.20.2
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate either 1.18.0
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/either-1.18.0
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate esaxx-rs 0.1.10
+  License: Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/esaxx-rs-0.1.10
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate find-msvc-tools 0.1.11
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/find-msvc-tools-0.1.11
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate fnv 1.0.7
+  License: Apache-2.0 OR MIT
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/fnv-1.0.7
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate getrandom 0.3.4
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/getrandom-0.3.4
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate ident_case 1.0.1
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/ident_case-1.0.1
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate itertools 0.14.0
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/itertools-0.14.0
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate itoa 1.0.18
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/itoa-1.0.18
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate libc 0.2.189
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/libc-0.2.189
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate log 0.4.34
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/log-0.4.34
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate macro_rules_attribute 0.2.3
+  License: Apache-2.0 OR MIT OR Zlib
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/macro_rules_attribute-0.2.3
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate macro_rules_attribute-proc_macro 0.2.3
+  License: Apache-2.0 OR MIT OR Zlib
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/macro_rules_attribute-proc_macro-0.2.3
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate memchr 2.8.3
+  License: Unlicense OR MIT
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/memchr-2.8.3
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate minimal-lexical 0.2.1
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/minimal-lexical-0.2.1
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate monostate 0.1.18
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/monostate-0.1.18
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate monostate-impl 0.1.18
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/monostate-impl-0.1.18
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate nom 7.1.3
+  License: MIT
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/nom-7.1.3
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate once_cell 1.21.4
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/once_cell-1.21.4
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate onig 6.5.3
+  License: MIT
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/onig-6.5.3
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate onig_sys 69.9.3
+  License: MIT
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/onig_sys-69.9.3
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate paste 1.0.15
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/paste-1.0.15
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate pastey 0.2.3
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/pastey-0.2.3
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate pkg-config 0.3.34
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/pkg-config-0.3.34
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate ppv-lite86 0.2.21
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/ppv-lite86-0.2.21
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate proc-macro2 1.0.107
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/proc-macro2-1.0.107
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate quote 1.0.47
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/quote-1.0.47
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate r-efi 5.3.0
+  License: MIT OR Apache-2.0 OR LGPL-2.1-or-later
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/r-efi-5.3.0
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate rand 0.9.5
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/rand-0.9.5
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate rand_chacha 0.9.0
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/rand_chacha-0.9.0
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate rand_core 0.9.5
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/rand_core-0.9.5
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate rayon 1.12.0
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/rayon-1.12.0
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate rayon-cond 0.4.0
+  License: Apache-2.0 OR MIT
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/rayon-cond-0.4.0
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate rayon-core 1.13.0
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/rayon-core-1.13.0
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate regex 1.13.1
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/regex-1.13.1
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate regex-automata 0.4.18
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/regex-automata-0.4.18
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate regex-syntax 0.8.11
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/regex-syntax-0.8.11
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate rustversion 1.0.23
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/rustversion-1.0.23
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate ryu 1.0.23
+  License: Apache-2.0 OR BSL-1.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/ryu-1.0.23
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate serde 1.0.229
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/serde-1.0.229
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate serde_core 1.0.229
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/serde_core-1.0.229
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate serde_derive 1.0.229
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/serde_derive-1.0.229
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate serde_json 1.0.151
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/serde_json-1.0.151
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate shlex 2.0.1
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/shlex-2.0.1
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate smallvec 1.15.2
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/smallvec-1.15.2
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate spm_precompiled 0.1.4
+  License: Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/spm_precompiled-0.1.4
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate static_assertions 1.1.0
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/static_assertions-1.1.0
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate strsim 0.11.1
+  License: MIT
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/strsim-0.11.1
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate syn 2.0.119
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/syn-2.0.119
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate syn 3.0.4
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/syn-3.0.4
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate thiserror 2.0.20
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/thiserror-2.0.20
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate thiserror-impl 2.0.20
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/thiserror-impl-2.0.20
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate tokenizers 0.21.4
+  License: Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/tokenizers-0.21.4
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate tokenizers-c 0.1.0
+  License: Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/tokenizers-c-0.1.0
+  Source: tokenizers-c workspace
+- Rust crate unicode-ident 1.0.24
+  License: (MIT OR Apache-2.0) AND Unicode-3.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/unicode-ident-1.0.24
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate unicode-normalization-alignments 0.1.12
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/unicode-normalization-alignments-0.1.12
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate unicode-segmentation 1.13.3
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/unicode-segmentation-1.13.3
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate unicode_categories 0.1.1
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/unicode_categories-0.1.1
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate version_check 0.9.5
+  License: MIT OR Apache-2.0
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/version_check-0.9.5
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate wasip2 1.0.4+wasi-0.2.12
+  License: Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/wasip2-1.0.4+wasi-0.2.12
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate wit-bindgen 0.57.1
+  License: Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/wit-bindgen-0.57.1
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate zerocopy 0.8.56
+  License: BSD-2-Clause OR Apache-2.0 OR MIT
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/zerocopy-0.8.56
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate zerocopy-derive 0.8.56
+  License: BSD-2-Clause OR Apache-2.0 OR MIT
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/zerocopy-derive-0.8.56
+  Source: registry+https://github.com/rust-lang/crates.io-index
+- Rust crate zmij 1.0.23
+  License: MIT
+  Incorporated in: libexec/vrhino-real
+  Notice: licenses/static/rust/crates/zmij-1.0.23
+  Source: registry+https://github.com/rust-lang/crates.io-index
+
+The exact NVIDIA runtime object mapping is closed by the release component
+inventory. All 14 bundled NVIDIA objects are pristine; `libcuda.so.1` and the
+NVIDIA Driver remain host-provided and are not bundled.

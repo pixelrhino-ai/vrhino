@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "profile": "ltx-v0.9.1-production-standard-cfg-no-stg",
+  "inputs": {
+    "width": 704,
+    "height": 480,
+    "frames": 121,
+    "fps": 25,
+    "steps": 40,
+    "cfg": 3.0,
+    "stg_scale": 0.0,
+    "precision": "bfloat16",
+    "resolution_shift_min_tokens": 1024,
+    "resolution_shift_max_tokens": 4096,
+    "resolution_shift_min": 0.95,
+    "resolution_shift_max": 2.05
+  },
+  "components": {
+    "positive_conditioning": "positive-conditioning",
+    "negative_conditioning": "negative-conditioning"
+  },
+  "run": {
+    "default_seed": 5703,
+    "negative_prompt": "worst quality, inconsistent motion, blurry, jittery, distorted",
+    "execution_dtype": "bfloat16",
+    "precision_policy_artifact": "precision-policy",
+    "memory_runtime": {
+      "device_budget_bytes": 22548578304,
+      "activation_reserve_bytes": 2147483648,
+      "host_budget_bytes": 68719476736,
+      "host_staging_bytes": 2147483648,
+      "safety_margin_bytes": 1073741824
+    },
+    "runtime_inputs": [
+      {"target": "sampling_steps", "dtype": "i64", "source": "inputs.steps"},
+      {"target": "guidance_scale", "dtype": "f32", "source": "inputs.cfg"},
+      {"target": "resolution_shift_min_tokens", "dtype": "i64", "source": "inputs.resolution_shift_min_tokens"},
+      {"target": "resolution_shift_max_tokens", "dtype": "i64", "source": "inputs.resolution_shift_max_tokens"},
+      {"target": "resolution_shift_min", "dtype": "f32", "source": "inputs.resolution_shift_min"},
+      {"target": "resolution_shift_max", "dtype": "f32", "source": "inputs.resolution_shift_max"},
+      {"target": "decode_seed", "dtype": "i64", "source": "seed", "offset": 100},
+      {"target": "latent_grid", "dtype": "i64", "source": "literal", "shape": [3], "values": [16, 15, 22]}
+    ],
+    "derived_inputs": [
+      {"kind": "grid_coordinates_thw", "target": "coordinates", "grid_source": "latent_grid"}
+    ],
+    "components": [
+      {
+        "component_id": "positive-conditioning",
+        "text_source": "prompt",
+        "graph_artifact": "conditioning-graph",
+        "weights_index_artifact": "t5-index",
+        "weight_shards": {
+          "model-00001-of-00002.safetensors": "t5-shard-1",
+          "model-00002-of-00002.safetensors": "t5-shard-2"
+        },
+        "tokenizer_artifact": "tokenizer",
+        "tokenizer_spec": {
+          "format": "sentencepiece",
+          "max_length": 128,
+          "pad_id": 0,
+          "suffix_ids": [1],
+          "added_tokens": [
+            {"content": "<extra_id_0>", "id": 32099, "lstrip": true, "rstrip": true}
+          ]
+        },
+        "bindings": [
+          {"source": "hidden_states", "target": "positive"},
+          {"source": "attention_mask", "target": "positive_mask"}
+        ]
+      },
+      {
+        "component_id": "negative-conditioning",
+        "text_source": "negative_prompt",
+        "graph_artifact": "conditioning-graph",
+        "weights_index_artifact": "t5-index",
+        "weight_shards": {
+          "model-00001-of-00002.safetensors": "t5-shard-1",
+          "model-00002-of-00002.safetensors": "t5-shard-2"
+        },
+        "tokenizer_artifact": "tokenizer",
+        "tokenizer_spec": {
+          "format": "sentencepiece",
+          "max_length": 128,
+          "pad_id": 0,
+          "suffix_ids": [1],
+          "added_tokens": [
+            {"content": "<extra_id_0>", "id": 32099, "lstrip": true, "rstrip": true}
+          ]
+        },
+        "bindings": [
+          {"source": "hidden_states", "target": "negative"},
+          {"source": "attention_mask", "target": "negative_mask"}
+        ]
+      }
+    ],
+    "output": {
+      "layout": "BCTHW",
+      "range": [0.0, 1.0],
+      "channel_order": "RGB"
+    }
+  }
+}

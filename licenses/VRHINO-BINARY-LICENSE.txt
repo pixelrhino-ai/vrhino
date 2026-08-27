@@ -1,0 +1,43 @@
+VRhino Alpha Binary License
+
+Copyright (c) 2026 北京像素犀牛科技有限公司 (Pixel Rhino).
+All rights reserved in the proprietary VRhino components.
+
+1. Permission to Use
+
+Pixel Rhino grants you permission to download, install, and use the unmodified
+VRhino Alpha binary free of charge for personal and commercial purposes.
+
+2. Proprietary Software
+
+VRhino's Runtime and other Pixel Rhino binary components are proprietary
+software. No source-code rights are granted by this license.
+
+This license does not grant permission to redistribute, repackage, resell,
+sublicense, or provide the proprietary VRhino binary to third parties unless
+Pixel Rhino separately authorizes it in writing.
+
+3. Third-Party Components
+
+VRhino includes third-party components. Those components are governed by their
+own license terms and notices. Nothing in this license restricts rights granted
+under a third-party license, and Pixel Rhino does not claim ownership of those
+third-party components.
+
+4. Models and Content
+
+Model files, model packages, input content, and generated content may be
+subject to separate terms. This license grants no rights to them. You are
+responsible for reviewing and complying with applicable model and content
+terms.
+
+5. Alpha Software and Warranty
+
+VRhino Alpha is pre-release software. It may contain defects, may change, and
+compatibility is not guaranteed during the Alpha period.
+
+To the maximum extent permitted by applicable law, VRhino is provided "AS IS"
+and without warranties, express or implied, including warranties of
+merchantability, fitness for a particular purpose, and non-infringement.
+
+By downloading, installing, or using VRhino Alpha, you accept these terms.

@@ -1,0 +1,27 @@
+# Public repository hygiene
+*.key
+*.pem
+*.p12
+*.pfx
+*.partial
+*.vrm
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.mp4
+*.so
+*.so.*
+*.a
+*.o
+*.tar
+*.tar.gz
+*.tar.xz
+*.xz
+
+build/
+dist/
+cache/
+/models/
+sources/
+.vrhino/

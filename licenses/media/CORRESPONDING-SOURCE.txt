@@ -1,0 +1,49 @@
+VRhino FFmpeg/x264 Corresponding Source
+
+This release accompanies the shipped FFmpeg/x264 media binaries with the exact
+source archives and reconstruction evidence listed below.
+
+FFmpeg
+
+  Version: 4.4.2
+  Source: media/sources/ffmpeg/ffmpeg-4.4.2.tar.xz
+  SHA256: af419a7f88adbc56c758ab19b4c708afbcae15ef09606b82b855291f6a6faa93
+  License information: media/licenses/ffmpeg/LICENSE.md
+  GPL text: media/licenses/ffmpeg/COPYING.GPLv2
+
+x264
+
+  Revision: 5db6aa6cab1b146e07b60cc1736a01f21da01154
+  Source: media/sources/x264/x264-5db6aa6.tar.gz
+  SHA256: 1fa81a7eb4384803c59fb981502bc01ed21996e0c9b81a426168042fb5dcddd7
+  License text: media/licenses/x264/COPYING
+  Authors: media/licenses/x264/AUTHORS
+
+Build and configuration evidence
+
+  Reconstruction script: media/sources/build/build-media.sh
+  Build environment: media/sources/build/BUILD-ENVIRONMENT.txt
+  Source/build hashes: media/sources/SHA256SUMS
+  Exact configure flags and shipped binary hashes:
+    media/licenses/media-build.txt
+  Patch statement: media/sources/build/PATCHES.txt
+
+The reconstruction script accepts:
+
+  build-media.sh FFMPEG_TAR_XZ X264_TAR_GZ EMPTY_WORK_DIR PREFIX
+
+Local source patch status
+
+  No local source patches were applied to FFmpeg 4.4.2 or x264 revision
+  5db6aa6cab1b146e07b60cc1736a01f21da01154.
+
+Post-build packaging status
+
+  The retained build script records the relocatable RUNPATH operations applied
+  to the media executable and shared libraries. Release packaging names the
+  installed FFmpeg executable vrhino-ffmpeg. No additional generated or custom
+  source is required to reconstruct the shipped media binaries.
+
+Full FFmpeg and x264 license texts are located under media/licenses/ as listed
+above. The original source archives also contain their upstream license and
+copyright notices.

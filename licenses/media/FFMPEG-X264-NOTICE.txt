@@ -1,0 +1,41 @@
+VRhino FFmpeg/x264 Media Component Notice
+
+VRhino includes a separately executed media component based on FFmpeg 4.4.2.
+This FFmpeg build includes libx264 from x264 source revision:
+
+  5db6aa6cab1b146e07b60cc1736a01f21da01154
+
+The resulting FFmpeg build is distributed under GPL-2.0-or-later.
+The FFmpeg configuration enables GPL and libx264. It does NOT use
+--enable-nonfree.
+
+The proprietary VRhino Runtime does not directly link to libavcodec,
+libavformat, libavutil, libavfilter, libswscale, or libx264, and does not
+dynamically load them. VRhino executes vrhino-ffmpeg as a separate process and
+sends standard flat RGB24 video frames to its stdin pipe. This notice describes
+the engineering boundary; it does not change the license of the proprietary
+VRhino Runtime.
+
+Bundled license and copyright material:
+
+  media/licenses/ffmpeg/LICENSE.md
+  media/licenses/ffmpeg/COPYING.GPLv2
+  media/licenses/ffmpeg/COPYING.GPLv3
+  media/licenses/ffmpeg/COPYING.LGPLv2.1
+  media/licenses/ffmpeg/COPYING.LGPLv3
+  media/licenses/x264/COPYING
+  media/licenses/x264/AUTHORS
+  media/licenses/dynamic/
+
+Corresponding source and build material:
+
+  media/sources/ffmpeg/ffmpeg-4.4.2.tar.xz
+  media/sources/x264/x264-5db6aa6.tar.gz
+  media/sources/build/build-media.sh
+  media/sources/build/BUILD-ENVIRONMENT.txt
+  media/sources/build/PATCHES.txt
+  media/sources/SHA256SUMS
+  media/licenses/media-build.txt
+
+Rights in FFmpeg and x264 are governed by their applicable license terms and
+are not restricted by the proprietary VRhino license.

@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vrhino.ai/schema/model-package/v0",
+  "title": "VRhino Runnable Model Package v0",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "identity",
+    "compatibility",
+    "artifacts",
+    "entrypoint",
+    "defaults",
+    "hardware",
+    "source",
+    "license"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "identity": {
+      "type": "object",
+      "required": ["namespace", "name", "version", "architecture", "publisher"],
+      "properties": {
+        "namespace": {"$ref": "#/$defs/identifier"},
+        "name": {"$ref": "#/$defs/identifier"},
+        "version": {"$ref": "#/$defs/identifier"},
+        "architecture": {"$ref": "#/$defs/identifier"},
+        "publisher": {"type": "string", "minLength": 1}
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "required": ["runtime_contract", "vrm_schema"],
+      "properties": {
+        "runtime_contract": {"const": "cuda-v1"},
+        "vrm_schema": {
+          "type": "object",
+          "required": ["format_major", "format_minor", "metadata_schema"],
+          "properties": {
+            "format_major": {"const": 0},
+            "format_minor": {"const": 1},
+            "metadata_schema": {"const": 1}
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "role", "path", "size", "sha256", "required"],
+        "properties": {
+          "id": {"$ref": "#/$defs/identifier"},
+          "role": {"$ref": "#/$defs/identifier"},
+          "path": {"type": "string", "minLength": 1},
+          "size": {"type": "integer", "minimum": 0},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "required": {"type": "boolean"}
+        }
+      }
+    },
+    "entrypoint": {
+      "type": "object",
+      "required": ["runtime_artifact", "components", "default_preset"],
+      "properties": {
+        "runtime_artifact": {"$ref": "#/$defs/identifier"},
+        "default_preset": {"$ref": "#/$defs/identifier"},
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "kind", "artifacts"],
+            "properties": {
+              "id": {"$ref": "#/$defs/identifier"},
+              "kind": {"$ref": "#/$defs/identifier"},
+              "artifacts": {
+                "type": "array",
+                "items": {"$ref": "#/$defs/identifier"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "required": ["default_preset", "presets"],
+      "properties": {
+        "default_preset": {"$ref": "#/$defs/identifier"},
+        "presets": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "required": ["profile_artifact", "inputs"],
+            "properties": {
+              "profile_artifact": {"$ref": "#/$defs/identifier"},
+              "inputs": {"type": "object"}
+            }
+          }
+        }
+      }
+    },
+    "hardware": {
+      "type": "object",
+      "required": ["presets"],
+      "properties": {"presets": {"type": "object"}}
+    },
+    "source": {
+      "type": "object",
+      "required": ["repository", "revision", "converter_version"],
+      "properties": {
+        "repository": {"type": "string", "minLength": 1},
+        "revision": {"type": "string", "minLength": 1},
+        "converter_version": {"type": "string", "minLength": 1}
+      }
+    },
+    "license": {
+      "type": "object",
+      "required": ["identifier", "artifact", "upstream_notice"],
+      "properties": {
+        "identifier": {"type": "string", "minLength": 1},
+        "artifact": {"$ref": "#/$defs/identifier"},
+        "upstream_notice": {"type": "string", "minLength": 1}
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    }
+  }
+}
