@@ -1,7 +1,7 @@
 # VRhino Immutable Local Model Cache v0
 
-Status: product-layer contract v0. Phase 24C adds a network pull producer while
-preserving this cache layout and immutable publication contract.
+Status: product-layer contract v0. Network pull is a cache producer and
+preserves this cache layout and immutable publication contract.
 
 ## Root and layout
 
@@ -48,8 +48,8 @@ vrhino-model [--cache-root PATH] rm NAMESPACE/NAME:VERSION
 ```
 
 `vrhino-model install` remains the offline publisher/development primitive.
-The unified Phase 24C `vrhino pull/list/info/rm` commands reuse this exact cache
-implementation; the cache contract remains independent from Registry v0.
+The `vrhino pull/list/info/rm` commands reuse this exact cache implementation;
+the cache contract remains independent from Registry v0.
 
 ## Immutable atomic install
 

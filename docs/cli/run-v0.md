@@ -46,7 +46,7 @@ precision policy artifact, and output tensor contract. An installed package
 without that data remains valid for low-level execution but `run` fails closed
 as `PACKAGE_INVALID`.
 
-Package identities are immutable. The Phase 24B LTX package `1.0.0` was not
+Package identities are immutable. The earlier LTX package `1.0.0` was not
 silently changed; the complete prompt-runnable profile is published as
 `vrhino/ltx-video-v0.9.1:1.1.0`. The example profile is
 [examples/ltx-run-profile-v1.json](../../examples/ltx-run-profile-v1.json).
@@ -98,7 +98,5 @@ Product errors have a stable code and human message. Run adds
 ## Dependency boundary
 
 The complete run has zero Python, PyTorch, Diffusers, Transformers-Python, or
-official-reference environment dependency. The only subprocess is the native
-bundled encoder. The development validation used an FFmpeg 4.4.2 binary staged
-under the required sibling name; producing the relocatable Linux bundle is a
-separate distribution task.
+official-reference environment dependency. The only subprocess is the bundled
+native media encoder included in the Linux release.

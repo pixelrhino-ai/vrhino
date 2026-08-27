@@ -18,11 +18,11 @@ encoder and contains no model weights.
 The release was qualified on Ubuntu 22.04 with glibc 2.35. See
 `docs/alpha-limitations.md` for the exact scope.
 
-Phase 27B produced the following private release candidate for final review:
+Published release artifact:
 
 - archive: `vrhino-linux-x86_64-cuda-alpha.tar.gz`
 - SHA256: `7a3e290963fafb693201ef31f900f21c68c499a6f204733608622e24edc8273f`
 - compressed size: 1,403,141,130 bytes
 
-The archive and checksum will be attached only after an explicit publication
-decision. No artifact has been published by Phase 27B.
+The archive contains no model weights. Model artifacts are downloaded from the
+fixed upstream source and converted locally by `vrhino pull`.
