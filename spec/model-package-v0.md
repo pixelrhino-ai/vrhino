@@ -188,17 +188,17 @@ dependency.
 
 Remote artifact URLs are deliberately absent from this installed manifest.
 They live in the separate Registry v0 descriptor documented in
-[registry-v0.md](registry-v0.md), preserving package portability and Package
+[registry-v0.md](../docs/protocol/registry-v0.md), preserving package portability and Package
 schema 1.
 
 ## Native product-run declaration
 
-Package schema 1 remains unchanged for Phase 24D. A package selected by
+Package schema 1 remains unchanged. A package selected by
 `vrhino run` must point its preset at an `execution.profile` whose generic
 `run` declaration fully binds tokenizer assets/specification, conditioning
 components and outputs, Runtime inputs, precision policy, and output tensor
 contract. The complete contract and fail-closed behavior are documented in
-[run-v0.md](run-v0.md).
+[run-v0.md](../docs/cli/run-v0.md).
 
 The qualified Public Alpha package identity is
 `vrhino/ltx-video-v0.9.1:1.1.0`.
