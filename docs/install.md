@@ -52,6 +52,28 @@ vrhino device
 No `sudo`, repository clone, environment activation, or manual
 `LD_LIBRARY_PATH` configuration is required.
 
+## Model and cache location
+
+The VRhino binary installation and model storage are separate. The extracted
+release tree may remain under `~/.local/share/vrhino`, while models, downloads,
+and cache data default to `~/.vrhino`.
+
+Set `VRHINO_HOME` before pulling to place model/cache data on a larger
+filesystem:
+
+```bash
+export VRHINO_HOME=/mnt/large-disk/vrhino
+vrhino pull vrhino/ltx-video-v0.9.1:1.1.0
+```
+
+An explicit `--cache-root PATH` overrides `VRHINO_HOME`; otherwise
+`VRHINO_HOME` overrides the `~/.vrhino` default.
+
+Public Hugging Face downloads work anonymously. If an authenticated request is
+needed, set `HF_TOKEN`; VRhino sends it only as Bearer authorization for the
+request and does not print or persist it. The native HTTPS stack also honors
+the standard `HTTPS_PROXY` and `NO_PROXY` environment variables.
+
 ## Pull and run
 
 ```bash

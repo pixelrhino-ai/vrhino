@@ -5,8 +5,8 @@ preserves this cache layout and immutable publication contract.
 
 ## Root and layout
 
-The default root is `~/.vrhino`. `VRHINO_HOME` or the CLI's explicit
-`--cache-root` selects another root for testing or managed installations.
+The default root is `~/.vrhino`. The precedence is explicit `--cache-root`,
+then `VRHINO_HOME`, then `$HOME/.vrhino`.
 
 ```text
 ~/.vrhino/
@@ -24,6 +24,9 @@ The default root is `~/.vrhino`. `VRHINO_HOME` or the CLI's explicit
     manifests/<sha256>.json
     locks/package-*.lock
     locks/artifact-*.lock
+  sources/
+    blobs/sha256/<first-two-hex>/<full-64-hex-sha256>
+    trees/<provider-source-and-model-identity>/...
 ```
 
 Version directories are immutable references. Artifact bytes live once in the
@@ -108,6 +111,13 @@ directories containing unexpected data. It never deletes blobs, so shared
 content cannot be damaged. Automatic reference-counted garbage collection is
 out of scope for v0; orphan blobs are retained. A later explicit `gc` may scan
 all manifests and reclaim unreferenced digests.
+
+Source-backed conversion uses the separate `sources/` CAS while acquisition or
+conversion is incomplete. After a runnable package is atomically installed,
+pull removes only that model's materialized source tree, matching completed
+partials, and source blobs whose hard-link count proves they are unshared.
+Installed `blobs/` data and shared source blobs remain intact. This targeted
+source cleanup is not model-CAS garbage collection.
 
 Readers may run concurrently with an install because publication is atomic.
 Remote pull uses per-package and per-artifact advisory locks plus atomic rename,

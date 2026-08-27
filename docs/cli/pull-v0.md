@@ -1,8 +1,9 @@
 # VRhino Pull v0
 
-`vrhino pull` reliably moves one exact Runnable Model Package from Registry v0
-into the immutable Local Cache v0. Pull is product orchestration; Runtime,
-CUDA, architecture and `.vrm` semantics are untouched.
+`vrhino pull` reliably creates one exact Runnable Model Package from its fixed
+declarative source plan, or obtains a ready package from Registry v0, and
+publishes it into the immutable Local Cache v0. Pull is product orchestration;
+Runtime, CUDA, architecture and `.vrm` semantics are untouched.
 
 ## Transaction
 
@@ -53,6 +54,8 @@ digest is deleted and returns `CHECKSUM_MISMATCH`; it never enters `blobs/`.
 
 Network interruption preserves partial bytes. HTTP errors, certificate errors,
 unsupported schema, size/hash mismatch, and insufficient disk fail closed.
+A single Ctrl+C aborts the active transfer, preserves its partial, prevents
+later artifacts and conversion from starting, and exits with status 130.
 
 ## CAS and concurrency
 
@@ -77,10 +80,41 @@ Before each missing artifact, available cache-filesystem bytes are compared to
 the declared remaining bytes after a valid partial. Failure returns
 `INSUFFICIENT_DISK_SPACE` before transferring that artifact.
 
-Progress is stable line-oriented output suitable for terminals and logs. It
-reports artifact id, current/total bytes, integer percent and aggregate bytes.
-The completion summary reports exact identity, actual network bytes, CAS reused
-bytes, logical package size and installed cache path.
+Interactive terminals receive one aggregate in-place acquisition progress line
+with human-readable bytes, a progress bar, and percentage. Native conversion
+uses the same display, driven by actual bytes validated, written, and admitted.
+Redirected output contains no carriage returns or ANSI controls and reports
+only sparse percentage milestones.
+
+CAS admission and package publication use a separate `Finalizing` display,
+also driven by actual verified bytes. The completion summary reports
+resolution, acquisition, conversion, and installation/finalization time
+separately.
+
+## Source data after conversion
+
+Downloaded source data is retained after network, conversion, or installation
+failure so a retry does not force a full redownload. Only after the runnable
+package is atomically published and resolves successfully does pull remove the
+model's materialized source tree, matching completed partials, and source blobs
+proven unshared. Installed package CAS and shared source blobs remain intact.
+Pull reports a reclaimed-byte count when cleanup releases data.
+
+## Cache and network environment
+
+Cache-root precedence is:
+
+```text
+--cache-root PATH
+VRHINO_HOME
+$HOME/.vrhino
+```
+
+`VRHINO_HOME` changes model/cache storage, not the extracted VRhino binary
+installation. `HF_TOKEN` is optional; when set, it is sent only as Bearer
+authorization for Hugging Face artifact requests and is neither printed nor
+persisted. The native HTTPS stack honors standard `HTTPS_PROXY` and `NO_PROXY`
+settings.
 
 ## Stable errors
 
@@ -91,6 +125,7 @@ Pull adds these codes to Model Package v0 errors:
 - `DOWNLOAD_RESUME_FAILED`
 - `NETWORK_ERROR`
 - `INSUFFICIENT_DISK_SPACE`
+- `CANCELLED` (process exit status 130)
 
 Existing `PACKAGE_INVALID`, `PACKAGE_VERSION_UNSUPPORTED`, `ARTIFACT_MISSING`,
 `CHECKSUM_MISMATCH`, `INSTALL_FAILED`, and `CACHE_ERROR` remain authoritative.

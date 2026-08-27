@@ -91,6 +91,18 @@ The first pull downloads about 24.77 GB of original upstream model artifacts,
 converts them locally, and installs the runnable package in the local VRhino
 cache. The release archive itself contains no model weights.
 
+Model and cache data defaults to `~/.vrhino`. To use a larger filesystem, set
+`VRHINO_HOME` before pulling, for example:
+
+```bash
+export VRHINO_HOME=/mnt/large-disk/vrhino
+vrhino pull vrhino/ltx-video-v0.9.1:1.1.0
+```
+
+This does not change the VRhino binary installation directory. After a
+successful verified installation, pull reclaims source-only data that is no
+longer needed while preserving installed and shared CAS data.
+
 ## How it works
 
 `vrhino pull` downloads a fixed upstream model revision, verifies and caches

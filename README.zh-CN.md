@@ -87,6 +87,17 @@ vrhino run vrhino/ltx-video-v0.9.1:1.1.0 \
 首次拉取会从上游下载约 24.77 GB 的原始模型文件，在本机完成转换，并把可运行
 模型安装到 VRhino 本地缓存。VRhino 发布包本身不包含模型权重。
 
+模型与缓存数据默认保存在 `~/.vrhino`。如需使用更大的文件系统，可在拉取前设置
+`VRHINO_HOME`，例如：
+
+```bash
+export VRHINO_HOME=/mnt/large-disk/vrhino
+vrhino pull vrhino/ltx-video-v0.9.1:1.1.0
+```
+
+这不会改变 VRhino 二进制文件的安装目录。可运行包完成校验并成功安装后，pull
+会清理不再需要的源文件数据，同时保留已安装数据和共享 CAS 数据。
+
 ## 工作方式
 
 `vrhino pull` 下载固定的上游模型版本，校验并缓存源文件，在本机以原生转换器
