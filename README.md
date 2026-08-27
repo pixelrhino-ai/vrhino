@@ -28,7 +28,7 @@ comparable to llama.cpp today.
 
 ## Current Alpha
 
-The published release is **v0.1.0-alpha**.
+The published release is **v0.1.1-alpha**.
 
 - Platform: Linux x86_64
 - Backend: NVIDIA CUDA
@@ -43,17 +43,17 @@ Toolkit, cuDNN, or system FFmpeg.
 ## Install
 
 Download both the
-[release archive](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.1.0-alpha/vrhino-linux-x86_64-cuda-alpha.tar.gz)
+[release archive](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.1.1-alpha/vrhino-linux-x86_64-cuda-v0.1.1-alpha.tar.gz)
 and its
-[checksum file](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.1.0-alpha/vrhino-linux-x86_64-cuda-alpha.tar.gz.sha256)
-from [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.1.0-alpha).
+[checksum file](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.1.1-alpha/vrhino-linux-x86_64-cuda-v0.1.1-alpha.tar.gz.sha256)
+from [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.1.1-alpha).
 With both files in `~/Downloads`, run:
 
 ```bash
 cd "$HOME/Downloads"
-sha256sum -c vrhino-linux-x86_64-cuda-alpha.tar.gz.sha256
+sha256sum -c vrhino-linux-x86_64-cuda-v0.1.1-alpha.tar.gz.sha256
 mkdir -p "$HOME/.local/share"
-tar -xzf vrhino-linux-x86_64-cuda-alpha.tar.gz -C "$HOME/.local/share"
+tar -xzf vrhino-linux-x86_64-cuda-v0.1.1-alpha.tar.gz -C "$HOME/.local/share"
 printf '\nexport PATH="$HOME/.local/share/vrhino/bin:$PATH"\n' >> "$HOME/.profile"
 export PATH="$HOME/.local/share/vrhino/bin:$PATH"
 ```

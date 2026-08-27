@@ -1,3 +1,23 @@
+# VRhino v0.1.1-alpha
+
+New to VRhino? Start with the [installation guide](docs/install.md).
+
+This maintenance Alpha improves the `vrhino pull` experience and reliability.
+
+Highlights:
+
+- aggregate source acquisition, conversion, and finalization progress;
+- Ctrl+C cancellation with exit status 130 and resumable partial downloads;
+- hardened HTTP Range resume handling;
+- configurable model/cache root with `VRHINO_HOME`;
+- optional `HF_TOKEN` authentication; and
+- source-only cache reclamation after verified installation.
+
+Release archive: `vrhino-linux-x86_64-cuda-v0.1.1-alpha.tar.gz`
+
+The supported platform, CUDA v1 runtime contract, initial LTX model package,
+and fixed upstream model revision are unchanged from v0.1.0-alpha.
+
 # VRhino Linux CUDA Public Alpha
 
 New to VRhino? Start with the [installation guide](docs/install.md).
