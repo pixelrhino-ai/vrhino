@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.png" alt="VRhino" width="160">
+</p>
+
 # VRhino
 
 [English](README.md) | 简体中文
@@ -27,11 +31,13 @@ VRhino 转换
 
 ## 当前 Alpha
 
-当前公开版本是 **v0.1.1-alpha**。
+当前版本是 **v0.2.0-alpha**。
 
 - 平台：Linux x86_64
 - 后端：NVIDIA CUDA
-- 首个模型：`vrhino/ltx-video-v0.9.1:1.1.0`
+- 已验证的公开模型路径：
+  - `vrhino/ltx-video-v0.9.1:1.1.0`
+  - `vrhino/wan2.1-t2v-1.3b:1.0.0`
 - 已在 Ubuntu 22.04、glibc 2.35 环境验证
 - 除兼容的 NVIDIA 驱动外，所需用户态运行库均随 VRhino 提供
 
@@ -41,18 +47,18 @@ FFmpeg。
 
 ## 安装
 
-从 [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.1.1-alpha)
+从 [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.2.0-alpha)
 下载
-[发布包](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.1.1-alpha/vrhino-linux-x86_64-cuda-v0.1.1-alpha.tar.gz)
+[发布包](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.2.0-alpha/vrhino-linux-x86_64-cuda-v0.2.0-alpha.tar.gz)
 和对应的
-[校验文件](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.1.1-alpha/vrhino-linux-x86_64-cuda-v0.1.1-alpha.tar.gz.sha256)。
+[校验文件](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.2.0-alpha/vrhino-linux-x86_64-cuda-v0.2.0-alpha.tar.gz.sha256)。
 假设两个文件都在 `~/Downloads`，运行：
 
 ```bash
 cd "$HOME/Downloads"
-sha256sum -c vrhino-linux-x86_64-cuda-v0.1.1-alpha.tar.gz.sha256
+sha256sum -c vrhino-linux-x86_64-cuda-v0.2.0-alpha.tar.gz.sha256
 mkdir -p "$HOME/.local/share"
-tar -xzf vrhino-linux-x86_64-cuda-v0.1.1-alpha.tar.gz -C "$HOME/.local/share"
+tar -xzf vrhino-linux-x86_64-cuda-v0.2.0-alpha.tar.gz -C "$HOME/.local/share"
 printf '\nexport PATH="$HOME/.local/share/vrhino/bin:$PATH"\n' >> "$HOME/.profile"
 export PATH="$HOME/.local/share/vrhino/bin:$PATH"
 ```
@@ -70,7 +76,12 @@ vrhino device
 
 ## 快速开始
 
-先拉取当前支持的模型：
+当前 Public Alpha 支持两个已验证的模型路径：
+
+- `vrhino/ltx-video-v0.9.1:1.1.0`
+- `vrhino/wan2.1-t2v-1.3b:1.0.0`
+
+拉取一个确定的模型包，例如：
 
 ```bash
 vrhino pull vrhino/ltx-video-v0.9.1:1.1.0
@@ -84,8 +95,9 @@ vrhino run vrhino/ltx-video-v0.9.1:1.1.0 \
   --output output.mp4
 ```
 
-首次拉取会从上游下载约 24.77 GB 的原始模型文件，在本机完成转换，并把可运行
-模型安装到 VRhino 本地缓存。VRhino 发布包本身不包含模型权重。
+首次拉取会从模型的固定上游版本下载原始文件，在本机完成转换，并把可运行模型
+安装到 VRhino 本地缓存。LTX 源数据约为 24.77 GB，Wan 源数据约为 16.36 GiB。
+VRhino 发布包本身不包含模型权重。
 
 模型与缓存数据默认保存在 `~/.vrhino`。如需使用更大的文件系统，可在拉取前设置
 `VRHINO_HOME`，例如：
@@ -111,14 +123,15 @@ vrhino pull vrhino/ltx-video-v0.9.1:1.1.0
 - [`pull` 命令](docs/cli/pull-v0.md)
 - [`run` 命令](docs/cli/run-v0.md)
 - [LTX-Video v0.9.1 来源与许可证说明](docs/models/ltx-video-v0.9.1.md)
+- [Wan2.1 T2V 1.3B 来源与许可证说明](docs/models/wan2.1-t2v-1.3b.md)
 - [VRM 格式规范](spec/vrm-v0.1.md)
 - [可运行模型包规范](spec/model-package-v0.md)
 
 ## Alpha 限制
 
-当前版本支持 Linux x86_64、NVIDIA CUDA 后端和首个已验证的 LTX 模型路径。
-它不声称支持所有 NVIDIA GPU、所有 Linux 发行版或所有视频模型架构。Alpha
-期间接口和兼容性可能发生变化。
+当前版本支持 Linux x86_64、NVIDIA CUDA 后端，以及上面列出的两个确定且已
+验证的模型路径。它不声称支持所有 NVIDIA GPU、所有 Linux 发行版、所有 Wan
+检查点或所有视频模型架构。Alpha 期间接口和兼容性可能发生变化。
 
 详情见 [Alpha 限制](docs/alpha-limitations.md)。
 

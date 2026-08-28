@@ -1,3 +1,23 @@
+# VRhino v0.2.0-alpha
+
+New to VRhino? Start with the [installation guide](docs/install.md).
+
+This Alpha adds Wan2.1 T2V 1.3B as the second public model path.
+
+Public models:
+
+- `vrhino/ltx-video-v0.9.1:1.1.0`
+- `vrhino/wan2.1-t2v-1.3b:1.0.0`
+
+Wan is acquired from its fixed official upstream revision and converted
+locally using the native VRhino converter. The release archive contains no
+model weights or converted `.vrm` model payloads.
+
+Release archive: `vrhino-linux-x86_64-cuda-v0.2.0-alpha.tar.gz`
+
+The self-contained Linux x86_64 CUDA boundary and CUDA v1 runtime contract are
+unchanged from v0.1.1-alpha.
+
 # VRhino v0.1.1-alpha
 
 New to VRhino? Start with the [installation guide](docs/install.md).

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.png" alt="VRhino" width="160">
+</p>
+
 # VRhino
 
 English | [简体中文](README.zh-CN.md)
@@ -28,11 +32,13 @@ comparable to llama.cpp today.
 
 ## Current Alpha
 
-The published release is **v0.1.1-alpha**.
+The current release is **v0.2.0-alpha**.
 
 - Platform: Linux x86_64
 - Backend: NVIDIA CUDA
-- Initial model: `vrhino/ltx-video-v0.9.1:1.1.0`
+- Qualified public model paths:
+  - `vrhino/ltx-video-v0.9.1:1.1.0`
+  - `vrhino/wan2.1-t2v-1.3b:1.0.0`
 - Qualified on Ubuntu 22.04 with glibc 2.35
 - Self-contained above the compatible NVIDIA Driver boundary
 
@@ -43,17 +49,17 @@ Toolkit, cuDNN, or system FFmpeg.
 ## Install
 
 Download both the
-[release archive](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.1.1-alpha/vrhino-linux-x86_64-cuda-v0.1.1-alpha.tar.gz)
+[release archive](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.2.0-alpha/vrhino-linux-x86_64-cuda-v0.2.0-alpha.tar.gz)
 and its
-[checksum file](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.1.1-alpha/vrhino-linux-x86_64-cuda-v0.1.1-alpha.tar.gz.sha256)
-from [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.1.1-alpha).
+[checksum file](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.2.0-alpha/vrhino-linux-x86_64-cuda-v0.2.0-alpha.tar.gz.sha256)
+from [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.2.0-alpha).
 With both files in `~/Downloads`, run:
 
 ```bash
 cd "$HOME/Downloads"
-sha256sum -c vrhino-linux-x86_64-cuda-v0.1.1-alpha.tar.gz.sha256
+sha256sum -c vrhino-linux-x86_64-cuda-v0.2.0-alpha.tar.gz.sha256
 mkdir -p "$HOME/.local/share"
-tar -xzf vrhino-linux-x86_64-cuda-v0.1.1-alpha.tar.gz -C "$HOME/.local/share"
+tar -xzf vrhino-linux-x86_64-cuda-v0.2.0-alpha.tar.gz -C "$HOME/.local/share"
 printf '\nexport PATH="$HOME/.local/share/vrhino/bin:$PATH"\n' >> "$HOME/.profile"
 export PATH="$HOME/.local/share/vrhino/bin:$PATH"
 ```
@@ -73,7 +79,12 @@ somewhere other than `~/Downloads`.
 
 ## Quick Start
 
-Pull the initial supported model:
+Supported Public Alpha models:
+
+- `vrhino/ltx-video-v0.9.1:1.1.0`
+- `vrhino/wan2.1-t2v-1.3b:1.0.0`
+
+Pull one exact model package, for example:
 
 ```bash
 vrhino pull vrhino/ltx-video-v0.9.1:1.1.0
@@ -87,9 +98,10 @@ vrhino run vrhino/ltx-video-v0.9.1:1.1.0 \
   --output output.mp4
 ```
 
-The first pull downloads about 24.77 GB of original upstream model artifacts,
-converts them locally, and installs the runnable package in the local VRhino
-cache. The release archive itself contains no model weights.
+The first pull downloads the original artifacts from the model's fixed
+upstream revision, converts them locally, and installs the runnable package in
+the local VRhino cache. The source acquisition is about 24.77 GB for LTX and
+16.36 GiB for Wan. The release archive itself contains no model weights.
 
 Model and cache data defaults to `~/.vrhino`. To use a larger filesystem, set
 `VRHINO_HOME` before pulling, for example:
@@ -117,15 +129,16 @@ the shared native runtime and writes an MP4 using the bundled media component.
 - [`pull` command](docs/cli/pull-v0.md)
 - [`run` command](docs/cli/run-v0.md)
 - [LTX-Video v0.9.1 source and license notice](docs/models/ltx-video-v0.9.1.md)
+- [Wan2.1 T2V 1.3B source and license notice](docs/models/wan2.1-t2v-1.3b.md)
 - [VRM format specification](spec/vrm-v0.1.md)
 - [Runnable model package specification](spec/model-package-v0.md)
 
 ## Alpha limitations
 
-This release supports Linux x86_64, the NVIDIA CUDA backend, and the initial
-qualified LTX model path. It does not claim support for every NVIDIA GPU,
-Linux distribution, or video-model architecture. Interfaces and compatibility
-may change during Alpha.
+This release supports Linux x86_64, the NVIDIA CUDA backend, and the two exact
+qualified model paths listed above. It does not claim support for every NVIDIA
+GPU, Linux distribution, Wan checkpoint, or video-model architecture.
+Interfaces and compatibility may change during Alpha.
 
 See [Alpha limitations](docs/alpha-limitations.md) for details.
 

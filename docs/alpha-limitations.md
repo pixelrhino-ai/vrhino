@@ -1,14 +1,15 @@
 # Public Alpha Limitations
 
-The initial Public Alpha has the following qualified scope:
+The Public Alpha has the following qualified scope:
 
 - Linux x86_64 only;
 - glibc 2.35 or newer;
 - NVIDIA CUDA backend only;
 - qualified on Ubuntu 22.04;
 - compatible NVIDIA GPU and Driver required;
-- the first ordinary-user product path is qualified for
-  `vrhino/ltx-video-v0.9.1:1.1.0`;
+- ordinary-user product paths are qualified for exactly
+  `vrhino/ltx-video-v0.9.1:1.1.0` and
+  `vrhino/wan2.1-t2v-1.3b:1.0.0`;
 - model acquisition may download tens of gigabytes;
 - first-time local conversion and installation can take time and require
   substantial temporary disk space; and
@@ -22,6 +23,7 @@ This Alpha does not claim:
 - support for every NVIDIA GPU;
 - Windows or macOS support;
 - production/stable readiness;
+- support for every Wan checkpoint or generation;
 - support for every video-model architecture; or
 - model redistribution or usage rights.
 

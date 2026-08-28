@@ -1,4 +1,4 @@
-# Install VRhino v0.1.1-alpha
+# Install VRhino v0.2.0-alpha
 
 ## Requirements
 
@@ -19,18 +19,18 @@ Driver remains required.
 ## Download and install
 
 Download these two files from the
-[v0.1.1-alpha release](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.1.1-alpha):
+[v0.2.0-alpha release](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.2.0-alpha):
 
-- `vrhino-linux-x86_64-cuda-v0.1.1-alpha.tar.gz`
-- `vrhino-linux-x86_64-cuda-v0.1.1-alpha.tar.gz.sha256`
+- `vrhino-linux-x86_64-cuda-v0.2.0-alpha.tar.gz`
+- `vrhino-linux-x86_64-cuda-v0.2.0-alpha.tar.gz.sha256`
 
 If both files are in `~/Downloads`, run:
 
 ```bash
 cd "$HOME/Downloads"
-sha256sum -c vrhino-linux-x86_64-cuda-v0.1.1-alpha.tar.gz.sha256
+sha256sum -c vrhino-linux-x86_64-cuda-v0.2.0-alpha.tar.gz.sha256
 mkdir -p "$HOME/.local/share"
-tar -xzf vrhino-linux-x86_64-cuda-v0.1.1-alpha.tar.gz -C "$HOME/.local/share"
+tar -xzf vrhino-linux-x86_64-cuda-v0.2.0-alpha.tar.gz -C "$HOME/.local/share"
 printf '\nexport PATH="$HOME/.local/share/vrhino/bin:$PATH"\n' >> "$HOME/.profile"
 export PATH="$HOME/.local/share/vrhino/bin:$PATH"
 ```
@@ -84,10 +84,22 @@ vrhino run vrhino/ltx-video-v0.9.1:1.1.0 \
   --output output.mp4
 ```
 
-The initial LTX pull downloads about 24.77 GB. Allow additional disk space for
-the source cache, local conversion, and installed runnable package. Supported
-interrupted HTTP downloads can resume.
+The other qualified model path is:
+
+```bash
+vrhino pull vrhino/wan2.1-t2v-1.3b:1.0.0
+
+vrhino run vrhino/wan2.1-t2v-1.3b:1.0.0 \
+  --prompt "a rhinoceros walking through a snowy forest" \
+  --output wan-output.mp4
+```
+
+The initial LTX pull downloads about 24.77 GB; the Wan source acquisition is
+about 16.36 GiB. Allow additional disk space for source data, local conversion,
+and the installed runnable package. Supported interrupted HTTP downloads can
+resume.
 
 The release contains no model weights. Review the
 [upstream LTX model terms](models/ltx-video-v0.9.1.md) before pulling or using
-the model.
+that model, and the [Wan source and license notice](models/wan2.1-t2v-1.3b.md)
+before pulling or using Wan.
