@@ -1,3 +1,27 @@
+# VRhino v0.3.1-alpha
+
+This maintenance Alpha improves run readiness checks and support diagnostics.
+
+Highlights:
+
+- `vrhino run` now checks currently available VRAM for presets with declared
+  admission thresholds;
+- invalid output destinations and bundled encoder failures are detected before
+  expensive model execution; and
+- new `vrhino doctor [MODEL]` provides privacy-safe local diagnostics for
+  system, GPU, cache, media, and model package readiness.
+
+Public model support is unchanged:
+
+- `vrhino/ltx-video-v0.9.1:1.1.0`
+- `vrhino/wan2.1-t2v-1.3b:1.0.0`
+- `vrhino/mochi-1-preview:1.0.0`
+
+Release archive: `vrhino-linux-x86_64-cuda-v0.3.1-alpha.tar.gz`
+
+The self-contained Linux x86_64 CUDA and CUDA v1 Runtime boundaries are
+unchanged.
+
 # VRhino v0.3.0-alpha
 
 This Alpha adds Mochi 1 Preview as the third public model path.

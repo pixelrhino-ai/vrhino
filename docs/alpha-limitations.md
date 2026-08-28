@@ -30,6 +30,12 @@ This Alpha does not claim:
 
 Model and content licenses are independent from the VRhino binary license.
 
+For presets with a declared VRAM admission threshold, `vrhino run` checks
+currently available memory on the selected GPU before expensive execution.
+Invalid or unwritable output destinations and a missing or unusable bundled
+media encoder also fail during preflight. These checks establish deterministic
+readiness conditions; they do not guarantee that inference will complete.
+
 The current qualified Mochi default preset is admitted only when VRhino's
 planner sees at least 80 GiB of available device memory. This is the current
 product support and admission threshold for that preset, not an empirically

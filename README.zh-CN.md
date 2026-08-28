@@ -31,7 +31,7 @@ VRhino 转换
 
 ## 当前 Alpha
 
-当前版本是 **v0.3.0-alpha**。
+当前版本是 **v0.3.1-alpha**。
 
 - 平台：Linux x86_64
 - 后端：NVIDIA CUDA
@@ -48,18 +48,18 @@ FFmpeg。
 
 ## 安装
 
-从 [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.3.0-alpha)
+从 [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.3.1-alpha)
 下载
-[发布包](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.3.0-alpha/vrhino-linux-x86_64-cuda-v0.3.0-alpha.tar.gz)
+[发布包](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.3.1-alpha/vrhino-linux-x86_64-cuda-v0.3.1-alpha.tar.gz)
 和对应的
-[校验文件](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.3.0-alpha/vrhino-linux-x86_64-cuda-v0.3.0-alpha.tar.gz.sha256)。
+[校验文件](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.3.1-alpha/vrhino-linux-x86_64-cuda-v0.3.1-alpha.tar.gz.sha256)。
 假设两个文件都在 `~/Downloads`，运行：
 
 ```bash
 cd "$HOME/Downloads"
-sha256sum -c vrhino-linux-x86_64-cuda-v0.3.0-alpha.tar.gz.sha256
+sha256sum -c vrhino-linux-x86_64-cuda-v0.3.1-alpha.tar.gz.sha256
 mkdir -p "$HOME/.local/share"
-tar -xzf vrhino-linux-x86_64-cuda-v0.3.0-alpha.tar.gz -C "$HOME/.local/share"
+tar -xzf vrhino-linux-x86_64-cuda-v0.3.1-alpha.tar.gz -C "$HOME/.local/share"
 printf '\nexport PATH="$HOME/.local/share/vrhino/bin:$PATH"\n' >> "$HOME/.profile"
 export PATH="$HOME/.local/share/vrhino/bin:$PATH"
 ```
@@ -70,6 +70,7 @@ export PATH="$HOME/.local/share/vrhino/bin:$PATH"
 ```bash
 vrhino --version
 vrhino device
+vrhino doctor
 ```
 
 安装不需要 `sudo`，也不需要克隆仓库。如果浏览器没有把文件保存到
@@ -104,6 +105,9 @@ Mochi 源数据约为 37.28 GiB。VRhino 发布包本身不包含模型权重。
 `vrhino pull` 默认优先使用 Hugging Face 官方端点；当官方端点不可用时，
 VRhino 可能自动回退到第三方镜像完成公开模型下载。
 
+如需生成便于提交给支持人员的隐私安全本地诊断报告，可运行 `vrhino doctor`
+或 `vrhino doctor MODEL`。该命令不会上传遥测，也不会自动发起网络诊断请求。
+
 模型与缓存数据默认保存在 `~/.vrhino`。如需使用更大的文件系统，可在拉取前设置
 `VRHINO_HOME`，例如：
 
@@ -127,6 +131,7 @@ vrhino pull vrhino/ltx-video-v0.9.1:1.1.0
 - [模型命令](docs/cli/model-cli-v0.md)
 - [`pull` 命令](docs/cli/pull-v0.md)
 - [`run` 命令](docs/cli/run-v0.md)
+- [`doctor` 诊断命令](docs/cli/doctor-v0.md)
 - [LTX-Video v0.9.1 来源与许可证说明](docs/models/ltx-video-v0.9.1.md)
 - [Wan2.1 T2V 1.3B 来源与许可证说明](docs/models/wan2.1-t2v-1.3b.md)
 - [Mochi 1 Preview 来源与许可证说明](docs/models/mochi-1-preview.md)

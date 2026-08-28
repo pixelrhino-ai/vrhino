@@ -32,7 +32,7 @@ comparable to llama.cpp today.
 
 ## Current Alpha
 
-The current release is **v0.3.0-alpha**.
+The current release is **v0.3.1-alpha**.
 
 - Platform: Linux x86_64
 - Backend: NVIDIA CUDA
@@ -50,17 +50,17 @@ Toolkit, cuDNN, or system FFmpeg.
 ## Install
 
 Download both the
-[release archive](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.3.0-alpha/vrhino-linux-x86_64-cuda-v0.3.0-alpha.tar.gz)
+[release archive](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.3.1-alpha/vrhino-linux-x86_64-cuda-v0.3.1-alpha.tar.gz)
 and its
-[checksum file](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.3.0-alpha/vrhino-linux-x86_64-cuda-v0.3.0-alpha.tar.gz.sha256)
-from [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.3.0-alpha).
+[checksum file](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.3.1-alpha/vrhino-linux-x86_64-cuda-v0.3.1-alpha.tar.gz.sha256)
+from [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.3.1-alpha).
 With both files in `~/Downloads`, run:
 
 ```bash
 cd "$HOME/Downloads"
-sha256sum -c vrhino-linux-x86_64-cuda-v0.3.0-alpha.tar.gz.sha256
+sha256sum -c vrhino-linux-x86_64-cuda-v0.3.1-alpha.tar.gz.sha256
 mkdir -p "$HOME/.local/share"
-tar -xzf vrhino-linux-x86_64-cuda-v0.3.0-alpha.tar.gz -C "$HOME/.local/share"
+tar -xzf vrhino-linux-x86_64-cuda-v0.3.1-alpha.tar.gz -C "$HOME/.local/share"
 printf '\nexport PATH="$HOME/.local/share/vrhino/bin:$PATH"\n' >> "$HOME/.profile"
 export PATH="$HOME/.local/share/vrhino/bin:$PATH"
 ```
@@ -72,6 +72,7 @@ directory:
 ```bash
 vrhino --version
 vrhino device
+vrhino doctor
 ```
 
 No `sudo` or repository clone is required. See the
@@ -109,6 +110,10 @@ contains no model weights.
 `vrhino pull` prefers the official Hugging Face endpoint and may transparently
 fall back to a third-party mirror when the official endpoint is unavailable.
 
+For a concise, privacy-safe local support report, run `vrhino doctor` or
+`vrhino doctor MODEL`. It performs no telemetry upload or automatic network
+diagnostic request.
+
 Model and cache data defaults to `~/.vrhino`. To use a larger filesystem, set
 `VRHINO_HOME` before pulling, for example:
 
@@ -134,6 +139,7 @@ the shared native runtime and writes an MP4 using the bundled media component.
 - [Model commands](docs/cli/model-cli-v0.md)
 - [`pull` command](docs/cli/pull-v0.md)
 - [`run` command](docs/cli/run-v0.md)
+- [`doctor` diagnostics](docs/cli/doctor-v0.md)
 - [LTX-Video v0.9.1 source and license notice](docs/models/ltx-video-v0.9.1.md)
 - [Wan2.1 T2V 1.3B source and license notice](docs/models/wan2.1-t2v-1.3b.md)
 - [Mochi 1 Preview source and license notice](docs/models/mochi-1-preview.md)

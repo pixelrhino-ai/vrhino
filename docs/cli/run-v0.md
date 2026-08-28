@@ -53,8 +53,9 @@ silently changed; the complete prompt-runnable profile is published as
 
 ## Hardware preflight
 
-Before loading weights, the CLI compares CUDA device availability, compute
-capability, total/free VRAM, driver version, and package/preset hardware
+Before loading weights, the CLI validates the output destination and bundled
+media encoder, then compares CUDA device availability, compute capability,
+currently available and total VRAM, driver version, and package/preset hardware
 metadata. Results are:
 
 - `SUPPORTED`: admission metadata is satisfied;
@@ -63,8 +64,14 @@ metadata. Results are:
 - `INSUFFICIENT_VRAM`, `UNSUPPORTED_GPU`, or `DRIVER_INCOMPATIBLE`: fail before
   large model allocation.
 
-There is no model-name branch. A preset declaring a 64 GiB minimum is rejected
-on a 24 GiB GPU by the same generic comparison.
+There is no model-name branch. A declared admission threshold is compared with
+currently available memory on the selected GPU. The current Mochi default
+preset uses an 80 GiB planner admission threshold; this product support value
+is not an empirically proven absolute hardware minimum.
+
+An invalid or unwritable output destination fails as `OUTPUT_INVALID` before
+conditioning or Runtime execution. A missing, non-executable, or unusable
+bundled encoder fails as `VIDEO_ENCODING_FAILED` before inference begins.
 
 ## Progress and cancellation
 
@@ -92,8 +99,9 @@ never publishes a successful-looking MP4.
 
 Product errors have a stable code and human message. Run adds
 `UNSUPPORTED_GPU`, `INSUFFICIENT_VRAM`, `DRIVER_INCOMPATIBLE`, `INVALID_INPUT`,
-`RUNTIME_ERROR`, `OUT_OF_MEMORY`, `OUTPUT_EXISTS`, `VIDEO_ENCODING_FAILED`, and
-`CANCELLED` to the existing package/cache codes. Debug details are opt-in.
+`RUNTIME_ERROR`, `OUT_OF_MEMORY`, `OUTPUT_EXISTS`, `OUTPUT_INVALID`,
+`VIDEO_ENCODING_FAILED`, and `CANCELLED` to the existing package/cache codes.
+Debug details are opt-in.
 
 ## Dependency boundary
 

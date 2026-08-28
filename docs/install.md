@@ -1,4 +1,4 @@
-# Install VRhino v0.3.0-alpha
+# Install VRhino v0.3.1-alpha
 
 ## Requirements
 
@@ -19,18 +19,18 @@ Driver remains required.
 ## Download and install
 
 Download these two files from the
-[v0.3.0-alpha release](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.3.0-alpha):
+[v0.3.1-alpha release](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.3.1-alpha):
 
-- `vrhino-linux-x86_64-cuda-v0.3.0-alpha.tar.gz`
-- `vrhino-linux-x86_64-cuda-v0.3.0-alpha.tar.gz.sha256`
+- `vrhino-linux-x86_64-cuda-v0.3.1-alpha.tar.gz`
+- `vrhino-linux-x86_64-cuda-v0.3.1-alpha.tar.gz.sha256`
 
 If both files are in `~/Downloads`, run:
 
 ```bash
 cd "$HOME/Downloads"
-sha256sum -c vrhino-linux-x86_64-cuda-v0.3.0-alpha.tar.gz.sha256
+sha256sum -c vrhino-linux-x86_64-cuda-v0.3.1-alpha.tar.gz.sha256
 mkdir -p "$HOME/.local/share"
-tar -xzf vrhino-linux-x86_64-cuda-v0.3.0-alpha.tar.gz -C "$HOME/.local/share"
+tar -xzf vrhino-linux-x86_64-cuda-v0.3.1-alpha.tar.gz -C "$HOME/.local/share"
 printf '\nexport PATH="$HOME/.local/share/vrhino/bin:$PATH"\n' >> "$HOME/.profile"
 export PATH="$HOME/.local/share/vrhino/bin:$PATH"
 ```
@@ -47,10 +47,18 @@ Verify from any directory:
 ```bash
 vrhino --version
 vrhino device
+vrhino doctor
 ```
 
 No `sudo`, repository clone, environment activation, or manual
 `LD_LIBRARY_PATH` configuration is required.
+
+If installation, pull, or run readiness is unclear, use `vrhino doctor` for a
+privacy-safe local report, or `vrhino doctor MODEL` to include installed
+package health and preset admission. Doctor is read-only and offline: it does
+not upload telemetry, make an automatic network diagnostic request, repair
+packages, or reveal token/proxy credential values. See
+[`doctor` diagnostics](cli/doctor-v0.md).
 
 ## Model and cache location
 
