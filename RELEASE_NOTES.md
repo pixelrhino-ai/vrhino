@@ -1,3 +1,21 @@
+# VRhino v0.3.0-alpha
+
+This Alpha adds Mochi 1 Preview as the third public model path.
+
+Public models:
+
+- `vrhino/ltx-video-v0.9.1:1.1.0`
+- `vrhino/wan2.1-t2v-1.3b:1.0.0`
+- `vrhino/mochi-1-preview:1.0.0`
+
+Mochi is acquired from its fixed official upstream revision and converted
+locally using the native VRhino converter. The release archive contains no
+model weights or converted `.vrm` model payloads.
+
+Release archive: `vrhino-linux-x86_64-cuda-v0.3.0-alpha.tar.gz`
+
+The self-contained Linux x86_64 CUDA boundary remains unchanged.
+
 # VRhino v0.2.1-alpha
 
 This maintenance Alpha improves Hugging Face model acquisition reliability.
