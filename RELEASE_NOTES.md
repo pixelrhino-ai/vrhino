@@ -1,3 +1,23 @@
+# VRhino v0.2.1-alpha
+
+This maintenance Alpha improves Hugging Face model acquisition reliability.
+
+Highlights:
+
+- official Hugging Face remains the preferred source transport;
+- automatic fallback to the third-party `hf-mirror.com` service when
+  qualifying official-endpoint availability failures occur;
+- resumable partial downloads remain valid across transport fallback;
+- artifact size and SHA256 verification remain mandatory; and
+- Hugging Face credentials are never automatically forwarded to the mirror.
+
+Public model support is unchanged:
+
+- `vrhino/ltx-video-v0.9.1:1.1.0`
+- `vrhino/wan2.1-t2v-1.3b:1.0.0`
+
+Release archive: `vrhino-linux-x86_64-cuda-v0.2.1-alpha.tar.gz`
+
 # VRhino v0.2.0-alpha
 
 New to VRhino? Start with the [installation guide](docs/install.md).

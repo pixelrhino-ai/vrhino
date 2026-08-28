@@ -31,7 +31,7 @@ VRhino 转换
 
 ## 当前 Alpha
 
-当前版本是 **v0.2.0-alpha**。
+当前版本是 **v0.2.1-alpha**。
 
 - 平台：Linux x86_64
 - 后端：NVIDIA CUDA
@@ -47,18 +47,18 @@ FFmpeg。
 
 ## 安装
 
-从 [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.2.0-alpha)
+从 [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.2.1-alpha)
 下载
-[发布包](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.2.0-alpha/vrhino-linux-x86_64-cuda-v0.2.0-alpha.tar.gz)
+[发布包](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.2.1-alpha/vrhino-linux-x86_64-cuda-v0.2.1-alpha.tar.gz)
 和对应的
-[校验文件](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.2.0-alpha/vrhino-linux-x86_64-cuda-v0.2.0-alpha.tar.gz.sha256)。
+[校验文件](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.2.1-alpha/vrhino-linux-x86_64-cuda-v0.2.1-alpha.tar.gz.sha256)。
 假设两个文件都在 `~/Downloads`，运行：
 
 ```bash
 cd "$HOME/Downloads"
-sha256sum -c vrhino-linux-x86_64-cuda-v0.2.0-alpha.tar.gz.sha256
+sha256sum -c vrhino-linux-x86_64-cuda-v0.2.1-alpha.tar.gz.sha256
 mkdir -p "$HOME/.local/share"
-tar -xzf vrhino-linux-x86_64-cuda-v0.2.0-alpha.tar.gz -C "$HOME/.local/share"
+tar -xzf vrhino-linux-x86_64-cuda-v0.2.1-alpha.tar.gz -C "$HOME/.local/share"
 printf '\nexport PATH="$HOME/.local/share/vrhino/bin:$PATH"\n' >> "$HOME/.profile"
 export PATH="$HOME/.local/share/vrhino/bin:$PATH"
 ```
@@ -98,6 +98,9 @@ vrhino run vrhino/ltx-video-v0.9.1:1.1.0 \
 首次拉取会从模型的固定上游版本下载原始文件，在本机完成转换，并把可运行模型
 安装到 VRhino 本地缓存。LTX 源数据约为 24.77 GB，Wan 源数据约为 16.36 GiB。
 VRhino 发布包本身不包含模型权重。
+
+`vrhino pull` 默认优先使用 Hugging Face 官方端点；当官方端点不可用时，
+VRhino 可能自动回退到第三方镜像完成公开模型下载。
 
 模型与缓存数据默认保存在 `~/.vrhino`。如需使用更大的文件系统，可在拉取前设置
 `VRHINO_HOME`，例如：

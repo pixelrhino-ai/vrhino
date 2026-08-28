@@ -38,22 +38,43 @@ The current byte length becomes `Range: bytes=<length>-`. A valid `206`
 continues append-only. If a server ignores Range and returns `200`, the client
 truncates and restarts once. A partial larger than the declared artifact is
 discarded. Interrupted and truncated transfers retain safe partial bytes for a
-subsequent retry/pull.
+subsequent retry/pull. For Hugging Face sources, the same content-bound partial
+may resume across official and mirror transport only after exact `206` and
+`Content-Range` validation.
 
 Completion requires exact declared size followed by streaming SHA256. A wrong
 digest is deleted and returns `CHECKSUM_MISMATCH`; it never enters `blobs/`.
 
 ## Network policy
 
-- connect timeout: 30 seconds;
-- low-speed read timeout: 60 seconds at less than one byte/second;
-- transient retry count: three after the initial attempt;
+Hugging Face source acquisition starts with the official
+`https://huggingface.co` endpoint. On qualifying transport or service
+availability failures, it may transparently switch to
+`https://hf-mirror.com`, which is a third-party transport service. Fallback is
+based on the observed request failure, not GeoIP, country, or location. It
+does not race endpoints or select by speed, and users do not need to set
+`HF_ENDPOINT`. Once fallback succeeds, the mirror remains selected for the
+remaining logical source acquisition.
+
+Fixed repository, revision, artifact path, declared size, and SHA256 remain
+authoritative regardless of transport. A 404, 401, 403, certificate
+verification failure, invalid path/revision, size mismatch, or checksum
+mismatch is not hidden through mirror fallback. Mirror content must pass exact
+size and SHA256 verification before CAS publication.
+
+- normal transfer connect timeout: 30 seconds;
+- normal low-speed read timeout: 60 seconds at less than one byte/second;
+- normal transient retry count: three after the initial attempt;
+- the initial official Hugging Face availability attempt is capped at a
+  10-second connect timeout and 15-second low-speed timeout, with no repeated
+  official attempt before an eligible mirror fallback;
 - retry backoff: bounded 100 ms increments;
 - redirect limit: five;
 - certificate and hostname verification: mandatory by default.
 
-Network interruption preserves partial bytes. HTTP errors, certificate errors,
-unsupported schema, size/hash mismatch, and insufficient disk fail closed.
+Network interruption preserves partial bytes. Semantic HTTP errors,
+certificate errors, unsupported schema, size/hash mismatch, and insufficient
+disk fail closed.
 A single Ctrl+C aborts the active transfer, preserves its partial, prevents
 later artifacts and conversion from starting, and exits with status 130.
 
@@ -111,10 +132,13 @@ $HOME/.vrhino
 ```
 
 `VRHINO_HOME` changes model/cache storage, not the extracted VRhino binary
-installation. `HF_TOKEN` is optional; when set, it is sent only as Bearer
-authorization for Hugging Face artifact requests and is neither printed nor
-persisted. The native HTTPS stack honors standard `HTTPS_PROXY` and `NO_PROXY`
-settings.
+installation. `HF_TOKEN` is optional; when set, it may be sent as Bearer
+authorization to official Hugging Face but is never automatically sent to
+`hf-mirror.com` or another cross-host redirect. Cookies and netrc credentials
+are disabled for this acquisition path, unrestricted cross-host authorization
+is disabled, and the token is neither printed nor persisted. The native HTTPS
+stack honors standard `HTTPS_PROXY` and `NO_PROXY` settings for official and
+mirror requests.
 
 ## Stable errors
 

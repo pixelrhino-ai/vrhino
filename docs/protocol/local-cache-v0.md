@@ -119,6 +119,12 @@ partials, and source blobs whose hard-link count proves they are unshared.
 Installed `blobs/` data and shared source blobs remain intact. This targeted
 source cleanup is not model-CAS garbage collection.
 
+Hugging Face source partials are named by the declared artifact SHA256 rather
+than a transport URL. A validated partial may therefore resume across the
+official endpoint and the third-party mirror without changing artifact
+identity. Exact Range offset, final declared size, and final SHA256 remain
+mandatory before CAS publication.
+
 Readers may run concurrently with an install because publication is atomic.
 Remote pull uses per-package and per-artifact advisory locks plus atomic rename,
 so concurrent identical pulls cannot overwrite partials, CAS blobs, or an
