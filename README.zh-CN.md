@@ -31,7 +31,7 @@ VRhino 转换
 
 ## 当前 Alpha
 
-当前版本是 **v0.3.1-alpha**。
+当前版本是 **v0.4.0-alpha**。
 
 - 平台：Linux x86_64
 - 后端：NVIDIA CUDA
@@ -49,18 +49,18 @@ FFmpeg。
 
 ## 安装
 
-从 [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.3.1-alpha)
+从 [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.4.0-alpha)
 下载
-[发布包](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.3.1-alpha/vrhino-linux-x86_64-cuda-v0.3.1-alpha.tar.gz)
+[发布包](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.4.0-alpha/vrhino-linux-x86_64-cuda-v0.4.0-alpha.tar.gz)
 和对应的
-[校验文件](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.3.1-alpha/vrhino-linux-x86_64-cuda-v0.3.1-alpha.tar.gz.sha256)。
+[校验文件](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.4.0-alpha/vrhino-linux-x86_64-cuda-v0.4.0-alpha.tar.gz.sha256)。
 假设两个文件都在 `~/Downloads`，运行：
 
 ```bash
 cd "$HOME/Downloads"
-sha256sum -c vrhino-linux-x86_64-cuda-v0.3.1-alpha.tar.gz.sha256
+sha256sum -c vrhino-linux-x86_64-cuda-v0.4.0-alpha.tar.gz.sha256
 mkdir -p "$HOME/.local/share"
-tar -xzf vrhino-linux-x86_64-cuda-v0.3.1-alpha.tar.gz -C "$HOME/.local/share"
+tar -xzf vrhino-linux-x86_64-cuda-v0.4.0-alpha.tar.gz -C "$HOME/.local/share"
 printf '\nexport PATH="$HOME/.local/share/vrhino/bin:$PATH"\n' >> "$HOME/.profile"
 export PATH="$HOME/.local/share/vrhino/bin:$PATH"
 ```

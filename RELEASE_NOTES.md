@@ -1,17 +1,29 @@
-# Future release (version not yet selected)
+# VRhino v0.4.0-alpha
 
-Prepared model metadata adds the first public lip-sync package candidate:
+This feature Alpha adds the first public lip-sync product family and generic
+multi-component model packages.
+
+Highlights:
 
 - `vrhino/musetalk-v1.5:1.0.0`;
 - typed `--video`, `--audio`, and `--output` inputs;
+- `vrhino pull`, `info`, `doctor`, and `run` through the bounded Native
+  `lip_sync_workflow_v1`;
 - local acquisition and Native conversion of fixed upstream assets;
-- a public-safe BlazeFace + DWPose + Selfie Multiclass analysis stack; and
+- BlazeFace, DWPose, and Selfie Multiclass analysis components; and
 - complete model-license and third-party-notice references.
 
 Pixel Rhino ships no original or converted model weights. MuseTalk use remains
 subject to CreativeML OpenRAIL-M use-based restrictions and the other listed
-upstream terms. This section prepares a future release; it does not announce a
-release version, tag, or published package.
+upstream terms. Users are responsible for lawful and consented input media. No
+upstream endorsement is implied.
+
+Existing LTX, Wan, and Mochi public model support remains available.
+
+Release archive: `vrhino-linux-x86_64-cuda-v0.4.0-alpha.tar.gz`
+
+The release remains an Alpha qualified for Linux x86_64 with NVIDIA CUDA. See
+[Alpha limitations](docs/alpha-limitations.md) for the exact scope.
 
 # VRhino v0.3.1-alpha
 
