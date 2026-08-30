@@ -8,6 +8,7 @@ vrhino [--cache-root PATH] list
 vrhino [--cache-root PATH] info namespace/name:version
 vrhino [--cache-root PATH] rm namespace/name:version
 vrhino [--cache-root PATH] run namespace/name:version --prompt TEXT [RUN OPTIONS]
+vrhino [--cache-root PATH] run namespace/name:version --video PATH --audio PATH --output PATH
 ```
 
 All v0 references require namespace and exact version. This avoids hidden
@@ -30,11 +31,12 @@ CAS completeness. Internal tensor and SamplingProgram details are omitted.
 `rm` deletes only the exact immutable package reference and reports `Blobs
 retained`. Automatic CAS garbage collection is intentionally outside v0.
 
-`run` resolves an already-installed package and executes its generic Native
-prompt-to-video entrypoint. It never pulls implicitly. Run options are limited
-to `--prompt`, `--output`, `--preset`, `--seed`, `--overwrite`, and `--debug`.
-The package profile, rather than the CLI, owns resolution, frame count, fps,
-sampling declaration, precision, and component execution policy.
+`run` resolves an already-installed package and executes its typed Native
+product entrypoint. It never pulls implicitly. Text-to-video products accept
+`--prompt`; lip-sync products accept `--video`, `--audio`, and `--output`.
+Both may accept the bounded common controls `--seed`, `--overwrite`, and
+`--debug` where supported. A lip-sync product rejects prompt input. The package
+profile, rather than the CLI, owns internal workflow and component policy.
 
 ## Configuration and offline behavior
 

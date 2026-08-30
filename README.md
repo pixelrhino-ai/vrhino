@@ -40,6 +40,7 @@ The current release is **v0.3.1-alpha**.
   - `vrhino/ltx-video-v0.9.1:1.1.0`
   - `vrhino/wan2.1-t2v-1.3b:1.0.0`
   - `vrhino/mochi-1-preview:1.0.0`
+  - `vrhino/musetalk-v1.5:1.0.0` (`lip_sync`)
 - Qualified on Ubuntu 22.04 with glibc 2.35
 - Self-contained above the compatible NVIDIA Driver boundary
 
@@ -86,6 +87,7 @@ Supported Public Alpha models:
 - `vrhino/ltx-video-v0.9.1:1.1.0`
 - `vrhino/wan2.1-t2v-1.3b:1.0.0`
 - `vrhino/mochi-1-preview:1.0.0`
+- `vrhino/musetalk-v1.5:1.0.0`
 
 Pull one exact model package, for example:
 
@@ -101,11 +103,21 @@ vrhino run vrhino/ltx-video-v0.9.1:1.1.0 \
   --output output.mp4
 ```
 
+MuseTalk uses typed video/audio inputs instead of a prompt:
+
+```bash
+vrhino pull vrhino/musetalk-v1.5:1.0.0
+vrhino run vrhino/musetalk-v1.5:1.0.0 \
+  --video input.mp4 \
+  --audio driving.wav \
+  --output output.mp4
+```
+
 The first pull downloads the original artifacts from the model's fixed
 upstream revision, converts them locally, and installs the runnable package in
 the local VRhino cache. The source acquisition is about 24.77 GB for LTX,
-16.36 GiB for Wan, and 37.28 GiB for Mochi. The release archive itself
-contains no model weights.
+16.36 GiB for Wan, 37.28 GiB for Mochi, and 4.01 GiB for MuseTalk. The release
+archive itself contains no model weights or converted model components.
 
 `vrhino pull` prefers the official Hugging Face endpoint and may transparently
 fall back to a third-party mirror when the official endpoint is unavailable.
@@ -143,12 +155,13 @@ the shared native runtime and writes an MP4 using the bundled media component.
 - [LTX-Video v0.9.1 source and license notice](docs/models/ltx-video-v0.9.1.md)
 - [Wan2.1 T2V 1.3B source and license notice](docs/models/wan2.1-t2v-1.3b.md)
 - [Mochi 1 Preview source and license notice](docs/models/mochi-1-preview.md)
+- [MuseTalk v1.5 source, use and license notice](docs/models/musetalk-v1.5.md)
 - [VRM format specification](spec/vrm-v0.1.md)
 - [Runnable model package specification](spec/model-package-v0.md)
 
 ## Alpha limitations
 
-This release supports Linux x86_64, the NVIDIA CUDA backend, and the three exact
+This release supports Linux x86_64, the NVIDIA CUDA backend, and the four exact
 qualified model paths listed above. It does not claim support for every NVIDIA
 GPU, Linux distribution, model checkpoint, or video-model architecture.
 Interfaces and compatibility may change during Alpha.
@@ -164,3 +177,9 @@ Third-party components remain under their own licenses; see
 
 Model licenses are independent. VRhino grants no rights to model weights,
 inputs, outputs, or other third-party content.
+
+For MuseTalk, Pixel Rhino distributes no model weights: users acquire the
+fixed upstream models and convert them locally. Use remains subject to each
+upstream license, including MuseTalk's CreativeML OpenRAIL-M use-based
+restrictions. Users are responsible for lawful and consented input media. No
+upstream endorsement is implied.

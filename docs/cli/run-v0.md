@@ -12,6 +12,14 @@ vrhino run namespace/name:version \
   [--overwrite] [--debug]
 ```
 
+A bounded lip-sync package declares a different typed input family:
+
+```text
+vrhino run namespace/name:version \
+  --video input.mp4 --audio driving.wav --output output.mp4 \
+  [--seed 11001] [--overwrite] [--debug]
+```
+
 `run` is deliberately offline: the exact package must already be installed.
 Missing packages fail as `MODEL_NOT_FOUND`; the command never contacts the
 registry or Hugging Face and never performs an implicit pull.
@@ -31,10 +39,15 @@ exact package reference
   -> atomic MP4 publication
 ```
 
-The product layer contains no architecture-name dispatch. Tokenizer type,
+The product layer dispatches by typed product family, never model name. Tokenizer type,
 conditioning components, weight shards, input bindings, runtime inputs,
 derived positional inputs, precision policy, output layout/range, and the
 default preset are package/profile declarations.
+
+For `lip_sync_workflow_v1`, the installed package binds six immutable generic
+component roles to a bounded workflow. Detector decode, geometry, mask policy,
+media handling and publication are frozen workflow semantics; the interface is
+not an arbitrary input dictionary or workflow DAG.
 
 ## Prompt-runnable profile
 

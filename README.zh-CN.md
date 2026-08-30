@@ -39,6 +39,7 @@ VRhino 转换
   - `vrhino/ltx-video-v0.9.1:1.1.0`
   - `vrhino/wan2.1-t2v-1.3b:1.0.0`
   - `vrhino/mochi-1-preview:1.0.0`
+  - `vrhino/musetalk-v1.5:1.0.0`（`lip_sync`）
 - 已在 Ubuntu 22.04、glibc 2.35 环境验证
 - 除兼容的 NVIDIA 驱动外，所需用户态运行库均随 VRhino 提供
 
@@ -78,11 +79,12 @@ vrhino doctor
 
 ## 快速开始
 
-当前 Public Alpha 支持三个已验证的模型路径：
+当前 Public Alpha 支持四个已验证的模型路径：
 
 - `vrhino/ltx-video-v0.9.1:1.1.0`
 - `vrhino/wan2.1-t2v-1.3b:1.0.0`
 - `vrhino/mochi-1-preview:1.0.0`
+- `vrhino/musetalk-v1.5:1.0.0`
 
 拉取一个确定的模型包，例如：
 
@@ -98,9 +100,20 @@ vrhino run vrhino/ltx-video-v0.9.1:1.1.0 \
   --output output.mp4
 ```
 
+MuseTalk 使用类型化的视频与音频输入，而不是文本提示词：
+
+```bash
+vrhino pull vrhino/musetalk-v1.5:1.0.0
+vrhino run vrhino/musetalk-v1.5:1.0.0 \
+  --video input.mp4 \
+  --audio driving.wav \
+  --output output.mp4
+```
+
 首次拉取会从模型的固定上游版本下载原始文件，在本机完成转换，并把可运行模型
 安装到 VRhino 本地缓存。LTX 源数据约为 24.77 GB，Wan 源数据约为 16.36 GiB，
-Mochi 源数据约为 37.28 GiB。VRhino 发布包本身不包含模型权重。
+Mochi 源数据约为 37.28 GiB，MuseTalk 源数据约为 4.01 GiB。VRhino 发布包本身
+不包含模型权重或转换后的模型组件。
 
 `vrhino pull` 默认优先使用 Hugging Face 官方端点；当官方端点不可用时，
 VRhino 可能自动回退到第三方镜像完成公开模型下载。
@@ -135,12 +148,13 @@ vrhino pull vrhino/ltx-video-v0.9.1:1.1.0
 - [LTX-Video v0.9.1 来源与许可证说明](docs/models/ltx-video-v0.9.1.md)
 - [Wan2.1 T2V 1.3B 来源与许可证说明](docs/models/wan2.1-t2v-1.3b.md)
 - [Mochi 1 Preview 来源与许可证说明](docs/models/mochi-1-preview.md)
+- [MuseTalk v1.5 来源、使用与许可证说明](docs/models/musetalk-v1.5.md)
 - [VRM 格式规范](spec/vrm-v0.1.md)
 - [可运行模型包规范](spec/model-package-v0.md)
 
 ## Alpha 限制
 
-当前版本支持 Linux x86_64、NVIDIA CUDA 后端，以及上面列出的三个确定且已
+当前版本支持 Linux x86_64、NVIDIA CUDA 后端，以及上面列出的四个确定且已
 验证的模型路径。它不声称支持所有 NVIDIA GPU、所有 Linux 发行版、所有模型
 检查点或所有视频模型架构。Alpha 期间接口和兼容性可能发生变化。
 
@@ -155,3 +169,8 @@ VRhino 二进制是专有软件，按
 
 模型许可证彼此独立。VRhino 不授予模型权重、输入、输出或其他第三方内容的
 任何权利。
+
+对于 MuseTalk，Pixel Rhino 不分发模型权重；用户从固定的官方上游获取模型并
+在本地转换。使用仍受各上游模型许可证约束，其中包括 MuseTalk 的 CreativeML
+OpenRAIL-M 用途限制。用户须确保输入媒体的使用合法并已获得同意。本项目不暗示
+任何上游权利人对 VRhino 的认可或背书。

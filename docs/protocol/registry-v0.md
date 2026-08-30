@@ -3,9 +3,23 @@
 Status: product distribution contract v0. It does not change Runnable Model
 Package schema 1, `.vrm` 0.1/schema 1, or CUDA Runtime contract `cuda-v1`.
 
+## Source-backed public catalog entries
+
+Public models that are converted locally may ship a fixed declarative catalog
+entry with `pull-plan.json`, `source-plan.json`, and `vrhino-model.json`.
+These entries resolve before the ready-package network registry and point only
+to official upstream model sources. They contain sizes and hashes but no model
+weights, converted `.vrm` payloads, credentials, or executable scripts.
+
+`source_backed` covers an ordinary source package;
+`multi_component_source_backed` covers one immutable package assembled from
+multiple generic component roles. Both use the same Native acquisition, hash
+verification, conversion, CAS, and transactional publication infrastructure.
+They are distribution metadata, not Runtime or Backend dispatch.
+
 ## Exact references and endpoint
 
-Registry v0 resolves only the reproducible canonical reference:
+The ready-package Registry v0 fallback resolves only the reproducible canonical reference:
 
 ```text
 namespace/name:version

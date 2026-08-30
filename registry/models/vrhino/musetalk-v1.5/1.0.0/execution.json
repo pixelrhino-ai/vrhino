@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "product_family": "lip_sync",
+  "workflow_identity": "lip_sync_workflow_v1",
+  "execution_dtype": "float32",
+  "default_seed": 11001,
+  "inputs": {
+    "video": {"type": "media.video", "required": true},
+    "audio": {"type": "media.audio", "required": true},
+    "output": {"type": "media.mp4", "required": true}
+  }
+}

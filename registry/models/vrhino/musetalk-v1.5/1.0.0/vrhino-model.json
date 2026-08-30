@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "identity": {
+    "namespace": "vrhino",
+    "name": "musetalk-v1.5",
+    "version": "1.0.0",
+    "architecture": "lip_sync_workflow_v1",
+    "publisher": "Pixel Rhino"
+  },
+  "compatibility": {
+    "runtime_contract": "cuda-v1",
+    "vrm_schema": {"format_major": 0, "format_minor": 1, "metadata_schema": 1}
+  },
+  "product": {
+    "family": "lip_sync",
+    "status": "public_supported",
+    "workflow_identity": "lip_sync_workflow_v1",
+    "workflow_artifact": "workflow-config",
+    "execution_artifact": "execution-profile",
+    "required_inputs": ["video", "audio", "output"],
+    "public_distribution": "mode_c_local_conversion"
+  },
+  "artifacts": [
+    {"id":"audio-encoder","role":"component.vrm","path":"components/audio-encoder.vrm","size":32866496,"sha256":"4527260f6727d202f0a964ff062d68bd03a00b6647e0809b18ba318afb76777d","required":true},
+    {"id":"autoencoder","role":"component.vrm","path":"components/autoencoder-kl.vrm","size":334727552,"sha256":"49d6d814b8546535f36580543987ff0477ebd89040cc053d2a8f836b68db9b1e","required":true},
+    {"id":"latent-editor","role":"component.vrm","path":"components/conditional-unet-2d.vrm","size":3400098560,"sha256":"4fc8954eea557b636abe22450076b38ddea8a629fa38f9ab545014b1c1d22c47","required":true},
+    {"id":"face-detector","role":"component.vrm","path":"components/vision-detector.vrm","size":434656,"sha256":"bbe5a9a5d83b13401a9b9bc7829ccb993af6ac28e2dd37c530001e90fdf06d17","required":true},
+    {"id":"pose-estimator","role":"component.vrm","path":"components/pose-estimator.vrm","size":134774400,"sha256":"3f457d8ff6eb49098d9626e232785b7158d8838e8054eb1f85d0684decc6a7c5","required":true},
+    {"id":"semantic-segmenter","role":"component.vrm","path":"components/semantic-segmenter.vrm","size":16360832,"sha256":"e797157d562263919e28f74d4701074243a9c56fcadd6f1ba14703e85cc554f1","required":true},
+    {"id":"whisper-preprocessor","role":"audio.preprocessor","path":"audio/preprocessor_config.json","size":184990,"sha256":"9b5cd03a36fbb8a627c64d98a5b5b126ead95a77720723944487311f0110b666","required":true},
+    {"id":"workflow-config","role":"product.workflow","path":"workflow/workflow.json","size":2252,"sha256":"4240b286ee1bbde6b356a9648a9fc4c18b50b691ee88b78a341606b7959ca92b","required":true},
+    {"id":"execution-profile","role":"execution.profile","path":"execution/default.json","size":347,"sha256":"c770d7ecbfe3c6cf21617176ebdf054a3c021c2bfc787f024ef8d919a5ca3cde","required":true},
+    {"id":"third-party-notices","role":"legal.notice","path":"legal/THIRD_PARTY_NOTICES.txt","size":3134,"sha256":"fcf4afc654e3fc97c6b32d04a17029edee1b3af09e9db5bf9e9d4036f52bbaae","required":true},
+    {"id":"license-openrail","role":"legal.license","path":"legal/licenses/CreativeML-OpenRAIL-M.txt","size":14385,"sha256":"be351ebe7ac01bcdbb018639aadcfd38f136b7dc3f2a3d4d3a24db51d1b210ef","required":true},
+    {"id":"license-apache","role":"legal.license","path":"legal/licenses/Apache-2.0.txt","size":11358,"sha256":"cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30","required":true},
+    {"id":"license-mit","role":"legal.license","path":"legal/licenses/MIT.txt","size":1219,"sha256":"042b8ae7ce9a75baa8973d121f5f8f166a89a4e20dac220d1bbd66c04be273a9","required":true}
+  ],
+  "entrypoint": {
+    "workflow_artifact": "workflow-config",
+    "components": [
+      {"id":"audio-encoder","role":"audio_encoder","kind":"audio_encoder_transformer","artifacts":["audio-encoder"]},
+      {"id":"autoencoder","role":"image_autoencoder","kind":"autoencoder_kl","artifacts":["autoencoder"]},
+      {"id":"latent-editor","role":"neural_edit","kind":"conditional_unet_2d","artifacts":["latent-editor"]},
+      {"id":"face-detector","role":"face_detector","kind":"vision_detector_dense_anchors","artifacts":["face-detector"]},
+      {"id":"pose-estimator","role":"pose_estimator","kind":"pose_estimator_2d","artifacts":["pose-estimator"]},
+      {"id":"semantic-segmenter","role":"semantic_segmenter","kind":"semantic_segmenter_2d","artifacts":["semantic-segmenter"]}
+    ],
+    "default_preset": "default"
+  },
+  "defaults": {"default_preset":"default","presets":{"default":{"profile_artifact":"execution-profile"}}},
+  "hardware": {"presets":{"default":{"minimum_vram_bytes":null,"recommended_vram_bytes":null}}},
+  "source": {
+    "repository":"TMElyralab/MuseTalk",
+    "revision":"3ef28bc5cff08c90ad8178a25f1b570cd800170f",
+    "converter_version":"native-multi-component-v2"
+  },
+  "license": {
+    "identifier":"LicenseRef-MuseTalk-Mode-C-Multi-License",
+    "artifact":"third-party-notices",
+    "upstream_notice":"CreativeML OpenRAIL-M, MIT, and Apache-2.0 terms apply; no model weights are distributed by Pixel Rhino"
+  }
+}

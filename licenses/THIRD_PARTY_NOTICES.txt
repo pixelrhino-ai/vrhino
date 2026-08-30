@@ -15,6 +15,19 @@ patch declaration and build recipe are retained under `media/licenses/` and
 dynamically load libav* or libx264; they invoke the helper as a separate
 process over an RGB24 stdin pipe.
 
+Public model metadata — MuseTalk v1.5 lip-sync
+------------------------------------------------
+
+The public source-backed identity `vrhino/musetalk-v1.5:1.0.0` distributes no
+model weights or converted `.vrm` components. Users obtain fixed model files
+from the official upstream sources and convert them locally. The complete
+model inventory, attribution, representation-change notice and governing
+CreativeML OpenRAIL-M, Apache-2.0 and MIT texts are under
+`licenses/models/musetalk-v1.5/`. MuseTalk's OpenRAIL use-based restrictions
+continue to apply to locally converted artifacts. Google, MediaPipe, Tencent
+Music Entertainment, OpenAI, Stability AI, IDEA Research and OpenMMLab do not
+sponsor or endorse VRhino.
+
 NVIDIA runtime components (conditionally redistributable under the referenced
 NVIDIA application-distribution terms):
 - CUDA Runtime 12.8.90 — LicenseRef-NVIDIA-CUDA-EULA

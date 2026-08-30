@@ -1,3 +1,18 @@
+# Future release (version not yet selected)
+
+Prepared model metadata adds the first public lip-sync package candidate:
+
+- `vrhino/musetalk-v1.5:1.0.0`;
+- typed `--video`, `--audio`, and `--output` inputs;
+- local acquisition and Native conversion of fixed upstream assets;
+- a public-safe BlazeFace + DWPose + Selfie Multiclass analysis stack; and
+- complete model-license and third-party-notice references.
+
+Pixel Rhino ships no original or converted model weights. MuseTalk use remains
+subject to CreativeML OpenRAIL-M use-based restrictions and the other listed
+upstream terms. This section prepares a future release; it does not announce a
+release version, tag, or published package.
+
 # VRhino v0.3.1-alpha
 
 This maintenance Alpha improves run readiness checks and support diagnostics.

@@ -43,6 +43,27 @@
         }
       }
     },
+    "product": {
+      "type": "object",
+      "required": [
+        "family", "status", "workflow_identity", "workflow_artifact",
+        "execution_artifact", "required_inputs", "public_distribution"
+      ],
+      "properties": {
+        "family": {"$ref": "#/$defs/identifier"},
+        "status": {"$ref": "#/$defs/identifier"},
+        "workflow_identity": {"$ref": "#/$defs/identifier"},
+        "workflow_artifact": {"$ref": "#/$defs/identifier"},
+        "execution_artifact": {"$ref": "#/$defs/identifier"},
+        "required_inputs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/identifier"}
+        },
+        "public_distribution": {"$ref": "#/$defs/identifier"}
+      }
+    },
     "artifacts": {
       "type": "array",
       "minItems": 1,
@@ -61,9 +82,14 @@
     },
     "entrypoint": {
       "type": "object",
-      "required": ["runtime_artifact", "components", "default_preset"],
+      "required": ["components", "default_preset"],
+      "anyOf": [
+        {"required": ["runtime_artifact"]},
+        {"required": ["workflow_artifact"]}
+      ],
       "properties": {
         "runtime_artifact": {"$ref": "#/$defs/identifier"},
+        "workflow_artifact": {"$ref": "#/$defs/identifier"},
         "default_preset": {"$ref": "#/$defs/identifier"},
         "components": {
           "type": "array",
@@ -72,6 +98,7 @@
             "required": ["id", "kind", "artifacts"],
             "properties": {
               "id": {"$ref": "#/$defs/identifier"},
+              "role": {"$ref": "#/$defs/identifier"},
               "kind": {"$ref": "#/$defs/identifier"},
               "artifacts": {
                 "type": "array",
@@ -92,7 +119,7 @@
           "minProperties": 1,
           "additionalProperties": {
             "type": "object",
-            "required": ["profile_artifact", "inputs"],
+            "required": ["profile_artifact"],
             "properties": {
               "profile_artifact": {"$ref": "#/$defs/identifier"},
               "inputs": {"type": "object"}

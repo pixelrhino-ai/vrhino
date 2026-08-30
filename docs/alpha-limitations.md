@@ -10,7 +10,8 @@ The Public Alpha has the following qualified scope:
 - ordinary-user product paths are qualified for exactly
   `vrhino/ltx-video-v0.9.1:1.1.0`,
   `vrhino/wan2.1-t2v-1.3b:1.0.0`, and
-  `vrhino/mochi-1-preview:1.0.0`;
+  `vrhino/mochi-1-preview:1.0.0`, plus the lip-sync product
+  `vrhino/musetalk-v1.5:1.0.0`;
 - model acquisition may download tens of gigabytes;
 - first-time local conversion and installation can take time and require
   substantial temporary disk space; and
@@ -29,6 +30,9 @@ This Alpha does not claim:
 - model redistribution or usage rights.
 
 Model and content licenses are independent from the VRhino binary license.
+MuseTalk is qualified on CUDA. Metal numerical qualification for this product
+has not been completed. Its observed 6.27 GiB peak internal allocation on an
+RTX 4090 D full-sample run is not a minimum-VRAM requirement.
 
 For presets with a declared VRAM admission threshold, `vrhino run` checks
 currently available memory on the selected GPU before expensive execution.

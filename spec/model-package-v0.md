@@ -11,7 +11,7 @@ the distribution unit that makes prompt-to-video execution self-contained:
 ```text
 Runnable Model Package
   manifest
-  runtime .vrm
+  one or more immutable neural .vrm components
   tokenizer assets
   conditioning graph and weights
   precision policy
@@ -61,8 +61,9 @@ fields are:
 | `schema_version` | Runnable package schema, currently integer `1` |
 | `identity` | namespace, name, version, architecture declaration, publisher |
 | `compatibility` | required Runtime contract and `.vrm` format/schema |
+| `product` | optional typed family, bounded workflow, inputs, lifecycle and distribution mode |
 | `artifacts` | logical id/role, normalized relative source path, size, SHA256, required flag |
-| `entrypoint` | runtime artifact and generic component declarations |
+| `entrypoint` | runtime or workflow artifact and generic component declarations/roles |
 | `defaults` | default preset and user-level preset inputs |
 | `hardware` | per-preset admission/qualification evidence; unknown values may be null |
 | `source` | upstream repository/revision and converter version |
@@ -136,6 +137,15 @@ An artifact `id` is package-local. Components bind logical groups of artifact
 ids using a generic `kind`, for example `conditioning.text_encoder`. The cache
 resolver does not interpret architecture names or component kinds; it returns
 validated paths and declarations to product orchestration.
+
+Package schema 1 also supports an optional typed `product` declaration and a
+model-neutral component `role`. A bounded multi-component product may declare
+`workflow_artifact` instead of a singular `runtime_artifact`. Existing
+single-runtime text-to-video manifests remain valid and unchanged. The current
+bounded role vocabulary includes `audio_encoder`, `image_autoencoder`,
+`neural_edit`, `face_detector`, `pose_estimator`, and
+`semantic_segmenter`; these are product/package bindings and are not Runtime or
+Backend dispatch identities.
 
 All assets needed for the package's declared prompt-to-video entrypoint must be
 present as required artifacts. Optional files may add documentation or future
