@@ -32,7 +32,8 @@ comparable to llama.cpp today.
 
 ## Current Alpha
 
-The current release is **v0.4.0-alpha**.
+The current published release is **v0.4.0-alpha**. This source tree prepares
+the **v0.5.0-alpha** release candidate.
 
 - Platform: Linux x86_64
 - Backend: NVIDIA CUDA
@@ -41,6 +42,7 @@ The current release is **v0.4.0-alpha**.
   - `vrhino/wan2.1-t2v-1.3b:1.0.0`
   - `vrhino/mochi-1-preview:1.0.0`
   - `vrhino/musetalk-v1.5:1.0.0` (`lip_sync`)
+  - `vrhino/latentsync-1.6:1.0.0` (`lip_sync`)
 - Qualified on Ubuntu 22.04 with glibc 2.35
 - Self-contained above the compatible NVIDIA Driver boundary
 
@@ -82,12 +84,13 @@ somewhere other than `~/Downloads`.
 
 ## Quick Start
 
-Supported Public Alpha models:
+Prepared v0.5.0-alpha Public model set:
 
 - `vrhino/ltx-video-v0.9.1:1.1.0`
 - `vrhino/wan2.1-t2v-1.3b:1.0.0`
 - `vrhino/mochi-1-preview:1.0.0`
 - `vrhino/musetalk-v1.5:1.0.0`
+- `vrhino/latentsync-1.6:1.0.0`
 
 Pull one exact model package, for example:
 
@@ -113,14 +116,15 @@ vrhino run vrhino/musetalk-v1.5:1.0.0 \
   --output output.mp4
 ```
 
-Public Mode-C metadata is also prepared for the next release candidate:
+The prepared v0.5.0-alpha candidate includes Public Mode-C support for:
 
 - `vrhino/latentsync-1.6:1.0.0` (`lip_sync`)
 
 LatentSync uses the same typed video/audio CLI shape. It downloads 12 exact
 upstream inference assets and converts them locally; Pixel Rhino ships no model
-weights or converted VRMs. The current v0.4.0-alpha binary predates this
-metadata, so ordinary use requires a later explicitly qualified binary release.
+weights or converted VRMs. This support is included in the prepared
+v0.5.0-alpha candidate but is not claimed as released until that candidate is
+separately committed, tagged, and published.
 
 The first pull downloads the original artifacts from the model's fixed
 upstream revision, converts them locally, and installs the runnable package in
@@ -171,8 +175,8 @@ the shared native runtime and writes an MP4 using the bundled media component.
 
 ## Alpha limitations
 
-This release supports Linux x86_64, the NVIDIA CUDA backend, and the four exact
-qualified model paths listed above. It does not claim support for every NVIDIA
+This release candidate supports Linux x86_64, the NVIDIA CUDA backend, and the
+five exact qualified model paths listed above. It does not claim support for every NVIDIA
 GPU, Linux distribution, model checkpoint, or video-model architecture.
 Interfaces and compatibility may change during Alpha.
 

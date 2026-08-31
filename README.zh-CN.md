@@ -31,7 +31,8 @@ VRhino 转换
 
 ## 当前 Alpha
 
-当前版本是 **v0.4.0-alpha**。
+当前已发布版本是 **v0.4.0-alpha**。当前源码树正在准备
+**v0.5.0-alpha** 发布候选版本。
 
 - 平台：Linux x86_64
 - 后端：NVIDIA CUDA
@@ -40,6 +41,7 @@ VRhino 转换
   - `vrhino/wan2.1-t2v-1.3b:1.0.0`
   - `vrhino/mochi-1-preview:1.0.0`
   - `vrhino/musetalk-v1.5:1.0.0`（`lip_sync`）
+  - `vrhino/latentsync-1.6:1.0.0`（`lip_sync`）
 - 已在 Ubuntu 22.04、glibc 2.35 环境验证
 - 除兼容的 NVIDIA 驱动外，所需用户态运行库均随 VRhino 提供
 
@@ -79,12 +81,13 @@ vrhino doctor
 
 ## 快速开始
 
-当前 Public Alpha 支持四个已验证的模型路径：
+已准备的 v0.5.0-alpha 候选版本支持五个已验证的公开模型路径：
 
 - `vrhino/ltx-video-v0.9.1:1.1.0`
 - `vrhino/wan2.1-t2v-1.3b:1.0.0`
 - `vrhino/mochi-1-preview:1.0.0`
 - `vrhino/musetalk-v1.5:1.0.0`
+- `vrhino/latentsync-1.6:1.0.0`
 
 拉取一个确定的模型包，例如：
 
@@ -110,14 +113,14 @@ vrhino run vrhino/musetalk-v1.5:1.0.0 \
   --output output.mp4
 ```
 
-下一个候选版本还准备了以下 Public Mode-C 元数据：
+已准备的 v0.5.0-alpha 候选版本包含以下 Public Mode-C 支持：
 
 - `vrhino/latentsync-1.6:1.0.0`（`lip_sync`）
 
 LatentSync 使用相同的类型化视频/音频 CLI 形式。VRhino 从上游下载 12 个固定的
-推理文件并在本地转换；Pixel Rhino 不分发模型权重或转换后的 VRM。当前
-v0.4.0-alpha 二进制早于这份元数据，普通用户需等待后续经过明确验证的二进制
-版本后才能使用。
+推理文件并在本地转换；Pixel Rhino 不分发模型权重或转换后的 VRM。该支持已纳入
+准备中的 v0.5.0-alpha 候选版本，但在该候选版本另行提交、打标签和发布之前，
+本文不宣称其已经发布。
 
 首次拉取会从模型的固定上游版本下载原始文件，在本机完成转换，并把可运行模型
 安装到 VRhino 本地缓存。LTX 源数据约为 24.77 GB，Wan 源数据约为 16.36 GiB，
@@ -164,8 +167,8 @@ vrhino pull vrhino/ltx-video-v0.9.1:1.1.0
 
 ## Alpha 限制
 
-当前版本支持 Linux x86_64、NVIDIA CUDA 后端，以及上面列出的四个确定且已
-验证的模型路径。它不声称支持所有 NVIDIA GPU、所有 Linux 发行版、所有模型
+当前候选版本支持 Linux x86_64、NVIDIA CUDA 后端，以及上面列出的五个确定且
+已验证的模型路径。它不声称支持所有 NVIDIA GPU、所有 Linux 发行版、所有模型
 检查点或所有视频模型架构。Alpha 期间接口和兼容性可能发生变化。
 
 详情见 [Alpha 限制](docs/alpha-limitations.md)。

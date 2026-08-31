@@ -1,3 +1,35 @@
+# VRhino v0.5.0-alpha
+
+This feature Alpha release candidate adds Public LatentSync 1.6 lip-sync
+diffusion support.
+
+Highlights:
+
+- `vrhino/latentsync-1.6:1.0.0` through Mode C upstream acquisition and local
+  Native conversion;
+- the bounded Native `lip_sync_diffusion_workflow_v1` using the Public-safe
+  BlazeFace and DWPose alignment stack;
+- TemporalConditionalUNet execution through the Shared Runtime with a frozen
+  20-step DDIM profile and explicit deterministic seed behavior; and
+- complete CreativeML Open RAIL++-M, Apache-2.0, MIT, attribution, and
+  representation-change notices.
+
+Pixel Rhino ships no LatentSync model weights or converted VRMs. LatentSync
+model use remains subject to the CreativeML Open RAIL++-M License and its
+use-based restrictions. Users are responsible for lawful and consented input
+media. No upstream endorsement is implied.
+
+The qualification profile was tested on an NVIDIA GeForce RTX 4090 D, with
+observed peak internal allocation around 19.9 GiB. This is not a hard minimum
+or admission threshold.
+
+Existing LTX, Wan, Mochi, and MuseTalk Public model support remains available.
+
+Release archive: `vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz`
+
+The candidate remains an Alpha for Linux x86_64 with NVIDIA CUDA. See
+[Alpha limitations](docs/alpha-limitations.md) for the exact scope.
+
 # VRhino v0.4.0-alpha
 
 This feature Alpha adds the first public lip-sync product family and generic
