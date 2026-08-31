@@ -49,6 +49,13 @@ component roles to a bounded workflow. Detector decode, geometry, mask policy,
 media handling and publication are frozen workflow semantics; the interface is
 not an arbitrary input dictionary or workflow DAG.
 
+For `lip_sync_diffusion_workflow_v1`, the installed package binds five
+immutable generic component roles to a separate bounded workflow. It owns
+fixed alignment, audio conditioning, VAE source preparation, 16-frame temporal
+planning, epsilon-prediction DDIM sampling, inverse affine, compositing, and
+media publication semantics. It is not merged with `lip_sync_workflow_v1` and
+is not an arbitrary workflow DAG.
+
 ## Prompt-runnable profile
 
 Package schema 1 already makes `execution.profile` an artifact and therefore

@@ -34,6 +34,12 @@ MuseTalk is qualified on CUDA. Metal numerical qualification for this product
 has not been completed. Its observed 6.27 GiB peak internal allocation on an
 RTX 4090 D full-sample run is not a minimum-VRAM requirement.
 
+Public Mode-C metadata for `vrhino/latentsync-1.6:1.0.0` is prepared for a
+future release candidate but is not part of the current v0.4.0-alpha binary.
+Its CUDA qualification was performed on an RTX 4090 D; observed peak internal
+allocation was approximately 19.9 GiB for the qualification profile. This is
+not a minimum or admission threshold.
+
 For presets with a declared VRAM admission threshold, `vrhino run` checks
 currently available memory on the selected GPU before expensive execution.
 Invalid or unwritable output destinations and a missing or unusable bundled

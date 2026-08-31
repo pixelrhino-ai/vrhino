@@ -110,6 +110,15 @@ vrhino run vrhino/musetalk-v1.5:1.0.0 \
   --output output.mp4
 ```
 
+下一个候选版本还准备了以下 Public Mode-C 元数据：
+
+- `vrhino/latentsync-1.6:1.0.0`（`lip_sync`）
+
+LatentSync 使用相同的类型化视频/音频 CLI 形式。VRhino 从上游下载 12 个固定的
+推理文件并在本地转换；Pixel Rhino 不分发模型权重或转换后的 VRM。当前
+v0.4.0-alpha 二进制早于这份元数据，普通用户需等待后续经过明确验证的二进制
+版本后才能使用。
+
 首次拉取会从模型的固定上游版本下载原始文件，在本机完成转换，并把可运行模型
 安装到 VRhino 本地缓存。LTX 源数据约为 24.77 GB，Wan 源数据约为 16.36 GiB，
 Mochi 源数据约为 37.28 GiB，MuseTalk 源数据约为 4.01 GiB。VRhino 发布包本身
@@ -149,6 +158,7 @@ vrhino pull vrhino/ltx-video-v0.9.1:1.1.0
 - [Wan2.1 T2V 1.3B 来源与许可证说明](docs/models/wan2.1-t2v-1.3b.md)
 - [Mochi 1 Preview 来源与许可证说明](docs/models/mochi-1-preview.md)
 - [MuseTalk v1.5 来源、使用与许可证说明](docs/models/musetalk-v1.5.md)
+- [LatentSync 1.6 来源、使用与许可证说明](docs/models/latentsync-1.6.md)
 - [VRM 格式规范](spec/vrm-v0.1.md)
 - [可运行模型包规范](spec/model-package-v0.md)
 
@@ -174,3 +184,8 @@ VRhino 二进制是专有软件，按
 在本地转换。使用仍受各上游模型许可证约束，其中包括 MuseTalk 的 CreativeML
 OpenRAIL-M 用途限制。用户须确保输入媒体的使用合法并已获得同意。本项目不暗示
 任何上游权利人对 VRhino 的认可或背书。
+
+已准备的 LatentSync Public 模型包同样遵循不分发权重的 Mode-C 边界。
+LatentSync 模型的使用仍受 CreativeML Open RAIL++-M License 及其 Attachment A
+用途限制约束。本次仓库变更仅准备元数据，并不表示支持 LatentSync 的二进制
+版本已经发布。

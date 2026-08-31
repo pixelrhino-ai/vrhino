@@ -1,0 +1,124 @@
+VRhino LatentSync 1.6 Public Model Notices
+
+Public model identity: vrhino/latentsync-1.6:1.0.0
+Product family: lip_sync
+Workflow family: lip_sync_diffusion_workflow_v1
+Distribution mode: upstream acquisition and local conversion (Mode C)
+
+Pixel Rhino distributes VRhino software, fixed source metadata, hashes,
+workflow configuration, and these notices. Pixel Rhino does not distribute or
+host original model weights, converted VRhino model components, model CAS
+objects, or qualification media. Users obtain model files from their official
+upstream sources.
+
+Conversion statement
+--------------------
+
+Converted from the upstream model representation into VRhino's Native model
+representation. Conversion changes representation, not ownership or
+licensing. Locally converted artifacts remain subject to their governing
+upstream terms.
+
+LatentSync 1.6 Temporal Conditional UNet
+----------------------------------------
+
+Source: ByteDance/LatentSync-1.6, revision
+c42c7e6c8e9c213626389fa7d9a3c444b8536353, latentsync_unet.pt.
+Repository publisher and project: ByteDance / LatentSync. The upstream model
+repository and authors do not sponsor or endorse VRhino.
+
+Model license: CreativeML Open RAIL++-M License dated July 26, 2023. The
+complete license, including Attachment A, is provided in
+licenses/CreativeML-Open-RAIL++-M.txt. Its use-based restrictions apply to the
+upstream model and locally converted representations. Commercial inference is
+permitted only subject to the governing license and its restrictions. Pixel
+Rhino does not distribute the LatentSync model weights. No separate ByteDance
+model copyright statement is asserted here because the upstream repository
+does not provide one.
+
+LatentSync code, configuration, and fixed mask
+----------------------------------------------
+
+Source: bytedance/LatentSync, revision
+a229c3948406bc2cf6eaf4873e662e70c6a04746. This includes the qualified UNet
+configuration, DDIM scheduler configuration, and fixed mask.
+
+Copyright (c) 2024 Bytedance Ltd. and/or its affiliates.
+License: Apache License 2.0. No separate upstream NOTICE file is represented.
+
+Whisper Tiny and mel filters
+----------------------------
+
+Checkpoint source: ByteDance/LatentSync-1.6, revision
+c42c7e6c8e9c213626389fa7d9a3c444b8536353, whisper/tiny.pt. Its SHA256 is
+identical to the official OpenAI Whisper Tiny checkpoint.
+
+Mel-filter source: bytedance/LatentSync, revision
+a229c3948406bc2cf6eaf4873e662e70c6a04746,
+latentsync/whisper/whisper/assets/mel_filters.npz. It is the vendored OpenAI
+Whisper mel-filter asset.
+
+Copyright (c) 2022 OpenAI
+License: MIT License.
+
+Whisper preprocessing metadata
+------------------------------
+
+Source: openai/whisper-tiny, revision
+169d4a4341b33bc18d8881c4b69c2e104e1cc0af, preprocessor_config.json.
+The exact Hugging Face representation declares Apache-2.0 metadata. This
+conservative Apache-2.0 source/representation notice is distinct from the MIT
+license governing the underlying OpenAI Whisper model and mel filters.
+
+SD AutoencoderKL
+----------------
+
+Source: stabilityai/sd-vae-ft-mse, revision
+31f26fdeee1355a5c34592e401dd41e45d25a493, config.json and
+diffusion_pytorch_model.bin. Upstream publisher: Stability AI. License: MIT.
+No unrelated Stable Diffusion checkpoint license is applied.
+
+MediaPipe BlazeFace Short Range
+-------------------------------
+
+Source: Google MediaPipe Models, versioned asset
+blaze_face_short_range/float16/1/blaze_face_short_range.tflite.
+Copyright Google LLC. License: Apache-2.0. No separate model-specific Google
+NOTICE file is represented.
+
+DWPose
+------
+
+Source: yzd-v/DWPose, revision
+1a7144101628d69ee7a3768d1ee3a094070dc388,
+dw-ll_ucoco_384.pth. License: Apache-2.0.
+
+Copyright 2023 IDEA. All Rights Reserved.
+The upstream DWPose license also retains applicable MMPose attribution:
+Copyright (c) Open-MMLab. All rights reserved. No separate DWPose NOTICE file
+was published with this exact model repository revision.
+
+DWPose configuration from MuseTalk
+----------------------------------
+
+Source: TMElyralab/MuseTalk, revision
+9deb9bea0d46b085d171d9a417671f6ef1af2f69,
+musetalk/utils/dwpose/rtmpose-l_8xb32-270e_coco-ubody-wholebody-384x288.py.
+
+Copyright (c) 2024 Tencent Music Entertainment Group
+License: MIT License. Applicable DWPose/MMPose Apache-2.0 attribution is
+retained above.
+
+License texts
+-------------
+
+CreativeML Open RAIL++-M: licenses/CreativeML-Open-RAIL++-M.txt
+Apache License 2.0: licenses/Apache-2.0.txt
+MIT License: licenses/MIT.txt
+
+No upstream owner, publisher, author, or project identified above sponsors or
+endorses VRhino. Their names and trademarks are used only to identify the
+source of applicable model or software material.
+
+Users are responsible for complying with upstream licenses and for lawful,
+consented use of input video, faces, images, and audio.

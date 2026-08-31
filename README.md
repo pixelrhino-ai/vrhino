@@ -113,6 +113,15 @@ vrhino run vrhino/musetalk-v1.5:1.0.0 \
   --output output.mp4
 ```
 
+Public Mode-C metadata is also prepared for the next release candidate:
+
+- `vrhino/latentsync-1.6:1.0.0` (`lip_sync`)
+
+LatentSync uses the same typed video/audio CLI shape. It downloads 12 exact
+upstream inference assets and converts them locally; Pixel Rhino ships no model
+weights or converted VRMs. The current v0.4.0-alpha binary predates this
+metadata, so ordinary use requires a later explicitly qualified binary release.
+
 The first pull downloads the original artifacts from the model's fixed
 upstream revision, converts them locally, and installs the runnable package in
 the local VRhino cache. The source acquisition is about 24.77 GB for LTX,
@@ -156,6 +165,7 @@ the shared native runtime and writes an MP4 using the bundled media component.
 - [Wan2.1 T2V 1.3B source and license notice](docs/models/wan2.1-t2v-1.3b.md)
 - [Mochi 1 Preview source and license notice](docs/models/mochi-1-preview.md)
 - [MuseTalk v1.5 source, use and license notice](docs/models/musetalk-v1.5.md)
+- [LatentSync 1.6 source, use and license notice](docs/models/latentsync-1.6.md)
 - [VRM format specification](spec/vrm-v0.1.md)
 - [Runnable model package specification](spec/model-package-v0.md)
 
@@ -183,3 +193,9 @@ fixed upstream models and convert them locally. Use remains subject to each
 upstream license, including MuseTalk's CreativeML OpenRAIL-M use-based
 restrictions. Users are responsible for lawful and consented input media. No
 upstream endorsement is implied.
+
+The prepared LatentSync Public package follows the same no-weight Mode-C
+boundary. LatentSync model use remains subject to the CreativeML Open RAIL++-M
+License and its Attachment A use-based restrictions. This repository change is
+metadata preparation and does not claim that a LatentSync-capable binary has
+already been released.

@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "model_reference": "vrhino/latentsync-1.6:1.0.0",
+  "requested_source": {
+    "provider": "huggingface",
+    "repository": "ByteDance/LatentSync-1.6",
+    "revision": "c42c7e6c8e9c213626389fa7d9a3c444b8536353"
+  },
+  "artifacts": [
+    {"id":"temporal-unet-weights","role":"fixed_checkpoint","provider":"huggingface","repository":"ByteDance/LatentSync-1.6","revision":"c42c7e6c8e9c213626389fa7d9a3c444b8536353","upstream_path":"latentsync_unet.pt","local_path":"temporal_unet/latentsync_unet.pt","size":5072222488,"sha256":"0a478e89eb660f82da4c35dbdde8a5adfb27f99d1b4e50edd03729e1e98316d3"},
+    {"id":"whisper-weights","role":"fixed_checkpoint","provider":"huggingface","repository":"ByteDance/LatentSync-1.6","revision":"c42c7e6c8e9c213626389fa7d9a3c444b8536353","upstream_path":"whisper/tiny.pt","local_path":"whisper/tiny.pt","size":75572083,"sha256":"65147644a518d12f04e32d6f3b26facc3f8dd46e5390956a9424a650c0ce22b9"},
+    {"id":"vae-config","role":"graph_config","provider":"huggingface","repository":"stabilityai/sd-vae-ft-mse","revision":"31f26fdeee1355a5c34592e401dd41e45d25a493","upstream_path":"config.json","local_path":"vae/config.json","size":547,"sha256":"92d3dfb746fca211a2c9e019e285f8597412211728dce3c5bcf4eda0f2d62e7e"},
+    {"id":"vae-weights","role":"fixed_checkpoint","provider":"huggingface","repository":"stabilityai/sd-vae-ft-mse","revision":"31f26fdeee1355a5c34592e401dd41e45d25a493","upstream_path":"diffusion_pytorch_model.bin","local_path":"vae/diffusion_pytorch_model.bin","size":334707217,"sha256":"1b4889b6b1d4ce7ae320a02dedaeff1780ad77d415ea0d744b476155c6377ddc"},
+    {"id":"blazeface-weights","role":"fixed_checkpoint","provider":"fixed_https","url":"https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite","local_path":"blazeface/blaze_face_short_range.tflite","size":229746,"sha256":"b4578f35940bf5a1a655214a1cce5cab13eba73c1297cd78e1a04c2380b0152f"},
+    {"id":"dwpose-weights","role":"fixed_checkpoint","provider":"huggingface","repository":"yzd-v/DWPose","revision":"1a7144101628d69ee7a3768d1ee3a094070dc388","upstream_path":"dw-ll_ucoco_384.pth","local_path":"dwpose/dw-ll_ucoco_384.pth","size":406878486,"sha256":"0d9408b13cd863c4e95a149dd31232f88f2a12aa6cf8964ed74d7d97748c7a07"},
+    {"id":"dwpose-config","role":"graph_config","provider":"fixed_https","url":"https://raw.githubusercontent.com/TMElyralab/MuseTalk/9deb9bea0d46b085d171d9a417671f6ef1af2f69/musetalk/utils/dwpose/rtmpose-l_8xb32-270e_coco-ubody-wholebody-384x288.py","local_path":"dwpose/rtmpose-l_8xb32-270e_coco-ubody-wholebody-384x288.py","size":7364,"sha256":"7c0da61ee9517ee6c97ec10dd6be592eb51501434a93fa0a8e7f3f3739b5e477"},
+    {"id":"unet-config","role":"graph_config","provider":"fixed_https","url":"https://raw.githubusercontent.com/bytedance/LatentSync/a229c3948406bc2cf6eaf4873e662e70c6a04746/configs/unet/stage2_512.yaml","local_path":"temporal_unet/stage2_512.yaml","size":2542,"sha256":"652bbf469d3baf68f1b364fd47409901cd8d1bf8bb7754133aa69a28132312e6"},
+    {"id":"scheduler-config","role":"sampling_config","provider":"fixed_https","url":"https://raw.githubusercontent.com/bytedance/LatentSync/a229c3948406bc2cf6eaf4873e662e70c6a04746/configs/scheduler_config.json","local_path":"temporal_unet/scheduler_config.json","size":275,"sha256":"14561e18160bf30bbcf7c93259af07ae82bbf611defeb93e995883fce1461315"},
+    {"id":"fixed-mask","role":"workflow_mask","provider":"fixed_https","url":"https://raw.githubusercontent.com/bytedance/LatentSync/a229c3948406bc2cf6eaf4873e662e70c6a04746/latentsync/utils/mask.png","local_path":"workflow/mask.png","size":1871,"sha256":"aa233251b9ff5691a1565a4108f0910ab1e5e7ad79a7bb2b741ab4d92c81053c"},
+    {"id":"mel-filters","role":"audio_preprocess","provider":"fixed_https","url":"https://raw.githubusercontent.com/bytedance/LatentSync/a229c3948406bc2cf6eaf4873e662e70c6a04746/latentsync/whisper/whisper/assets/mel_filters.npz","local_path":"whisper/mel_filters.npz","size":2048,"sha256":"dd2cc75e70e36fcbdd8ffbc2499062f30094093e6bf2cbafa9859f59972b420b"},
+    {"id":"whisper-preprocessor","role":"audio_preprocess","provider":"huggingface","repository":"openai/whisper-tiny","revision":"169d4a4341b33bc18d8881c4b69c2e104e1cc0af","upstream_path":"preprocessor_config.json","local_path":"whisper/preprocessor_config.json","size":184990,"sha256":"9b5cd03a36fbb8a627c64d98a5b5b126ead95a77720723944487311f0110b666"}
+  ]
+}

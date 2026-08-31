@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "product_family": "lip_sync",
+  "workflow_identity": "lip_sync_diffusion_workflow_v1",
+  "execution_dtype": "float32",
+  "default_seed": 1247,
+  "inputs": {
+    "video": {"type": "media.video", "required": true},
+    "audio": {"type": "media.audio", "required": true},
+    "output": {"type": "media.mp4", "required": true}
+  },
+  "frozen_sampling": {"steps": 20, "guidance": 1.5, "eta": 0.0, "chunk": 16}
+}

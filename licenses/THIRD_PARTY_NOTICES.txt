@@ -28,6 +28,20 @@ continue to apply to locally converted artifacts. Google, MediaPipe, Tencent
 Music Entertainment, OpenAI, Stability AI, IDEA Research and OpenMMLab do not
 sponsor or endorse VRhino.
 
+Public model metadata — LatentSync 1.6 lip-sync diffusion
+---------------------------------------------------------
+
+The prepared source-backed identity `vrhino/latentsync-1.6:1.0.0` distributes
+no model weights or converted `.vrm` components. Users obtain 12 fixed
+inference assets from official upstream sources and convert them locally. The
+complete model inventory, attribution, representation-change notice and
+governing CreativeML Open RAIL++-M, Apache-2.0 and MIT texts are under
+`licenses/models/latentsync-1.6/`. Attachment A use restrictions continue to
+apply to locally converted LatentSync artifacts. ByteDance, OpenAI, Stability
+AI, Google, MediaPipe, IDEA Research, OpenMMLab and Tencent Music Entertainment
+Group do not sponsor or endorse VRhino. This metadata does not claim that a
+compatible binary release has already been published.
+
 NVIDIA runtime components (conditionally redistributable under the referenced
 NVIDIA application-distribution terms):
 - CUDA Runtime 12.8.90 — LicenseRef-NVIDIA-CUDA-EULA
