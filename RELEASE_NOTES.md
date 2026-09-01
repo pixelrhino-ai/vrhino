@@ -1,6 +1,6 @@
 # VRhino v0.5.0-alpha
 
-This feature Alpha release candidate adds Public LatentSync 1.6 lip-sync
+This feature Alpha release adds Public LatentSync 1.6 lip-sync
 diffusion support.
 
 Highlights:
@@ -27,7 +27,7 @@ Existing LTX, Wan, Mochi, and MuseTalk Public model support remains available.
 
 Release archive: `vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz`
 
-The candidate remains an Alpha for Linux x86_64 with NVIDIA CUDA. See
+The release remains an Alpha for Linux x86_64 with NVIDIA CUDA. See
 [Alpha limitations](docs/alpha-limitations.md) for the exact scope.
 
 # VRhino v0.4.0-alpha

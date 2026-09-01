@@ -1,13 +1,17 @@
 <p align="center">
-  <img src="logo.png" alt="VRhino" width="160">
+  <img src="banner.png" alt="VRhino" width="960">
 </p>
 
 # VRhino
+
+**Native runtime for local AI video models.**
 
 English | [简体中文](README.zh-CN.md)
 
 VRhino is a self-contained native runtime and model packaging system for
 running AI video models locally without model-specific Python environments.
+
+VRhino is unrelated to Rhinoceros 3D (Rhino) or Grasshopper.
 
 ## What is VRhino?
 
@@ -32,8 +36,7 @@ comparable to llama.cpp today.
 
 ## Current Alpha
 
-The current published release is **v0.4.0-alpha**. This source tree prepares
-the **v0.5.0-alpha** release candidate.
+The current published release is **v0.5.0-alpha**.
 
 - Platform: Linux x86_64
 - Backend: NVIDIA CUDA
@@ -53,17 +56,17 @@ Toolkit, cuDNN, or system FFmpeg.
 ## Install
 
 Download both the
-[release archive](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.4.0-alpha/vrhino-linux-x86_64-cuda-v0.4.0-alpha.tar.gz)
+[release archive](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.5.0-alpha/vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz)
 and its
-[checksum file](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.4.0-alpha/vrhino-linux-x86_64-cuda-v0.4.0-alpha.tar.gz.sha256)
-from [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.4.0-alpha).
+[checksum file](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.5.0-alpha/vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz.sha256)
+from [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.5.0-alpha).
 With both files in `~/Downloads`, run:
 
 ```bash
 cd "$HOME/Downloads"
-sha256sum -c vrhino-linux-x86_64-cuda-v0.4.0-alpha.tar.gz.sha256
+sha256sum -c vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz.sha256
 mkdir -p "$HOME/.local/share"
-tar -xzf vrhino-linux-x86_64-cuda-v0.4.0-alpha.tar.gz -C "$HOME/.local/share"
+tar -xzf vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz -C "$HOME/.local/share"
 printf '\nexport PATH="$HOME/.local/share/vrhino/bin:$PATH"\n' >> "$HOME/.profile"
 export PATH="$HOME/.local/share/vrhino/bin:$PATH"
 ```
@@ -84,7 +87,7 @@ somewhere other than `~/Downloads`.
 
 ## Quick Start
 
-Prepared v0.5.0-alpha Public model set:
+The v0.5.0-alpha Public model set is:
 
 - `vrhino/ltx-video-v0.9.1:1.1.0`
 - `vrhino/wan2.1-t2v-1.3b:1.0.0`
@@ -116,15 +119,13 @@ vrhino run vrhino/musetalk-v1.5:1.0.0 \
   --output output.mp4
 ```
 
-The prepared v0.5.0-alpha candidate includes Public Mode-C support for:
+The v0.5.0-alpha release includes Public Mode-C support for:
 
 - `vrhino/latentsync-1.6:1.0.0` (`lip_sync`)
 
 LatentSync uses the same typed video/audio CLI shape. It downloads 12 exact
 upstream inference assets and converts them locally; Pixel Rhino ships no model
-weights or converted VRMs. This support is included in the prepared
-v0.5.0-alpha candidate but is not claimed as released until that candidate is
-separately committed, tagged, and published.
+weights or converted VRMs.
 
 The first pull downloads the original artifacts from the model's fixed
 upstream revision, converts them locally, and installs the runnable package in
@@ -175,7 +176,7 @@ the shared native runtime and writes an MP4 using the bundled media component.
 
 ## Alpha limitations
 
-This release candidate supports Linux x86_64, the NVIDIA CUDA backend, and the
+This alpha release supports Linux x86_64, the NVIDIA CUDA backend, and the
 five exact qualified model paths listed above. It does not claim support for every NVIDIA
 GPU, Linux distribution, model checkpoint, or video-model architecture.
 Interfaces and compatibility may change during Alpha.

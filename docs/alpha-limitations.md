@@ -36,11 +36,9 @@ has not been completed. Its observed 6.27 GiB peak internal allocation on an
 RTX 4090 D full-sample run is not a minimum-VRAM requirement.
 
 Public Mode-C support for `vrhino/latentsync-1.6:1.0.0` is included in the
-prepared v0.5.0-alpha release candidate. It is not claimed as released until
-that candidate is separately committed, tagged, and published. Its CUDA
-qualification was performed on an RTX 4090 D; observed peak internal allocation
-was approximately 19.9 GiB for the qualification profile. This is not a minimum
-or admission threshold.
+published v0.5.0-alpha release. Its CUDA qualification was performed on an RTX
+4090 D; observed peak internal allocation was approximately 19.9 GiB for the
+qualification profile. This is not a minimum or admission threshold.
 
 For presets with a declared VRAM admission threshold, `vrhino run` checks
 currently available memory on the selected GPU before expensive execution.

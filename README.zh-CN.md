@@ -1,13 +1,17 @@
 <p align="center">
-  <img src="logo.png" alt="VRhino" width="160">
+  <img src="banner.png" alt="VRhino" width="960">
 </p>
 
 # VRhino
+
+**面向本地 AI 视频模型的原生运行时。**
 
 [English](README.md) | 简体中文
 
 VRhino 是一个自包含的原生视频模型运行时与模型打包系统，目标是在本地运行
 AI 视频模型时，不再维护每个模型各自的 Python 环境。
+
+VRhino 与 Rhinoceros 3D（Rhino）或 Grasshopper 无关。
 
 ## VRhino 是什么？
 
@@ -31,8 +35,7 @@ VRhino 转换
 
 ## 当前 Alpha
 
-当前已发布版本是 **v0.4.0-alpha**。当前源码树正在准备
-**v0.5.0-alpha** 发布候选版本。
+当前已发布版本是 **v0.5.0-alpha**。
 
 - 平台：Linux x86_64
 - 后端：NVIDIA CUDA
@@ -51,18 +54,18 @@ FFmpeg。
 
 ## 安装
 
-从 [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.4.0-alpha)
+从 [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.5.0-alpha)
 下载
-[发布包](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.4.0-alpha/vrhino-linux-x86_64-cuda-v0.4.0-alpha.tar.gz)
+[发布包](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.5.0-alpha/vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz)
 和对应的
-[校验文件](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.4.0-alpha/vrhino-linux-x86_64-cuda-v0.4.0-alpha.tar.gz.sha256)。
+[校验文件](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.5.0-alpha/vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz.sha256)。
 假设两个文件都在 `~/Downloads`，运行：
 
 ```bash
 cd "$HOME/Downloads"
-sha256sum -c vrhino-linux-x86_64-cuda-v0.4.0-alpha.tar.gz.sha256
+sha256sum -c vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz.sha256
 mkdir -p "$HOME/.local/share"
-tar -xzf vrhino-linux-x86_64-cuda-v0.4.0-alpha.tar.gz -C "$HOME/.local/share"
+tar -xzf vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz -C "$HOME/.local/share"
 printf '\nexport PATH="$HOME/.local/share/vrhino/bin:$PATH"\n' >> "$HOME/.profile"
 export PATH="$HOME/.local/share/vrhino/bin:$PATH"
 ```
@@ -81,7 +84,7 @@ vrhino doctor
 
 ## 快速开始
 
-已准备的 v0.5.0-alpha 候选版本支持五个已验证的公开模型路径：
+v0.5.0-alpha 支持以下五个已验证的公开模型路径：
 
 - `vrhino/ltx-video-v0.9.1:1.1.0`
 - `vrhino/wan2.1-t2v-1.3b:1.0.0`
@@ -113,14 +116,12 @@ vrhino run vrhino/musetalk-v1.5:1.0.0 \
   --output output.mp4
 ```
 
-已准备的 v0.5.0-alpha 候选版本包含以下 Public Mode-C 支持：
+v0.5.0-alpha 包含以下 Public Mode-C 支持：
 
 - `vrhino/latentsync-1.6:1.0.0`（`lip_sync`）
 
 LatentSync 使用相同的类型化视频/音频 CLI 形式。VRhino 从上游下载 12 个固定的
-推理文件并在本地转换；Pixel Rhino 不分发模型权重或转换后的 VRM。该支持已纳入
-准备中的 v0.5.0-alpha 候选版本，但在该候选版本另行提交、打标签和发布之前，
-本文不宣称其已经发布。
+推理文件并在本地转换；Pixel Rhino 不分发模型权重或转换后的 VRM。
 
 首次拉取会从模型的固定上游版本下载原始文件，在本机完成转换，并把可运行模型
 安装到 VRhino 本地缓存。LTX 源数据约为 24.77 GB，Wan 源数据约为 16.36 GiB，
@@ -167,7 +168,7 @@ vrhino pull vrhino/ltx-video-v0.9.1:1.1.0
 
 ## Alpha 限制
 
-当前候选版本支持 Linux x86_64、NVIDIA CUDA 后端，以及上面列出的五个确定且
+当前 Alpha 版本支持 Linux x86_64、NVIDIA CUDA 后端，以及上面列出的五个确定且
 已验证的模型路径。它不声称支持所有 NVIDIA GPU、所有 Linux 发行版、所有模型
 检查点或所有视频模型架构。Alpha 期间接口和兼容性可能发生变化。
 
