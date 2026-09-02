@@ -1,0 +1,10 @@
+{
+  "error": {
+    "code": "event_history_truncated",
+    "details": {
+      "first_available_sequence": 48,
+      "latest_sequence": 303
+    },
+    "message": "requested event history is no longer retained"
+  }
+}

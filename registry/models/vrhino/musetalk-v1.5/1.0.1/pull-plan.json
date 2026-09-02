@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "model_reference": "vrhino/musetalk-v1.5:1.0.1",
+  "distribution": {
+    "kind": "multi_component_source_backed",
+    "source": {
+      "provider": "huggingface",
+      "repository": "TMElyralab/MuseTalk",
+      "revision": "3ef28bc5cff08c90ad8178a25f1b570cd800170f"
+    },
+    "source_plan": "source-plan.json",
+    "converter": "native"
+  }
+}

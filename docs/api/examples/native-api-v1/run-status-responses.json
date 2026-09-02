@@ -1,0 +1,69 @@
+{
+  "cancelled": {
+    "cancel_requested": true,
+    "id": "r0123456789abcdef-0000000000000001",
+    "model": "vrhino/ltx-video-v0.9.1:1.1.1",
+    "output": {
+      "managed": true,
+      "path": "/home/user/.vrhino/runs/r0123456789abcdef-0000000000000001/output.mp4"
+    },
+    "progress": {
+      "completed": 4,
+      "total": 40,
+      "unit": "step"
+    },
+    "stage": "sampling",
+    "status": "cancelled"
+  },
+  "failed": {
+    "cancel_requested": false,
+    "error": {
+      "code": "execution_failed",
+      "message": "Product execution failed"
+    },
+    "id": "r0123456789abcdef-0000000000000001",
+    "model": "vrhino/ltx-video-v0.9.1:1.1.1",
+    "output": {
+      "managed": true,
+      "path": "/home/user/.vrhino/runs/r0123456789abcdef-0000000000000001/output.mp4"
+    },
+    "status": "failed"
+  },
+  "queued": {
+    "cancel_requested": false,
+    "id": "r0123456789abcdef-0000000000000001",
+    "model": "vrhino/ltx-video-v0.9.1:1.1.1",
+    "output": {
+      "managed": true,
+      "path": "/home/user/.vrhino/runs/r0123456789abcdef-0000000000000001/output.mp4"
+    },
+    "status": "queued"
+  },
+  "running": {
+    "cancel_requested": false,
+    "id": "r0123456789abcdef-0000000000000001",
+    "model": "vrhino/ltx-video-v0.9.1:1.1.1",
+    "output": {
+      "managed": true,
+      "path": "/home/user/.vrhino/runs/r0123456789abcdef-0000000000000001/output.mp4"
+    },
+    "progress": {
+      "completed": 4,
+      "total": 40,
+      "unit": "step"
+    },
+    "stage": "sampling",
+    "status": "running"
+  },
+  "succeeded": {
+    "cancel_requested": false,
+    "id": "r0123456789abcdef-0000000000000001",
+    "model": "vrhino/ltx-video-v0.9.1:1.1.1",
+    "output": {
+      "managed": true,
+      "path": "/home/user/.vrhino/runs/r0123456789abcdef-0000000000000001/output.mp4"
+    },
+    "stage": "finalizing",
+    "status": "succeeded"
+  }
+}

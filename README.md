@@ -34,7 +34,7 @@ Shared Native Runtime
 The project is still an Alpha. Its model coverage and maturity are not
 comparable to llama.cpp today.
 
-## Current Alpha
+## Release status
 
 The current published release is **v0.5.0-alpha**.
 
@@ -52,6 +52,21 @@ The current published release is **v0.5.0-alpha**.
 You need a compatible NVIDIA GPU and NVIDIA Driver, enough VRAM, and enough
 disk space. You do **not** install Python, PyTorch, Diffusers, Conda, a CUDA
 Toolkit, cuDNN, or system FFmpeg.
+
+The Public source contract is now frozen for the upcoming
+**v0.6.0-alpha** release. It adds machine-readable Product contracts and a
+local Native API for desktop, native, local-daemon, CLI-adjacent, and other
+community integrations. The v0.6.0-alpha release asset and checksum do not
+exist yet; use the published v0.5.0-alpha links below until a new release is
+announced.
+
+The exact v0.6.0-alpha Public model set is:
+
+- `vrhino/ltx-video-v0.9.1:1.1.1`
+- `vrhino/wan2.1-t2v-1.3b:1.0.1`
+- `vrhino/mochi-1-preview:1.0.1`
+- `vrhino/musetalk-v1.5:1.0.1`
+- `vrhino/latentsync-1.6:1.0.1`
 
 ## Install
 
@@ -85,7 +100,7 @@ No `sudo` or repository clone is required. See the
 [installation guide](docs/install.md) if your browser saves downloads
 somewhere other than `~/Downloads`.
 
-## Quick Start
+## Published v0.5.0-alpha Quick Start
 
 The v0.5.0-alpha Public model set is:
 
@@ -159,10 +174,39 @@ the source artifacts, converts them natively into the VRhino model format, and
 installs an immutable local package. `vrhino run` executes that package with
 the shared native runtime and writes an MP4 using the bundled media component.
 
+Successor packages declare their typed inputs, parameters, defaults, and
+outputs through
+[ProductInputSchema v1](docs/product/product-input-schema-v1.md). Inspect the
+same contract without parsing CLI text:
+
+```bash
+vrhino info vrhino/ltx-video-v0.9.1:1.1.1 --json
+```
+
+The v0.6.0-alpha executable also serves the local Native API:
+
+```bash
+vrhino serve
+# Equivalent explicit form:
+vrhino serve --host 127.0.0.1 --port 11435
+```
+
+The server is part of the primary `vrhino` executable; there is no separate
+server package and no Python or Node server dependency. Native API v1 alpha is
+a **local API**: it binds to `127.0.0.1:11435` by default, has no
+authentication, TLS, or CORS, and is not intended for direct exposure to the
+untrusted Internet. Explicit non-loopback binding emits a warning. See the
+[Native API v1 contract](docs/api/native-api-v1.md) for the complete seven-route
+contract and local absolute-path media rules.
+
 ## Documentation
 
 - [Installation and system requirements](docs/install.md)
 - [Model commands](docs/cli/model-cli-v0.md)
+- [ProductInputSchema v1](docs/product/product-input-schema-v1.md)
+- [Model-info JSON v1](docs/product/model-info-json-v1.md)
+- [Native API v1 alpha](docs/api/native-api-v1.md)
+- [v0.6.0-alpha build-source provenance boundary](docs/release/build-source-provenance.md)
 - [`pull` command](docs/cli/pull-v0.md)
 - [`run` command](docs/cli/run-v0.md)
 - [`doctor` diagnostics](docs/cli/doctor-v0.md)
@@ -176,10 +220,11 @@ the shared native runtime and writes an MP4 using the bundled media component.
 
 ## Alpha limitations
 
-This alpha release supports Linux x86_64, the NVIDIA CUDA backend, and the
-five exact qualified model paths listed above. It does not claim support for every NVIDIA
-GPU, Linux distribution, model checkpoint, or video-model architecture.
-Interfaces and compatibility may change during Alpha.
+This alpha source contract supports Linux x86_64, the NVIDIA CUDA backend, and
+the five exact v0.6.0-alpha successor paths listed above. It does not claim
+support for every NVIDIA GPU, Linux distribution, model checkpoint, or
+video-model architecture. Interfaces and compatibility may change during
+Alpha.
 
 See [Alpha limitations](docs/alpha-limitations.md) for details.
 

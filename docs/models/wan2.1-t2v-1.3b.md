@@ -2,7 +2,7 @@
 
 The qualified VRhino Public Alpha model path is:
 
-`vrhino/wan2.1-t2v-1.3b:1.0.0`
+`vrhino/wan2.1-t2v-1.3b:1.0.1`
 
 ## Distribution boundary
 
@@ -26,8 +26,11 @@ The qualified VRhino Public Alpha model path is:
 
 ## Qualified default profile
 
-The current default profile is 832×480, 81 frames at 16 FPS, 50 sampling
-steps, CFG 5, flow shift 5, seed 5701, and Flow UniPC order 2.
+The successor package uses `vrhino.product.input-schema.v1`: `prompt` is
+required; `seed` is optional with default `5701`; and `output` is optional with
+default `output.mp4`. Its frozen Product profile is 832×480, 81 frames at
+16 FPS, 50 sampling steps, and guidance 5. Flow shift and scheduler mechanics
+remain execution metadata rather than Product parameters.
 
 One qualification run observed a peak device allocation of approximately
 13.06 GiB. This is an observed result on the qualification hardware, not a

@@ -2,7 +2,7 @@
 
 The qualified public package identity is:
 
-`vrhino/musetalk-v1.5:1.0.0`
+`vrhino/musetalk-v1.5:1.0.1`
 
 It is a bounded `lip_sync` product using workflow family
 `lip_sync_workflow_v1`. It accepts a source video and driving audio and writes
@@ -36,22 +36,25 @@ The fixed source plan uses:
 - MediaPipe Selfie Multiclass 256x256 from Google's versioned model URL.
 
 The exact filenames, URLs, byte sizes and SHA256 values are retained in the
-[public source plan](../../registry/models/vrhino/musetalk-v1.5/1.0.0/source-plan.json).
+[public source plan](../../registry/models/vrhino/musetalk-v1.5/1.0.1/source-plan.json).
 
 ## Use
 
 ```bash
-vrhino pull vrhino/musetalk-v1.5:1.0.0
-vrhino info vrhino/musetalk-v1.5:1.0.0
-vrhino doctor vrhino/musetalk-v1.5:1.0.0
-vrhino run vrhino/musetalk-v1.5:1.0.0 \
+vrhino pull vrhino/musetalk-v1.5:1.0.1
+vrhino info vrhino/musetalk-v1.5:1.0.1
+vrhino doctor vrhino/musetalk-v1.5:1.0.1
+vrhino run vrhino/musetalk-v1.5:1.0.1 \
   --video input.mp4 \
   --audio driving.wav \
   --output output.mp4
 ```
 
-`--seed` is optional. Internal detector, geometry, audio-padding and mask
-parameters are frozen by the workflow and are not user-facing CLI options.
+The Product contract requires `video` and `audio`, with exact 25 FPS video and
+at least 40 ms of decodable audio. `seed` is optional with default `11001`;
+`output` is optional with default `output.mp4`; duration is audio-derived.
+Internal detector, geometry, audio-padding, alignment, masking, TTA, tensor,
+and RNG controls are frozen by the workflow and are not Product parameters.
 Python, PyTorch, TensorFlow, MediaPipe, Diffusers, MMPose/MMCV and system
 FFmpeg are not production dependencies.
 

@@ -1,0 +1,12 @@
+{
+  "git_head": "0123456789abcdef0123456789abcdef01234567",
+  "model_package_schema": 1,
+  "runtime_contract": "cuda-v1",
+  "schema_version": 1,
+  "version": "v0.6.0-alpha",
+  "vrm": {
+    "format_major": 0,
+    "format_minor": 1,
+    "metadata_schema": 1
+  }
+}

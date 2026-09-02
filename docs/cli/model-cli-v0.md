@@ -5,10 +5,10 @@ The first public product entrypoint is `vrhino`:
 ```text
 vrhino [--cache-root PATH] [--registry URL] [--ca-file PATH] pull namespace/name:version
 vrhino [--cache-root PATH] list
-vrhino [--cache-root PATH] info namespace/name:version
+vrhino [--cache-root PATH] info namespace/name:version [--json]
 vrhino [--cache-root PATH] rm namespace/name:version
 vrhino [--cache-root PATH] run namespace/name:version --prompt TEXT [RUN OPTIONS]
-vrhino [--cache-root PATH] run namespace/name:version --video PATH --audio PATH --output PATH
+vrhino [--cache-root PATH] run namespace/name:version --video PATH --audio PATH [--output PATH]
 ```
 
 All v0 references require namespace and exact version. This avoids hidden
@@ -27,16 +27,28 @@ files. Columns are `NAME`, `VERSION`, `ARCHITECTURE`, `SIZE`, and `INSTALLED`.
 declaration, package/Runtime/VRM compatibility, default preset, hardware
 minimum/recommended metadata, source revision, license, logical size and local
 CAS completeness. Internal tensor and SamplingProgram details are omitted.
+Without an output option it retains the existing human-readable local
+diagnostic format.
+
+`info MODEL --json` emits the stable
+[Model Info JSON v1](../product/model-info-json-v1.md) projection.
+Schema-backed packages project their canonical
+`product.input_schema` and `product.frozen_profile` directly; legacy packages
+emit null for both fields rather than inferring controls. Success writes only
+one JSON document to stdout. Failures remain nonzero with human-readable stderr.
+The JSON projection omits local cache/manifest paths and requires neither
+network access nor GPU/Backend construction.
 
 `rm` deletes only the exact immutable package reference and reports `Blobs
 retained`. Automatic CAS garbage collection is intentionally outside v0.
 
 `run` resolves an already-installed package and executes its typed Native
-product entrypoint. It never pulls implicitly. Text-to-video products accept
-`--prompt`; lip-sync products accept `--video`, `--audio`, and `--output`.
-Both may accept the bounded common controls `--seed`, `--overwrite`, and
-`--debug` where supported. A lip-sync product rejects prompt input. The package
-profile, rather than the CLI, owns internal workflow and component policy.
+Product entrypoint. It never pulls implicitly. Text-to-video Products accept
+`--prompt`; lip-sync Products accept `--video` and `--audio`. `--output`,
+`--seed`, `--overwrite`, and `--debug` are bounded common controls where the
+Product schema admits them. The package Product contract and profile, rather
+than the CLI, own requiredness, defaults, geometry, timing, sampling,
+precision, and component execution policy.
 
 ## Configuration and offline behavior
 

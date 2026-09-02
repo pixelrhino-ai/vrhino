@@ -170,6 +170,11 @@ Dynamic Ubuntu-built components:
   Source: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/zlib/1:1.2.11.dfsg-2ubuntu9.2/zlib_1.2.11.dfsg-2ubuntu9.2.dsc#DSC-SIGNED-METADATA;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/zlib/1:1.2.11.dfsg-2ubuntu9.2/zlib_1.2.11.dfsg-2ubuntu9.2.debian.tar.xz#5678d0b3d1e609297e5a3dedfcb3474bab1cafe82c0c29aec2cef01e49a88d39;https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/zlib/1:1.2.11.dfsg-2ubuntu9.2/zlib_1.2.11.dfsg.orig.tar.gz#80c481411a4fe8463aeb8270149a0e80bb9eaf7da44132b6e16f2b5af01bc899
 
 Static/compiled components:
+- cpp-httplib v0.54.1 (commit 9d6a7ee2c1aaeb1fd9ae15d14f06f487149d147f)
+  License: MIT
+  Incorporated in: bin/vrhino
+  Notice: licenses/static/cpp-httplib/LICENSE
+  Source: https://github.com/yhirose/cpp-httplib/tree/9d6a7ee2c1aaeb1fd9ae15d14f06f487149d147f
 - tokenizers-cpp c586c52f93f7b060753bd2388eb96a105cb7374d
   License: Apache-2.0
   Incorporated in: libexec/vrhino-real

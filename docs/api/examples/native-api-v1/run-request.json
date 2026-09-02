@@ -1,0 +1,10 @@
+{
+  "inputs": {
+    "prompt": "A pixel rhino walking through a forest"
+  },
+  "model": "vrhino/ltx-video-v0.9.1:1.1.1",
+  "outputs": {},
+  "parameters": {
+    "seed": 5703
+  }
+}

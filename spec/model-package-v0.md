@@ -11,7 +11,7 @@ the distribution unit that makes prompt-to-video execution self-contained:
 ```text
 Runnable Model Package
   manifest
-  one or more immutable neural .vrm components
+  runtime .vrm
   tokenizer assets
   conditioning graph and weights
   precision policy
@@ -25,10 +25,10 @@ ResolvedRunnableModel
 Native product orchestration -> frozen Native Runtime
 ```
 
-The package is not a launcher for another model framework and may not reference
-Python, PyTorch, Diffusers, a provider cache, or an absolute machine path at
-execution time. Package installation, resolution, and Native execution are
-self-contained.
+The package is not a Python launcher and may not reference a Python, PyTorch,
+Diffusers, Hugging Face cache, research result directory, or absolute machine
+path at execution time. Converter tooling may use Python offline; package
+installation, resolution, and Native execution do not.
 
 ## Identity
 
@@ -61,13 +61,18 @@ fields are:
 | `schema_version` | Runnable package schema, currently integer `1` |
 | `identity` | namespace, name, version, architecture declaration, publisher |
 | `compatibility` | required Runtime contract and `.vrm` format/schema |
-| `product` | optional typed family, bounded workflow, inputs, lifecycle and distribution mode |
 | `artifacts` | logical id/role, normalized relative source path, size, SHA256, required flag |
-| `entrypoint` | runtime or workflow artifact and generic component declarations/roles |
+| `entrypoint` | runtime artifact and generic component declarations |
 | `defaults` | default preset and user-level preset inputs |
 | `hardware` | per-preset admission/qualification evidence; unknown values may be null |
 | `source` | upstream repository/revision and converter version |
 | `license` | identifier, license artifact, and upstream notice |
+
+Schema-backed successor Products may additionally embed `product.family`,
+`product.input_schema`, and `product.frozen_profile`. The normative bounded
+contract is [ProductInputSchema v1](../docs/product/product-input-schema-v1.md). Legacy
+packages without these fields retain their existing behavior; an unknown
+declared Product schema fails closed.
 
 An abbreviated manifest has this shape:
 
@@ -110,7 +115,7 @@ An abbreviated manifest has this shape:
   "source": {
     "repository": "Lightricks/LTX-Video",
     "revision": "8984fa25007f376c1a299016d0957a37a2f797bb",
-    "converter_version": "vrhino-native-converter-1"
+    "converter_version": "vrhino-vrm-0.1@dec526b8ea7b"
   },
   "license": {
     "identifier": "LicenseRef-LTX-Video-0.9.1-RAIL-M",
@@ -138,32 +143,33 @@ ids using a generic `kind`, for example `conditioning.text_encoder`. The cache
 resolver does not interpret architecture names or component kinds; it returns
 validated paths and declarations to product orchestration.
 
-Package schema 1 also supports an optional typed `product` declaration and a
-model-neutral component `role`. A bounded multi-component product may declare
-`workflow_artifact` instead of a singular `runtime_artifact`. Existing
-single-runtime text-to-video manifests remain valid and unchanged. The current
-bounded role vocabulary includes `audio_encoder`, `image_autoencoder`,
-`neural_edit`, `face_detector`, `pose_estimator`, and
-`semantic_segmenter`; these are product/package bindings and are not Runtime or
-Backend dispatch identities.
-
 All assets needed for the package's declared prompt-to-video entrypoint must be
 present as required artifacts. Optional files may add documentation or future
 features, but may not be required by the default entrypoint.
 
-## Architecture composition
+## Production architecture composition
 
-External tokenizer, conditioning, execution-profile, precision-policy, and
-license/provenance components are declared in the manifest rather than
-hardcoded in the package resolver. Architecture differences remain package
-data; there is no architecture-specific package resolver or package loader.
+External composition is declared, not hardcoded in the loader:
+
+| Architecture | Runnable package composition |
+|---|---|
+| Wan | Wan `.vrm`; UMT5 graph, weight file, tokenizer; BF16 policy; production profile; license/provenance |
+| LTX | LTX `.vrm`; T5 index and two shards; SentencePiece model; T5 conditioning graph; BF16 policy; standard-CFG/STG-disabled profile; license/provenance |
+| Mochi | Mochi `.vrm`; T5 index and four shards; SentencePiece model; T5 conditioning graph; BF16 policy; recursive-tiled production profile; license/provenance |
+
+Differences are manifest data. There is no architecture-specific package
+resolver or package loader.
 
 ## Defaults, presets, and hardware
 
-A preset contains user inputs such as width, height, frames, fps, steps, CFG,
-and precision plus an `execution.profile` artifact reference. It does not
-redeclare internal SamplingProgram, RoPE, tiling, or graph semantics. The
-architecture/profile declaration remains authoritative for those semantics.
+A preset selects an `execution.profile` artifact and may retain historical
+profile facts. For schema-backed packages, user-adjustable Product values and
+their defaults are authoritative only in `product.input_schema`; fixed
+width/height/frames/FPS and curated sampling facts live read-only in
+`product.frozen_profile`. A preset does not redeclare internal SamplingProgram,
+RoPE, tiling, or graph semantics. The execution profile remains authoritative
+for neural execution, and publication validation requires overlapping Product
+facts to agree exactly.
 
 Hardware metadata is evidence, not guessed precision. Unknown minimums are
 `null`. Qualification entries may record the tested GPU and exact scope. A
@@ -184,8 +190,7 @@ license text artifact, and upstream notice are mandatory.
 
 ## Resolved API
 
-`vrhino::product::LocalModelCache::resolve()` returns
-`ResolvedRunnableModel`, containing:
+The local package resolver returns:
 
 - parsed and compatibility-checked manifest;
 - installed manifest path;
@@ -193,12 +198,12 @@ license text artifact, and upstream notice are mandatory.
 - map from every available artifact id to its declaration and CAS path;
 - generic component declarations and default preset.
 
-The resolver interface has no CUDA, tokenizer, Python, PyTorch, or Diffusers
+Package resolution has no CUDA, tokenizer, Python, PyTorch, or Diffusers
 dependency.
 
 Remote artifact URLs are deliberately absent from this installed manifest.
 They live in the separate Registry v0 descriptor documented in
-[registry-v0.md](../docs/protocol/registry-v0.md), preserving package portability and Package
+[Registry v0](../docs/protocol/registry-v0.md), preserving package portability and Package
 schema 1.
 
 ## Native product-run declaration
@@ -210,5 +215,6 @@ components and outputs, Runtime inputs, precision policy, and output tensor
 contract. The complete contract and fail-closed behavior are documented in
 [run-v0.md](../docs/cli/run-v0.md).
 
-The qualified Public Alpha package identity is
-`vrhino/ltx-video-v0.9.1:1.1.0`.
+Historical package versions remain immutable. The v0.6.0-alpha Product
+contract is published through additive successor identities rather than by
+rewriting an installed manifest or `.vrm`.

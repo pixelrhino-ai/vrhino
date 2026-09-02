@@ -1,4 +1,12 @@
-# Install VRhino v0.5.0-alpha
+# Install VRhino
+
+## Release status
+
+The current downloadable release is **v0.5.0-alpha**. The Public source
+contract for **v0.6.0-alpha** is frozen, but its release archive and checksum
+have not been produced. The download instructions below therefore remain the
+authoritative instructions for the published v0.5.0-alpha artifact; no
+v0.6.0-alpha asset identity is implied by this document.
 
 ## Requirements
 
@@ -52,6 +60,36 @@ vrhino doctor
 
 No `sudo`, repository clone, environment activation, or manual
 `LD_LIBRARY_PATH` configuration is required.
+
+## Native API in v0.6.0-alpha
+
+The v0.6.0-alpha Native API server is built into the same primary `vrhino`
+executable. It requires no separate server package and no Python, FastAPI, or
+Node runtime. Start the foreground local server with:
+
+```bash
+vrhino serve
+# Equivalent explicit form:
+vrhino serve --host 127.0.0.1 --port 11435
+```
+
+The complete command shape is:
+
+```text
+vrhino [--cache-root PATH] serve [--host HOST] [--port PORT]
+```
+
+The default is `127.0.0.1:11435`. Native API v1 alpha has no authentication,
+TLS, or CORS and is not intended for direct exposure to the untrusted
+Internet. See the [normative Native API contract](api/native-api-v1.md).
+
+The exact successor package references intended for v0.6.0-alpha are:
+
+- `vrhino/ltx-video-v0.9.1:1.1.1`
+- `vrhino/wan2.1-t2v-1.3b:1.0.1`
+- `vrhino/mochi-1-preview:1.0.1`
+- `vrhino/musetalk-v1.5:1.0.1`
+- `vrhino/latentsync-1.6:1.0.1`
 
 If installation, pull, or run readiness is unclear, use `vrhino doctor` for a
 privacy-safe local report, or `vrhino doctor MODEL` to include installed

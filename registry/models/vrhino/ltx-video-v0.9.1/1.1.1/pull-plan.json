@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "model_reference": "vrhino/ltx-video-v0.9.1:1.1.1",
+  "distribution": {
+    "kind": "source_backed",
+    "source": {
+      "provider": "huggingface",
+      "repository": "Lightricks/LTX-Video",
+      "revision": "8984fa25007f376c1a299016d0957a37a2f797bb"
+    },
+    "source_plan": "source-plan.json",
+    "converter": "native"
+  }
+}

@@ -2,7 +2,7 @@
 
 The qualified VRhino Public Alpha model path is:
 
-`vrhino/mochi-1-preview:1.0.0`
+`vrhino/mochi-1-preview:1.0.1`
 
 ## Distribution boundary
 
@@ -33,8 +33,10 @@ required by the runnable package.
 
 ## Qualified default profile
 
-The current default profile is 848×480, 163 frames at 30 FPS, 64 sampling
-steps, and CFG 6.
+The successor package uses `vrhino.product.input-schema.v1`: `prompt` is
+required; `seed` is optional with default `11001`; and `output` is optional
+with default `output.mp4`. Its frozen Product profile is 848×480, 163 frames at
+30 FPS, 64 sampling steps, and guidance 6.
 
 The preset is admitted only when VRhino's planner sees at least 80 GiB of
 available device memory. This is the current product support and admission

@@ -1,0 +1,10 @@
+{
+  "cancel_requested": false,
+  "id": "r0123456789abcdef-0000000000000001",
+  "model": "vrhino/ltx-video-v0.9.1:1.1.1",
+  "output": {
+    "managed": true,
+    "path": "/home/user/.vrhino/runs/r0123456789abcdef-0000000000000001/output.mp4"
+  },
+  "status": "queued"
+}

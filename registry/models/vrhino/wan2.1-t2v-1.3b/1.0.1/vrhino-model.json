@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "identity": {
+    "namespace": "vrhino",
+    "name": "wan2.1-t2v-1.3b",
+    "version": "1.0.1",
+    "architecture": "wan",
+    "publisher": "VRhino"
+  },
+  "compatibility": {
+    "runtime_contract": "cuda-v1",
+    "vrm_schema": {"format_major": 0, "format_minor": 1, "metadata_schema": 1}
+  },
+  "artifacts": [
+    {
+      "id": "runtime", "role": "runtime.vrm", "path": "model/model.vrm",
+      "size": 6183962624,
+      "sha256": "5869f708f508ac647b4969f968e4794fe30f72183a9b326298f05a02347985b9",
+      "required": true
+    },
+    {
+      "id": "umt5-index", "role": "conditioning.weights.index",
+      "path": "conditioning/model.safetensors.index.json", "size": 13051,
+      "sha256": "31f53dc51943242f469ef7ec055060edd842438dd56c1a08643d9ed1b6f97560",
+      "required": true
+    },
+    {
+      "id": "umt5-weights", "role": "conditioning.weights.shard",
+      "path": "conditioning/model.safetensors", "size": 11361845560,
+      "sha256": "1c137395973a8a717bd5d467fec816e77af973474c6d4afd2cb83c78cc489bd6",
+      "required": true
+    },
+    {
+      "id": "tokenizer", "role": "tokenizer.model", "path": "tokenizer/tokenizer.json",
+      "size": 16837417,
+      "sha256": "6e197b4d3dbd71da14b4eb255f4fa91c9c1f2068b20a2de2472967ca3d22602b",
+      "required": true
+    },
+    {
+      "id": "conditioning-graph", "role": "conditioning.graph",
+      "path": "conditioning/wan-umt5.json", "size": 30615,
+      "sha256": "5b5577ff8d7c127ca5539aa607dc67b914bb630b6172f518a6f118ff37d52308",
+      "required": true
+    },
+    {
+      "id": "precision-policy", "role": "execution.precision_policy",
+      "path": "policy/bf16-operation-contract-v1.json", "size": 3235,
+      "sha256": "183d01bd04c34068ec5584696a0eb51bb7ca5a1a34b7f4b79d98e9b3dee51f26",
+      "required": true
+    },
+    {
+      "id": "default-profile", "role": "execution.profile",
+      "path": "execution/default-preset.json", "size": 2685,
+      "sha256": "867fcde4a9b41d3ced026e34340cc7b0aa83b68d800ddbe82a70415eb93e48e3",
+      "required": true
+    },
+    {
+      "id": "license", "role": "legal.license", "path": "legal/LICENSE.txt",
+      "size": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "required": true
+    }
+  ],
+  "entrypoint": {
+    "runtime_artifact": "runtime",
+    "components": [
+      {
+        "id": "positive-conditioning", "kind": "conditioning.text_encoder",
+        "artifacts": ["conditioning-graph", "umt5-index", "umt5-weights", "tokenizer"]
+      },
+      {
+        "id": "negative-conditioning", "kind": "conditioning.text_encoder",
+        "artifacts": ["conditioning-graph", "umt5-index", "umt5-weights", "tokenizer"]
+      }
+    ],
+    "default_preset": "default"
+  },
+  "defaults": {
+    "default_preset": "default",
+    "presets": {
+      "default": {
+        "profile_artifact": "default-profile",
+        "inputs": {
+          "width": 832, "height": 480, "frames": 81, "fps": 16,
+          "steps": 50, "cfg": 5.0, "flow_shift": 5.0, "precision": "bfloat16"
+        }
+      }
+    }
+  },
+  "product": {
+    "family": "text_to_video",
+    "status": "public_supported",
+    "public_distribution": "supported",
+    "input_schema": {
+      "schema": "vrhino.product.input-schema.v1",
+      "inputs": [
+        {"name":"prompt","type":"text","required":true,"validation":{"min_length":1}}
+      ],
+      "parameters": [
+        {"name":"seed","type":"integer","required":false,"default":5701,"validation":{"minimum":0,"maximum":"18446744073709551615"}}
+      ],
+      "outputs": [
+        {"name":"output","type":"media.mp4","required":false,"default":"output.mp4","validation":{"parent_creatable_and_writable":true}}
+      ]
+    },
+    "frozen_profile": {
+      "output": {
+        "width": 832,
+        "height": 480,
+        "frames": 81,
+        "fps": {"numerator":16,"denominator":1},
+        "duration": "fixed",
+        "audio": "none"
+      },
+      "sampling": {"steps":50,"guidance_scale":5.0}
+    }
+  },
+  "hardware": {
+    "presets": {
+      "default": {
+        "minimum_vram_bytes": null,
+        "recommended_vram_bytes": 25757220864,
+        "minimum_compute_capability": null,
+        "qualifications": [
+          {
+            "gpu": "NVIDIA RTX 4090 D",
+            "scope": "832x480, 81 frames, 50 steps, BF16",
+            "status": "production-qualified"
+          }
+        ]
+      }
+    }
+  },
+  "source": {
+    "repository": "Wan-AI/Wan2.1-T2V-1.3B",
+    "revision": "37ec512624d61f7aa208f7ea8140a131f93afc9a",
+    "upstream_source_revision": "9737cba9c1c3c4d04b33fcad41c111989865d315",
+    "converter_version": "vrhino-native-wan2.1-t2v-1.3b-v1"
+  },
+  "license": {
+    "identifier": "Apache-2.0",
+    "artifact": "license",
+    "upstream_notice": "https://huggingface.co/Wan-AI/Wan2.1-T2V-1.3B/blob/37ec512624d61f7aa208f7ea8140a131f93afc9a/LICENSE.txt"
+  }
+}

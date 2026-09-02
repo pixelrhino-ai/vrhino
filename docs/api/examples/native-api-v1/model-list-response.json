@@ -1,0 +1,23 @@
+{
+  "models": [
+    {
+      "architecture": "ltx_v0_9_1",
+      "installed": true,
+      "name": "ltx-video-v0.9.1",
+      "namespace": "vrhino",
+      "product_family": "text_to_video",
+      "reference": "vrhino/ltx-video-v0.9.1:1.1.1",
+      "version": "1.1.1"
+    },
+    {
+      "architecture": "musetalk_v15",
+      "installed": true,
+      "name": "musetalk-v1.5",
+      "namespace": "vrhino",
+      "product_family": "lip_sync",
+      "reference": "vrhino/musetalk-v1.5:1.0.1",
+      "version": "1.0.1"
+    }
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "identity": {
+    "namespace": "vrhino",
+    "name": "latentsync-1.6",
+    "version": "1.0.1",
+    "architecture": "lip_sync_diffusion_workflow_v1",
+    "publisher": "Pixel Rhino"
+  },
+  "compatibility": {
+    "runtime_contract": "cuda-v1",
+    "vrm_schema": {"format_major": 0, "format_minor": 1, "metadata_schema": 1}
+  },
+  "product": {
+    "family": "lip_sync",
+    "status": "public_supported",
+    "workflow_identity": "lip_sync_diffusion_workflow_v1",
+    "workflow_artifact": "workflow-config",
+    "execution_artifact": "execution-profile",
+    "public_distribution": "mode_c_local_conversion",
+    "input_schema": {
+      "schema": "vrhino.product.input-schema.v1",
+      "inputs": [
+        {"name":"video","type":"media.video","required":true,"validation":{"regular_file":true,"decodable":true,"fps":{"numerator":25,"denominator":1}}},
+        {"name":"audio","type":"media.audio","required":true,"validation":{"regular_file":true,"decodable":true,"minimum_duration_ms":40}}
+      ],
+      "parameters": [
+        {"name":"seed","type":"integer","required":false,"default":1247,"validation":{"minimum":0,"maximum":"18446744073709551615"}}
+      ],
+      "outputs": [
+        {"name":"output","type":"media.mp4","required":false,"default":"output.mp4","validation":{"parent_creatable_and_writable":true}}
+      ]
+    },
+    "frozen_profile": {
+      "output": {
+        "fps": {"numerator":25,"denominator":1},
+        "duration": "audio_derived",
+        "audio": "driving_audio"
+      },
+      "sampling": {
+        "method": "ddim",
+        "prediction": "epsilon",
+        "steps": 20,
+        "guidance_scale": 1.5,
+        "eta": 0.0
+      },
+      "temporal": {"chunk_frames":16}
+    }
+  },
+  "artifacts": [
+    {"id":"audio-encoder","role":"component.vrm","path":"components/audio-encoder.vrm","size":32867584,"sha256":"3322531357af02994de5f180b12a1c7cb72a800dd7ed40ab11ec5865304ed1a0","required":true},
+    {"id":"autoencoder","role":"component.vrm","path":"components/autoencoder-kl.vrm","size":334727552,"sha256":"49d6d814b8546535f36580543987ff0477ebd89040cc053d2a8f836b68db9b1e","required":true},
+    {"id":"temporal-editor","role":"component.vrm","path":"components/temporal-conditional-unet.vrm","size":5072414720,"sha256":"47508970409f6a3cb8ee366446af243fa985e688a5170549316af8a450a6c467","required":true},
+    {"id":"face-detector","role":"component.vrm","path":"components/vision-detector.vrm","size":434656,"sha256":"bbe5a9a5d83b13401a9b9bc7829ccb993af6ac28e2dd37c530001e90fdf06d17","required":true},
+    {"id":"pose-estimator","role":"component.vrm","path":"components/pose-estimator.vrm","size":134774400,"sha256":"3f457d8ff6eb49098d9626e232785b7158d8838e8054eb1f85d0684decc6a7c5","required":true},
+    {"id":"whisper-preprocessor","role":"audio.preprocessor","path":"audio/preprocessor_config.json","size":184990,"sha256":"9b5cd03a36fbb8a627c64d98a5b5b126ead95a77720723944487311f0110b666","required":true},
+    {"id":"mel-filters","role":"audio.constant","path":"audio/mel_filters.npz","size":2048,"sha256":"dd2cc75e70e36fcbdd8ffbc2499062f30094093e6bf2cbafa9859f59972b420b","required":true},
+    {"id":"unet-config","role":"graph.config","path":"config/stage2_512.yaml","size":2542,"sha256":"652bbf469d3baf68f1b364fd47409901cd8d1bf8bb7754133aa69a28132312e6","required":true},
+    {"id":"scheduler-config","role":"sampling.config","path":"config/scheduler_config.json","size":275,"sha256":"14561e18160bf30bbcf7c93259af07ae82bbf611defeb93e995883fce1461315","required":true},
+    {"id":"fixed-mask","role":"workflow.mask","path":"workflow/mask.png","size":1871,"sha256":"aa233251b9ff5691a1565a4108f0910ab1e5e7ad79a7bb2b741ab4d92c81053c","required":true},
+    {"id":"workflow-config","role":"product.workflow","path":"workflow/workflow.json","size":2613,"sha256":"8d556d4173e4e69daaed45dbea0bebbacc975b499b7b52d592d44e82715d1312","required":true},
+    {"id":"execution-profile","role":"execution.profile","path":"successors/1.0.1/execution.json","size":487,"sha256":"f867e628bf4d2d588e265f480c30d0c60e9727d2e341a4300cc7c3081ce85b81","required":true},
+    {"id":"precision-policy","role":"execution.precision_policy","path":"policy/bf16-heavy-consumer-fp32-state-v1.json","size":2950,"sha256":"e1423a0a42acff673b6f35c1103331d77e3e8b48c0bbfce38fbe03f35ef5d68f","required":true},
+    {"id":"third-party-notices","role":"legal.notice","path":"legal/THIRD_PARTY_NOTICES.txt","size":4801,"sha256":"b4da9f7052f47892c48abc3400fdeaaa15df1102b82cc86d36ad2ed21019e259","required":true},
+    {"id":"license-openrail-plus","role":"legal.license","path":"legal/licenses/CreativeML-Open-RAIL++-M.txt","size":14107,"sha256":"5f44a64473fdb1019fc616d999d351f60bf061a4d77272b4b7309f799dba3676","required":true},
+    {"id":"license-apache","role":"legal.license","path":"legal/licenses/Apache-2.0.txt","size":11358,"sha256":"cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30","required":true},
+    {"id":"license-mit","role":"legal.license","path":"legal/licenses/MIT.txt","size":1219,"sha256":"042b8ae7ce9a75baa8973d121f5f8f166a89a4e20dac220d1bbd66c04be273a9","required":true}
+  ],
+  "entrypoint": {
+    "workflow_artifact": "workflow-config",
+    "components": [
+      {"id":"audio-encoder","role":"audio_encoder","kind":"audio_encoder_transformer","artifacts":["audio-encoder"]},
+      {"id":"autoencoder","role":"image_autoencoder","kind":"autoencoder_kl","artifacts":["autoencoder"]},
+      {"id":"temporal-editor","role":"neural_edit","kind":"temporal_conditional_unet_2d","artifacts":["temporal-editor"]},
+      {"id":"face-detector","role":"face_detector","kind":"vision_detector_dense_anchors","artifacts":["face-detector"]},
+      {"id":"pose-estimator","role":"pose_estimator","kind":"pose_estimator_2d","artifacts":["pose-estimator"]}
+    ],
+    "default_preset": "default"
+  },
+  "defaults": {"default_preset":"default","presets":{"default":{"profile_artifact":"execution-profile"}}},
+  "hardware": {"presets":{"default":{"minimum_vram_bytes":null,"recommended_vram_bytes":null}}},
+  "source": {
+    "repository":"ByteDance/LatentSync-1.6",
+    "revision":"c42c7e6c8e9c213626389fa7d9a3c444b8536353",
+    "converter_version":"native-multi-component-v2"
+  },
+  "license": {
+    "identifier":"LicenseRef-LatentSync-Mode-C-Multi-License",
+    "artifact":"third-party-notices",
+    "upstream_notice":"CreativeML Open RAIL++-M, MIT, and Apache-2.0 terms apply; no model weights or converted VRMs are distributed by Pixel Rhino"
+  }
+}

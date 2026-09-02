@@ -8,16 +8,40 @@ The Public Alpha has the following qualified scope:
 - qualified on Ubuntu 22.04;
 - compatible NVIDIA GPU and Driver required;
 - ordinary-user product paths are qualified for exactly
-  `vrhino/ltx-video-v0.9.1:1.1.0`,
-  `vrhino/wan2.1-t2v-1.3b:1.0.0`, and
-  `vrhino/mochi-1-preview:1.0.0`, plus the lip-sync products
-  `vrhino/musetalk-v1.5:1.0.0` and
-  `vrhino/latentsync-1.6:1.0.0`;
+  `vrhino/ltx-video-v0.9.1:1.1.1`,
+  `vrhino/wan2.1-t2v-1.3b:1.0.1`, and
+  `vrhino/mochi-1-preview:1.0.1`, plus the lip-sync products
+  `vrhino/musetalk-v1.5:1.0.1` and
+  `vrhino/latentsync-1.6:1.0.1`;
 - model acquisition may download tens of gigabytes;
 - first-time local conversion and installation can take time and require
   substantial temporary disk space; and
 - Alpha interfaces, package behavior, and compatibility may change without a
   stability guarantee.
+
+## Native API v1 alpha boundary
+
+The Native API is local-first. It binds to `127.0.0.1:11435` by default and
+has no authentication, TLS, or CORS policy. A non-loopback bind is explicit
+and emits a warning. The server is not intended for direct exposure to the
+untrusted Internet.
+
+Media video/audio inputs and explicit output destinations are absolute paths
+on the server's local filesystem. Native API v1 alpha has no multipart or
+base64 upload, remote-media URL acquisition, or browser upload API.
+
+Product execution is serialized through one worker with a bounded admission
+queue. Job metadata and event replay state are process-memory only; restarting
+the server invalidates Job IDs and retained event history. Successful Product
+artifacts remain on disk independently. Event replay uses bounded retained
+history, and an explicit stale sequence may return
+`event_history_truncated`.
+
+This alpha provides no pull API, persistent Job database, persistent client
+cursor, model-residency guarantee, model scheduler, parallel Product
+execution, multi-GPU scheduler, official WebUI, SDK, or OpenAPI description.
+Browser-direct integration remains deferred; desktop, native, local-daemon,
+CLI-adjacent, and local-bridge integrations are the intended clients.
 
 This Alpha does not claim:
 

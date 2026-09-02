@@ -2,7 +2,15 @@
 
 VRhino Public Alpha's first qualified model path is:
 
-`vrhino/ltx-video-v0.9.1:1.1.0`
+`vrhino/ltx-video-v0.9.1:1.1.1`
+
+## Product contract
+
+The successor package uses `vrhino.product.input-schema.v1`: `prompt` is
+required; `seed` is optional with default `5703`; and `output` is optional with
+default `output.mp4`. Its frozen profile is 704×480, 121 frames at 25 FPS,
+40 sampling steps, and guidance 3. These frozen facts are not additional
+request parameters.
 
 ## Distribution boundary
 

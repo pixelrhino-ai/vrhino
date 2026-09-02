@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "model_reference": "vrhino/mochi-1-preview:1.0.1",
+  "requested_source": {
+    "provider": "huggingface",
+    "repository": "genmo/mochi-1-preview",
+    "revision": "14be5fcea23095ed330cb214647916a451e38b6e"
+  },
+  "artifacts": [
+    {
+      "id": "mochi-model-index", "role": "checkpoint.index",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "model_index.json", "local_path": "model_index.json",
+      "size": 408,
+      "sha256": "db470a8c28b77125d74cb955f277c20b9f629e01b177dd352d7ec396ccad3d85"
+    },
+    {
+      "id": "mochi-scheduler-config", "role": "checkpoint.scheduler_config",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "scheduler/scheduler_config.json", "local_path": "scheduler/scheduler_config.json",
+      "size": 299,
+      "sha256": "e76276322d53cda452afe406d3c1e6a1a8bdc9de3fae3a32c831f4b8e41890f4"
+    },
+    {
+      "id": "mochi-t5-config", "role": "conditioning.config",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "text_encoder/config.json", "local_path": "text_encoder/config.json",
+      "size": 781,
+      "sha256": "e2502471a5c7b13c12e62dd2f068d714a284b259a11ffbdefeb58af37cba1a60"
+    },
+    {
+      "id": "mochi-t5-shard-1", "role": "conditioning.weights.shard",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "text_encoder/model-00001-of-00004.safetensors", "local_path": "text_encoder/model-00001-of-00004.safetensors",
+      "size": 4989319680,
+      "sha256": "7a68b2c8c080696a10109612a649bc69330991ecfea65930ccfdfbdb011f2686"
+    },
+    {
+      "id": "mochi-t5-shard-2", "role": "conditioning.weights.shard",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "text_encoder/model-00002-of-00004.safetensors", "local_path": "text_encoder/model-00002-of-00004.safetensors",
+      "size": 4999830656,
+      "sha256": "b8ed6556d7507e38af5b428c605fb2a6f2bdb7e80bd481308b865f7a40c551ca"
+    },
+    {
+      "id": "mochi-t5-shard-3", "role": "conditioning.weights.shard",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "text_encoder/model-00003-of-00004.safetensors", "local_path": "text_encoder/model-00003-of-00004.safetensors",
+      "size": 4865612720,
+      "sha256": "c831635f83041f83faf0024b39c6ecb21b45d70dd38a63ea5bac6c7c6e5e558c"
+    },
+    {
+      "id": "mochi-t5-shard-4", "role": "conditioning.weights.shard",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "text_encoder/model-00004-of-00004.safetensors", "local_path": "text_encoder/model-00004-of-00004.safetensors",
+      "size": 4194506688,
+      "sha256": "02a5f2d69205be92ad48fe5d712d38c2ff55627969116aeffc58bd75a28da468"
+    },
+    {
+      "id": "mochi-t5-index", "role": "conditioning.weights.index",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "text_encoder/model.safetensors.index.json", "local_path": "text_encoder/model.safetensors.index.json",
+      "size": 19886,
+      "sha256": "a545bb25dc0f423d84be7b577311bba8bb7c6931f1eefcea65fc8b0a61a60a76"
+    },
+    {
+      "id": "mochi-tokenizer-added", "role": "tokenizer.metadata",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "tokenizer/added_tokens.json", "local_path": "tokenizer/added_tokens.json",
+      "size": 2593,
+      "sha256": "ea5a91a3234f66ea642c8e672d67f0f493759a9bee6910ae304ea9b9492118b5"
+    },
+    {
+      "id": "mochi-tokenizer-special", "role": "tokenizer.metadata",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "tokenizer/special_tokens_map.json", "local_path": "tokenizer/special_tokens_map.json",
+      "size": 2543,
+      "sha256": "7a1985a994c41886db38c719d2a3d2f40606663cc19d7c5d6a85d349320e06d2"
+    },
+    {
+      "id": "mochi-tokenizer", "role": "tokenizer.model",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "tokenizer/spiece.model", "local_path": "tokenizer/spiece.model",
+      "size": 791656,
+      "sha256": "d60acb128cf7b7f2536e8f38a5b18a05535c9e14c7a355904270e15b0945ea86"
+    },
+    {
+      "id": "mochi-tokenizer-config", "role": "tokenizer.metadata",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "tokenizer/tokenizer_config.json", "local_path": "tokenizer/tokenizer_config.json",
+      "size": 20618,
+      "sha256": "a821b0b127e1deb7bcdad0a493fb817d4efd90e6a46a2c3cdc21228d5492b2a9"
+    },
+    {
+      "id": "mochi-transformer-config", "role": "checkpoint.config",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "transformer/config.json", "local_path": "transformer/config.json",
+      "size": 396,
+      "sha256": "592148b13b5b7ab182c266f73a8d35ef6a427775e45e573bc7359b01d8824d1a"
+    },
+    {
+      "id": "mochi-transformer-shard-1", "role": "checkpoint.denoiser.shard",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "transformer/diffusion_pytorch_model.bf16-00001-of-00003.safetensors", "local_path": "transformer/diffusion_pytorch_model.bf16-00001-of-00003.safetensors",
+      "size": 9937333040,
+      "sha256": "29f767d34af7bfba3a216def2d1a45c23f0a71ce69ead170af92328e0605eb1a"
+    },
+    {
+      "id": "mochi-transformer-shard-2", "role": "checkpoint.denoiser.shard",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "transformer/diffusion_pytorch_model.bf16-00002-of-00003.safetensors", "local_path": "transformer/diffusion_pytorch_model.bf16-00002-of-00003.safetensors",
+      "size": 9929099008,
+      "sha256": "fd0c821a4ed49847f30f4baed76136b5f0e3077d95538469e196ecca50259713"
+    },
+    {
+      "id": "mochi-transformer-shard-3", "role": "checkpoint.denoiser.shard",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "transformer/diffusion_pytorch_model.bf16-00003-of-00003.safetensors", "local_path": "transformer/diffusion_pytorch_model.bf16-00003-of-00003.safetensors",
+      "size": 189051592,
+      "sha256": "e94bb39dec286bafcd626252a2e26f00ea36a900bd813bf8b0e3cc17493a49db"
+    },
+    {
+      "id": "mochi-transformer-index", "role": "checkpoint.denoiser.index",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "transformer/diffusion_pytorch_model.safetensors.index.bf16.json", "local_path": "transformer/diffusion_pytorch_model.safetensors.index.bf16.json",
+      "size": 117567,
+      "sha256": "710411b966b38d2f213e700da6db573df45dae85bf93e173fdde8db1577beed4"
+    },
+    {
+      "id": "mochi-vae-config", "role": "checkpoint.vae.config",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "vae/config.json", "local_path": "vae/config.json",
+      "size": 1234,
+      "sha256": "ef3433936ef0e152607387858b1a0e833cd7b8cd7253d31baa0f9d3f5975835c"
+    },
+    {
+      "id": "mochi-vae", "role": "checkpoint.vae",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "vae/diffusion_pytorch_model.bf16.safetensors", "local_path": "vae/diffusion_pytorch_model.bf16.safetensors",
+      "size": 919549966,
+      "sha256": "fecceadc048487f07cad99f6f5fbbf691f7385573d53cea2f06e461b3a9721ea"
+    },
+    {
+      "id": "mochi-license-notice", "role": "legal.license",
+      "repository": "genmo/mochi-1-preview", "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+      "upstream_path": "README.md", "local_path": "README.md",
+      "size": 8812,
+      "sha256": "1f98f31b65b34445be9383b805ec61707a062067f77e21c2cdbdf91a744ecce4"
+    }
+  ]
+}

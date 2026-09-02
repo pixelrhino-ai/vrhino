@@ -33,7 +33,7 @@ VRhino 转换
 项目目前仍处于 Alpha 阶段，在模型覆盖、生态和成熟度上还不能与 llama.cpp
 相提并论。
 
-## 当前 Alpha
+## 发布状态
 
 当前已发布版本是 **v0.5.0-alpha**。
 
@@ -51,6 +51,19 @@ VRhino 转换
 你需要兼容的 NVIDIA GPU 和 NVIDIA 驱动，以及足够的显存和磁盘空间。你不
 需要安装 Python、PyTorch、Diffusers、Conda、CUDA Toolkit、cuDNN 或系统
 FFmpeg。
+
+Public 源码合同现已冻结，面向即将发布的 **v0.6.0-alpha**。该版本加入机器可读
+Product 合同，以及供桌面客户端、原生客户端、本地守护进程工具、CLI 辅助工具和
+其他社区集成使用的本地 Native API。v0.6.0-alpha 发布包及其校验值尚不存在；在
+新版本正式发布前，请继续使用下方已发布的 v0.5.0-alpha 链接。
+
+v0.6.0-alpha 确定的五个 Public 模型路径为：
+
+- `vrhino/ltx-video-v0.9.1:1.1.1`
+- `vrhino/wan2.1-t2v-1.3b:1.0.1`
+- `vrhino/mochi-1-preview:1.0.1`
+- `vrhino/musetalk-v1.5:1.0.1`
+- `vrhino/latentsync-1.6:1.0.1`
 
 ## 安装
 
@@ -82,7 +95,7 @@ vrhino doctor
 安装不需要 `sudo`，也不需要克隆仓库。如果浏览器没有把文件保存到
 `~/Downloads`，请参阅[安装说明](docs/install.md)。
 
-## 快速开始
+## 已发布 v0.5.0-alpha 快速开始
 
 v0.5.0-alpha 支持以下五个已验证的公开模型路径：
 
@@ -151,10 +164,36 @@ vrhino pull vrhino/ltx-video-v0.9.1:1.1.0
 生成 VRhino 模型格式，然后安装成不可变的本地包。`vrhino run` 使用共享原生
 运行时执行该模型，并通过随包提供的媒体组件输出 MP4。
 
+successor 模型包通过
+[ProductInputSchema v1](docs/product/product-input-schema-v1.md) 声明类型化输入、
+参数、默认值和输出。客户端无需解析 CLI 文本即可查看同一合同：
+
+```bash
+vrhino info vrhino/ltx-video-v0.9.1:1.1.1 --json
+```
+
+v0.6.0-alpha 的同一个可执行文件还可以启动本地 Native API：
+
+```bash
+vrhino serve
+# 等价的显式写法：
+vrhino serve --host 127.0.0.1 --port 11435
+```
+
+服务端内置在主 `vrhino` 可执行文件中；没有独立服务端软件包，也不依赖 Python
+或 Node 服务。Native API v1 alpha 是**本地 API**：默认监听
+`127.0.0.1:11435`，不提供认证、TLS 或 CORS，也不应直接暴露到不受信任的
+Internet。显式绑定非回环地址时会输出警告。完整七路由合同与本地绝对媒体路径
+规则见 [Native API v1 合同](docs/api/native-api-v1.md)。
+
 ## 文档
 
 - [安装与系统要求](docs/install.md)
 - [模型命令](docs/cli/model-cli-v0.md)
+- [ProductInputSchema v1](docs/product/product-input-schema-v1.md)
+- [模型信息 JSON v1](docs/product/model-info-json-v1.md)
+- [Native API v1 alpha](docs/api/native-api-v1.md)
+- [v0.6.0-alpha 构建源可追溯边界](docs/release/build-source-provenance.md)
 - [`pull` 命令](docs/cli/pull-v0.md)
 - [`run` 命令](docs/cli/run-v0.md)
 - [`doctor` 诊断命令](docs/cli/doctor-v0.md)
@@ -168,9 +207,9 @@ vrhino pull vrhino/ltx-video-v0.9.1:1.1.0
 
 ## Alpha 限制
 
-当前 Alpha 版本支持 Linux x86_64、NVIDIA CUDA 后端，以及上面列出的五个确定且
-已验证的模型路径。它不声称支持所有 NVIDIA GPU、所有 Linux 发行版、所有模型
-检查点或所有视频模型架构。Alpha 期间接口和兼容性可能发生变化。
+当前 Alpha 源码合同支持 Linux x86_64、NVIDIA CUDA 后端，以及上面列出的五个
+v0.6.0-alpha successor 路径。它不声称支持所有 NVIDIA GPU、所有 Linux 发行版、
+所有模型检查点或所有视频模型架构。Alpha 期间接口和兼容性可能发生变化。
 
 详情见 [Alpha 限制](docs/alpha-limitations.md)。
 

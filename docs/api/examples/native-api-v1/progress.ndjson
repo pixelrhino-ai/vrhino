@@ -1,0 +1,4 @@
+{"kind":"state","message":"Run started","sequence":1,"state":"running"}
+{"kind":"stage","message":"Sampling","sequence":2,"stage":"sampling"}
+{"completed":4,"kind":"progress","sequence":3,"stage":"sampling","total":40,"unit":"step"}
+{"kind":"state","message":"Run succeeded","sequence":4,"state":"succeeded"}

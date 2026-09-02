@@ -1,0 +1,103 @@
+{
+  "admission": {
+    "minimum_vram_bytes": null,
+    "recommended_vram_bytes": 25757220864
+  },
+  "artifacts": {
+    "component_count": 2,
+    "declared_count": 9,
+    "logical_size_bytes": 24767314645,
+    "present_count": 9
+  },
+  "compatibility": {
+    "default_preset": "default",
+    "package_schema_version": 1,
+    "runtime_contract": "cuda-v1",
+    "vrm": {
+      "format_major": 0,
+      "format_minor": 1,
+      "metadata_schema": 1
+    }
+  },
+  "distribution": {
+    "public_distribution": "supported"
+  },
+  "installation": {
+    "installed": true
+  },
+  "license": {
+    "artifact": "license",
+    "identifier": "LicenseRef-LTX-Video-0.9.1-RAIL-M"
+  },
+  "model": {
+    "architecture": "ltx_v0_9_1",
+    "name": "ltx-video-v0.9.1",
+    "namespace": "vrhino",
+    "publisher": "VRhino",
+    "reference": "vrhino/ltx-video-v0.9.1:1.1.1",
+    "version": "1.1.1"
+  },
+  "product": {
+    "family": "text_to_video",
+    "frozen_profile": {
+      "output": {
+        "audio": "none",
+        "duration": "fixed",
+        "fps": {
+          "denominator": 1,
+          "numerator": 25
+        },
+        "frames": 121,
+        "height": 480,
+        "width": 704
+      },
+      "sampling": {
+        "guidance_scale": 3.0,
+        "steps": 40
+      }
+    },
+    "input_schema": {
+      "inputs": [
+        {
+          "name": "prompt",
+          "required": true,
+          "type": "text",
+          "validation": {
+            "min_length": 1
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "default": "output.mp4",
+          "name": "output",
+          "required": false,
+          "type": "media.mp4",
+          "validation": {
+            "parent_creatable_and_writable": true
+          }
+        }
+      ],
+      "parameters": [
+        {
+          "default": 5703,
+          "name": "seed",
+          "required": false,
+          "type": "integer",
+          "validation": {
+            "maximum": "18446744073709551615",
+            "minimum": 0
+          }
+        }
+      ],
+      "schema": "vrhino.product.input-schema.v1"
+    },
+    "status": "public_supported",
+    "workflow_identity": null
+  },
+  "schema_version": 1,
+  "source": {
+    "repository": "Lightricks/LTX-Video",
+    "revision": "8984fa25007f376c1a299016d0957a37a2f797bb"
+  }
+}

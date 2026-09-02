@@ -2,7 +2,7 @@
 
 The qualified Public package identity is:
 
-`vrhino/latentsync-1.6:1.0.0`
+`vrhino/latentsync-1.6:1.0.1`
 
 It is a bounded `lip_sync` product using workflow family
 `lip_sync_diffusion_workflow_v1`. It accepts a source video and driving audio,
@@ -41,23 +41,27 @@ The fixed 12-artifact source plan uses:
   `169d4a4341b33bc18d8881c4b69c2e104e1cc0af`.
 
 Exact filenames, URLs, byte sizes, and SHA256 values are retained in the
-[Public source plan](../../registry/models/vrhino/latentsync-1.6/1.0.0/source-plan.json).
+[Public source plan](../../registry/models/vrhino/latentsync-1.6/1.0.1/source-plan.json).
 
 ## Use
 
 ```bash
-vrhino pull vrhino/latentsync-1.6:1.0.0
-vrhino info vrhino/latentsync-1.6:1.0.0
-vrhino doctor vrhino/latentsync-1.6:1.0.0
-vrhino run vrhino/latentsync-1.6:1.0.0 \
+vrhino pull vrhino/latentsync-1.6:1.0.1
+vrhino info vrhino/latentsync-1.6:1.0.1
+vrhino doctor vrhino/latentsync-1.6:1.0.1
+vrhino run vrhino/latentsync-1.6:1.0.1 \
   --video input.mp4 \
   --audio driving.wav \
   --output output.mp4
 ```
 
-`--seed` is optional. The v1 package freezes 25 FPS workflow semantics,
-16-frame temporal chunks, 20 DDIM steps, guidance 1.5, eta 0, alignment, mask,
-and sampling policy. These are not user-facing tuning controls. Python,
+The Product contract requires `video` and `audio`, with exact 25 FPS video and
+at least 40 ms of decodable audio. `seed` is optional with default `1247`;
+`output` is optional with default `output.mp4`; duration is audio-derived. The
+frozen profile exposes curated DDIM/epsilon sampling with 20 steps, guidance
+1.5, eta 0, and 16-frame chunks. Alignment, detector, TTA, mask, tensor,
+precision-mechanic, and RNG fields remain internal and are not Product
+parameters. Python,
 PyTorch, Diffusers, Transformers-Python, MediaPipe, MMPose/MMCV, InsightFace,
 and system FFmpeg are not production dependencies.
 
