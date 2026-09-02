@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="banner.png" alt="VRhino" width="960">
+  <img src="assets/branding/banner.png" alt="VRhino" width="960">
 </p>
 
 # VRhino
@@ -10,8 +10,6 @@
 
 VRhino 是一个自包含的原生视频模型运行时与模型打包系统，目标是在本地运行
 AI 视频模型时，不再维护每个模型各自的 Python 环境。
-
-VRhino 与 Rhinoceros 3D（Rhino）或 Grasshopper 无关。
 
 ## VRhino 是什么？
 
@@ -35,16 +33,16 @@ VRhino 转换
 
 ## 发布状态
 
-当前已发布版本是 **v0.5.0-alpha**。
+当前已发布版本是 **v0.6.0-alpha**。
 
 - 平台：Linux x86_64
 - 后端：NVIDIA CUDA
 - 已验证的公开模型路径：
-  - `vrhino/ltx-video-v0.9.1:1.1.0`
-  - `vrhino/wan2.1-t2v-1.3b:1.0.0`
-  - `vrhino/mochi-1-preview:1.0.0`
-  - `vrhino/musetalk-v1.5:1.0.0`（`lip_sync`）
-  - `vrhino/latentsync-1.6:1.0.0`（`lip_sync`）
+  - `vrhino/ltx-video-v0.9.1:1.1.1`
+  - `vrhino/wan2.1-t2v-1.3b:1.0.1`
+  - `vrhino/mochi-1-preview:1.0.1`
+  - `vrhino/musetalk-v1.5:1.0.1`（`lip_sync`）
+  - `vrhino/latentsync-1.6:1.0.1`（`lip_sync`）
 - 已在 Ubuntu 22.04、glibc 2.35 环境验证
 - 除兼容的 NVIDIA 驱动外，所需用户态运行库均随 VRhino 提供
 
@@ -52,10 +50,9 @@ VRhino 转换
 需要安装 Python、PyTorch、Diffusers、Conda、CUDA Toolkit、cuDNN 或系统
 FFmpeg。
 
-Public 源码合同现已冻结，面向即将发布的 **v0.6.0-alpha**。该版本加入机器可读
+**v0.6.0-alpha** 加入机器可读
 Product 合同，以及供桌面客户端、原生客户端、本地守护进程工具、CLI 辅助工具和
-其他社区集成使用的本地 Native API。v0.6.0-alpha 发布包及其校验值尚不存在；在
-新版本正式发布前，请继续使用下方已发布的 v0.5.0-alpha 链接。
+其他社区集成使用的本地 Native API。
 
 v0.6.0-alpha 确定的五个 Public 模型路径为：
 
@@ -67,18 +64,18 @@ v0.6.0-alpha 确定的五个 Public 模型路径为：
 
 ## 安装
 
-从 [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.5.0-alpha)
+从 [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.6.0-alpha)
 下载
-[发布包](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.5.0-alpha/vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz)
+[发布包](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.6.0-alpha/vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz)
 和对应的
-[校验文件](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.5.0-alpha/vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz.sha256)。
+[校验文件](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.6.0-alpha/vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz.sha256)。
 假设两个文件都在 `~/Downloads`，运行：
 
 ```bash
 cd "$HOME/Downloads"
-sha256sum -c vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz.sha256
+sha256sum -c vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz.sha256
 mkdir -p "$HOME/.local/share"
-tar -xzf vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz -C "$HOME/.local/share"
+tar -xzf vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz -C "$HOME/.local/share"
 printf '\nexport PATH="$HOME/.local/share/vrhino/bin:$PATH"\n' >> "$HOME/.profile"
 export PATH="$HOME/.local/share/vrhino/bin:$PATH"
 ```
@@ -95,26 +92,26 @@ vrhino doctor
 安装不需要 `sudo`，也不需要克隆仓库。如果浏览器没有把文件保存到
 `~/Downloads`，请参阅[安装说明](docs/install.md)。
 
-## 已发布 v0.5.0-alpha 快速开始
+## v0.6.0-alpha 快速开始
 
-v0.5.0-alpha 支持以下五个已验证的公开模型路径：
+v0.6.0-alpha 支持以下五个已验证的公开模型路径：
 
-- `vrhino/ltx-video-v0.9.1:1.1.0`
-- `vrhino/wan2.1-t2v-1.3b:1.0.0`
-- `vrhino/mochi-1-preview:1.0.0`
-- `vrhino/musetalk-v1.5:1.0.0`
-- `vrhino/latentsync-1.6:1.0.0`
+- `vrhino/ltx-video-v0.9.1:1.1.1`
+- `vrhino/wan2.1-t2v-1.3b:1.0.1`
+- `vrhino/mochi-1-preview:1.0.1`
+- `vrhino/musetalk-v1.5:1.0.1`
+- `vrhino/latentsync-1.6:1.0.1`
 
 拉取一个确定的模型包，例如：
 
 ```bash
-vrhino pull vrhino/ltx-video-v0.9.1:1.1.0
+vrhino pull vrhino/ltx-video-v0.9.1:1.1.1
 ```
 
 然后生成视频：
 
 ```bash
-vrhino run vrhino/ltx-video-v0.9.1:1.1.0 \
+vrhino run vrhino/ltx-video-v0.9.1:1.1.1 \
   --prompt "a cat walking in snow" \
   --output output.mp4
 ```
@@ -122,16 +119,16 @@ vrhino run vrhino/ltx-video-v0.9.1:1.1.0 \
 MuseTalk 使用类型化的视频与音频输入，而不是文本提示词：
 
 ```bash
-vrhino pull vrhino/musetalk-v1.5:1.0.0
-vrhino run vrhino/musetalk-v1.5:1.0.0 \
+vrhino pull vrhino/musetalk-v1.5:1.0.1
+vrhino run vrhino/musetalk-v1.5:1.0.1 \
   --video input.mp4 \
   --audio driving.wav \
   --output output.mp4
 ```
 
-v0.5.0-alpha 包含以下 Public Mode-C 支持：
+v0.6.0-alpha 包含以下 Public Mode-C 支持：
 
-- `vrhino/latentsync-1.6:1.0.0`（`lip_sync`）
+- `vrhino/latentsync-1.6:1.0.1`（`lip_sync`）
 
 LatentSync 使用相同的类型化视频/音频 CLI 形式。VRhino 从上游下载 12 个固定的
 推理文件并在本地转换；Pixel Rhino 不分发模型权重或转换后的 VRM。
@@ -152,7 +149,7 @@ VRhino 可能自动回退到第三方镜像完成公开模型下载。
 
 ```bash
 export VRHINO_HOME=/mnt/large-disk/vrhino
-vrhino pull vrhino/ltx-video-v0.9.1:1.1.0
+vrhino pull vrhino/ltx-video-v0.9.1:1.1.1
 ```
 
 这不会改变 VRhino 二进制文件的安装目录。可运行包完成校验并成功安装后，pull
@@ -207,7 +204,7 @@ Internet。显式绑定非回环地址时会输出警告。完整七路由合同
 
 ## Alpha 限制
 
-当前 Alpha 源码合同支持 Linux x86_64、NVIDIA CUDA 后端，以及上面列出的五个
+当前 Alpha 版本支持 Linux x86_64、NVIDIA CUDA 后端，以及上面列出的五个
 v0.6.0-alpha successor 路径。它不声称支持所有 NVIDIA GPU、所有 Linux 发行版、
 所有模型检查点或所有视频模型架构。Alpha 期间接口和兼容性可能发生变化。
 
@@ -228,7 +225,6 @@ VRhino 二进制是专有软件，按
 OpenRAIL-M 用途限制。用户须确保输入媒体的使用合法并已获得同意。本项目不暗示
 任何上游权利人对 VRhino 的认可或背书。
 
-已准备的 LatentSync Public 模型包同样遵循不分发权重的 Mode-C 边界。
+LatentSync Public 模型包同样遵循不分发权重的 Mode-C 边界。
 LatentSync 模型的使用仍受 CreativeML Open RAIL++-M License 及其 Attachment A
-用途限制约束。本次仓库变更仅准备元数据，并不表示支持 LatentSync 的二进制
-版本已经发布。
+用途限制约束。

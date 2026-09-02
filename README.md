@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="banner.png" alt="VRhino" width="960">
+  <img src="assets/branding/banner.png" alt="VRhino" width="960">
 </p>
 
 # VRhino
@@ -10,8 +10,6 @@ English | [简体中文](README.zh-CN.md)
 
 VRhino is a self-contained native runtime and model packaging system for
 running AI video models locally without model-specific Python environments.
-
-VRhino is unrelated to Rhinoceros 3D (Rhino) or Grasshopper.
 
 ## What is VRhino?
 
@@ -36,16 +34,16 @@ comparable to llama.cpp today.
 
 ## Release status
 
-The current published release is **v0.5.0-alpha**.
+The current published release is **v0.6.0-alpha**.
 
 - Platform: Linux x86_64
 - Backend: NVIDIA CUDA
 - Qualified public model paths:
-  - `vrhino/ltx-video-v0.9.1:1.1.0`
-  - `vrhino/wan2.1-t2v-1.3b:1.0.0`
-  - `vrhino/mochi-1-preview:1.0.0`
-  - `vrhino/musetalk-v1.5:1.0.0` (`lip_sync`)
-  - `vrhino/latentsync-1.6:1.0.0` (`lip_sync`)
+  - `vrhino/ltx-video-v0.9.1:1.1.1`
+  - `vrhino/wan2.1-t2v-1.3b:1.0.1`
+  - `vrhino/mochi-1-preview:1.0.1`
+  - `vrhino/musetalk-v1.5:1.0.1` (`lip_sync`)
+  - `vrhino/latentsync-1.6:1.0.1` (`lip_sync`)
 - Qualified on Ubuntu 22.04 with glibc 2.35
 - Self-contained above the compatible NVIDIA Driver boundary
 
@@ -53,12 +51,9 @@ You need a compatible NVIDIA GPU and NVIDIA Driver, enough VRAM, and enough
 disk space. You do **not** install Python, PyTorch, Diffusers, Conda, a CUDA
 Toolkit, cuDNN, or system FFmpeg.
 
-The Public source contract is now frozen for the upcoming
-**v0.6.0-alpha** release. It adds machine-readable Product contracts and a
+The **v0.6.0-alpha** release adds machine-readable Product contracts and a
 local Native API for desktop, native, local-daemon, CLI-adjacent, and other
-community integrations. The v0.6.0-alpha release asset and checksum do not
-exist yet; use the published v0.5.0-alpha links below until a new release is
-announced.
+community integrations.
 
 The exact v0.6.0-alpha Public model set is:
 
@@ -71,17 +66,17 @@ The exact v0.6.0-alpha Public model set is:
 ## Install
 
 Download both the
-[release archive](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.5.0-alpha/vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz)
+[release archive](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.6.0-alpha/vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz)
 and its
-[checksum file](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.5.0-alpha/vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz.sha256)
-from [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.5.0-alpha).
+[checksum file](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.6.0-alpha/vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz.sha256)
+from [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.6.0-alpha).
 With both files in `~/Downloads`, run:
 
 ```bash
 cd "$HOME/Downloads"
-sha256sum -c vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz.sha256
+sha256sum -c vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz.sha256
 mkdir -p "$HOME/.local/share"
-tar -xzf vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz -C "$HOME/.local/share"
+tar -xzf vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz -C "$HOME/.local/share"
 printf '\nexport PATH="$HOME/.local/share/vrhino/bin:$PATH"\n' >> "$HOME/.profile"
 export PATH="$HOME/.local/share/vrhino/bin:$PATH"
 ```
@@ -100,26 +95,26 @@ No `sudo` or repository clone is required. See the
 [installation guide](docs/install.md) if your browser saves downloads
 somewhere other than `~/Downloads`.
 
-## Published v0.5.0-alpha Quick Start
+## v0.6.0-alpha Quick Start
 
-The v0.5.0-alpha Public model set is:
+The v0.6.0-alpha Public model set is:
 
-- `vrhino/ltx-video-v0.9.1:1.1.0`
-- `vrhino/wan2.1-t2v-1.3b:1.0.0`
-- `vrhino/mochi-1-preview:1.0.0`
-- `vrhino/musetalk-v1.5:1.0.0`
-- `vrhino/latentsync-1.6:1.0.0`
+- `vrhino/ltx-video-v0.9.1:1.1.1`
+- `vrhino/wan2.1-t2v-1.3b:1.0.1`
+- `vrhino/mochi-1-preview:1.0.1`
+- `vrhino/musetalk-v1.5:1.0.1`
+- `vrhino/latentsync-1.6:1.0.1`
 
 Pull one exact model package, for example:
 
 ```bash
-vrhino pull vrhino/ltx-video-v0.9.1:1.1.0
+vrhino pull vrhino/ltx-video-v0.9.1:1.1.1
 ```
 
 Then generate a video:
 
 ```bash
-vrhino run vrhino/ltx-video-v0.9.1:1.1.0 \
+vrhino run vrhino/ltx-video-v0.9.1:1.1.1 \
   --prompt "a cat walking in snow" \
   --output output.mp4
 ```
@@ -127,16 +122,16 @@ vrhino run vrhino/ltx-video-v0.9.1:1.1.0 \
 MuseTalk uses typed video/audio inputs instead of a prompt:
 
 ```bash
-vrhino pull vrhino/musetalk-v1.5:1.0.0
-vrhino run vrhino/musetalk-v1.5:1.0.0 \
+vrhino pull vrhino/musetalk-v1.5:1.0.1
+vrhino run vrhino/musetalk-v1.5:1.0.1 \
   --video input.mp4 \
   --audio driving.wav \
   --output output.mp4
 ```
 
-The v0.5.0-alpha release includes Public Mode-C support for:
+The v0.6.0-alpha release includes Public Mode-C support for:
 
-- `vrhino/latentsync-1.6:1.0.0` (`lip_sync`)
+- `vrhino/latentsync-1.6:1.0.1` (`lip_sync`)
 
 LatentSync uses the same typed video/audio CLI shape. It downloads 12 exact
 upstream inference assets and converts them locally; Pixel Rhino ships no model
@@ -160,7 +155,7 @@ Model and cache data defaults to `~/.vrhino`. To use a larger filesystem, set
 
 ```bash
 export VRHINO_HOME=/mnt/large-disk/vrhino
-vrhino pull vrhino/ltx-video-v0.9.1:1.1.0
+vrhino pull vrhino/ltx-video-v0.9.1:1.1.1
 ```
 
 This does not change the VRhino binary installation directory. After a
@@ -220,7 +215,7 @@ contract and local absolute-path media rules.
 
 ## Alpha limitations
 
-This alpha source contract supports Linux x86_64, the NVIDIA CUDA backend, and
+This alpha release supports Linux x86_64, the NVIDIA CUDA backend, and
 the five exact v0.6.0-alpha successor paths listed above. It does not claim
 support for every NVIDIA GPU, Linux distribution, model checkpoint, or
 video-model architecture. Interfaces and compatibility may change during
@@ -244,8 +239,6 @@ upstream license, including MuseTalk's CreativeML OpenRAIL-M use-based
 restrictions. Users are responsible for lawful and consented input media. No
 upstream endorsement is implied.
 
-The prepared LatentSync Public package follows the same no-weight Mode-C
+The LatentSync Public package follows the same no-weight Mode-C
 boundary. LatentSync model use remains subject to the CreativeML Open RAIL++-M
-License and its Attachment A use-based restrictions. This repository change is
-metadata preparation and does not claim that a LatentSync-capable binary has
-already been released.
+License and its Attachment A use-based restrictions.

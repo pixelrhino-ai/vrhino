@@ -2,11 +2,7 @@
 
 ## Release status
 
-The current downloadable release is **v0.5.0-alpha**. The Public source
-contract for **v0.6.0-alpha** is frozen, but its release archive and checksum
-have not been produced. The download instructions below therefore remain the
-authoritative instructions for the published v0.5.0-alpha artifact; no
-v0.6.0-alpha asset identity is implied by this document.
+The current downloadable release is **v0.6.0-alpha**.
 
 ## Requirements
 
@@ -27,18 +23,18 @@ Driver remains required.
 ## Download and install
 
 Download these two files from the
-[v0.5.0-alpha release](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.5.0-alpha):
+[v0.6.0-alpha release](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.6.0-alpha):
 
-- `vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz`
-- `vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz.sha256`
+- `vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz`
+- `vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz.sha256`
 
 If both files are in `~/Downloads`, run:
 
 ```bash
 cd "$HOME/Downloads"
-sha256sum -c vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz.sha256
+sha256sum -c vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz.sha256
 mkdir -p "$HOME/.local/share"
-tar -xzf vrhino-linux-x86_64-cuda-v0.5.0-alpha.tar.gz -C "$HOME/.local/share"
+tar -xzf vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz -C "$HOME/.local/share"
 printf '\nexport PATH="$HOME/.local/share/vrhino/bin:$PATH"\n' >> "$HOME/.profile"
 export PATH="$HOME/.local/share/vrhino/bin:$PATH"
 ```
@@ -109,7 +105,7 @@ filesystem:
 
 ```bash
 export VRHINO_HOME=/mnt/large-disk/vrhino
-vrhino pull vrhino/ltx-video-v0.9.1:1.1.0
+vrhino pull vrhino/ltx-video-v0.9.1:1.1.1
 ```
 
 An explicit `--cache-root PATH` overrides `VRHINO_HOME`; otherwise
@@ -133,9 +129,9 @@ same exact checks before entering the cache.
 ## Pull and run
 
 ```bash
-vrhino pull vrhino/ltx-video-v0.9.1:1.1.0
+vrhino pull vrhino/ltx-video-v0.9.1:1.1.1
 
-vrhino run vrhino/ltx-video-v0.9.1:1.1.0 \
+vrhino run vrhino/ltx-video-v0.9.1:1.1.1 \
   --prompt "a cat walking in snow" \
   --output output.mp4
 ```
@@ -143,9 +139,9 @@ vrhino run vrhino/ltx-video-v0.9.1:1.1.0 \
 Another qualified model path is:
 
 ```bash
-vrhino pull vrhino/wan2.1-t2v-1.3b:1.0.0
+vrhino pull vrhino/wan2.1-t2v-1.3b:1.0.1
 
-vrhino run vrhino/wan2.1-t2v-1.3b:1.0.0 \
+vrhino run vrhino/wan2.1-t2v-1.3b:1.0.1 \
   --prompt "a rhinoceros walking through a snowy forest" \
   --output wan-output.mp4
 ```
@@ -153,9 +149,9 @@ vrhino run vrhino/wan2.1-t2v-1.3b:1.0.0 \
 The qualified Mochi path is:
 
 ```bash
-vrhino pull vrhino/mochi-1-preview:1.0.0
+vrhino pull vrhino/mochi-1-preview:1.0.1
 
-vrhino run vrhino/mochi-1-preview:1.0.0 \
+vrhino run vrhino/mochi-1-preview:1.0.1 \
   --prompt "a red panda runs through snow." \
   --output mochi-output.mp4
 ```

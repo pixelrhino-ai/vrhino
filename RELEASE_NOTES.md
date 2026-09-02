@@ -1,3 +1,91 @@
+# VRhino v0.6.0-alpha
+
+This feature Alpha adds machine-readable Product contracts and a built-in
+local Native API for third-party and community integrations.
+
+## Highlights
+
+- inspect typed Product inputs, defaults, validation, and frozen Product facts
+  with `vrhino info MODEL --json`;
+- start the Native API from the primary executable with `vrhino serve`;
+- submit asynchronous Jobs, inspect status, cancel individual Jobs, and stream
+  bounded NDJSON progress events;
+- use five immutable successor model packages; and
+- benefit from substantial qualified LatentSync execution-time and memory-use
+  reductions since v0.5.0-alpha.
+
+## Native API v1
+
+`vrhino serve` starts the foreground local server on `127.0.0.1:11435` by
+default. Native API v1 supports model discovery, model detail and Product
+schema inspection, run submission, run status, per-Job cancellation, and
+bounded NDJSON event streaming. See the
+[Native API v1 contract](docs/api/native-api-v1.md).
+
+Native API v1 alpha is local-first. It has no authentication, TLS, or CORS and
+is not intended for direct exposure to the untrusted Internet. Non-loopback
+binding is explicit and emits a warning.
+
+## Machine-readable Product contracts
+
+[ProductInputSchema v1](docs/product/product-input-schema-v1.md) is the
+authoritative declaration of required inputs, parameters and defaults,
+validation, outputs, and frozen Product facts. Clients can inspect the same
+contract through `vrhino info MODEL --json` without parsing human CLI output.
+
+## Models
+
+The exact v0.6.0-alpha Public model set is:
+
+- `vrhino/ltx-video-v0.9.1:1.1.1`
+- `vrhino/wan2.1-t2v-1.3b:1.0.1`
+- `vrhino/mochi-1-preview:1.0.1`
+- `vrhino/musetalk-v1.5:1.0.1`
+- `vrhino/latentsync-1.6:1.0.1`
+
+Pixel Rhino ships no original model weights or converted VRMs. Model and
+content licenses remain independent from the VRhino binary license.
+
+## Performance and runtime improvements
+
+Post-v0.5 work substantially reduced LatentSync execution time and memory use
+through source-frame demand planning, optimized mask filtering, generic BF16
+policy, exact Lanczos planning, overlapped verification, sampling-state reuse,
+and SHA-NI verification acceleration. These changes preserve the shared Native
+Runtime and generic precision architecture.
+
+## Packaging and build
+
+The Linux x86_64 CUDA package remains self-contained above the compatible
+NVIDIA Driver boundary and includes the required user-space runtime and media
+components. It requires no Python, Node, system FFmpeg, CUDA Toolkit, or cuDNN
+installation. The production build was qualified with repository-local pinned
+tokenizer dependencies and zero dependency-network acquisition during the
+clean Release build and package process.
+
+## Known alpha limitations
+
+Native API media inputs and explicit outputs use server-local absolute paths.
+This alpha has no upload API, browser-direct CORS policy, authentication, TLS,
+pull API, persistent scheduler, SDK, OpenAPI description, or official WebUI.
+Product execution uses one worker; Job and retained event state are
+process-memory only, restart-local, and bounded. See
+[Alpha limitations](docs/alpha-limitations.md).
+
+## Installation and artifact verification
+
+Release archive:
+`vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz`
+
+SHA256:
+`9ebeabd2741850bc6811309bbc14683d613cfdf1d4c644b2c27012d9ea3db753`
+
+Checksum asset:
+`vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz.sha256`
+
+Download both assets from the v0.6.0-alpha GitHub prerelease, verify with
+`sha256sum -c`, and follow the [installation guide](docs/install.md).
+
 # VRhino v0.5.0-alpha
 
 This feature Alpha release adds Public LatentSync 1.6 lip-sync
