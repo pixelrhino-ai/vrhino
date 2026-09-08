@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "component": "temporal_conditional_unet_2d",
+  "graph_identity": "temporal_conditional_unet_2d.v1",
+  "code": {
+    "repository": "bytedance/LatentSync",
+    "revision": "a229c3948406bc2cf6eaf4873e662e70c6a04746"
+  },
+  "sources": [
+    {
+      "repository": "ByteDance/LatentSync-1.6",
+      "revision": "c42c7e6c8e9c213626389fa7d9a3c444b8536353",
+      "path": "latentsync_unet.pt",
+      "bytes": 5072222488,
+      "sha256": "0a478e89eb660f82da4c35dbdde8a5adfb27f99d1b4e50edd03729e1e98316d3"
+    },
+    {
+      "repository": "bytedance/LatentSync",
+      "revision": "a229c3948406bc2cf6eaf4873e662e70c6a04746",
+      "path": "configs/unet/stage2_512.yaml",
+      "bytes": 2542,
+      "sha256": "652bbf469d3baf68f1b364fd47409901cd8d1bf8bb7754133aa69a28132312e6"
+    },
+    {
+      "repository": "bytedance/LatentSync",
+      "revision": "a229c3948406bc2cf6eaf4873e662e70c6a04746",
+      "path": "configs/scheduler_config.json",
+      "bytes": 275,
+      "sha256": "14561e18160bf30bbcf7c93259af07ae82bbf611defeb93e995883fce1461315"
+    }
+  ],
+  "checkpoint": {
+    "container": "pytorch_zip64",
+    "pickle_execution": false,
+    "entries": 1250,
+    "float_storage_tensors": 1246,
+    "raw_tensor_bytes": 5071778576,
+    "allowed_pickle_globals": [
+      "torch._utils._rebuild_tensor_v2",
+      "torch.FloatStorage",
+      "collections.OrderedDict"
+    ]
+  },
+  "license": "OpenRAIL++"
+}

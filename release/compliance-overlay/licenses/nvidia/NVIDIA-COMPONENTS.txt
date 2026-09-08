@@ -1,0 +1,129 @@
+VRhino NVIDIA Runtime Component Inventory
+==========================================
+
+Release role
+------------
+
+This file identifies the NVIDIA user-space runtime objects bundled with the
+qualified VRhino Linux x86_64 CUDA Alpha candidate. It records engineering
+provenance and redistribution classifications; it does not state that NVIDIA
+endorses VRhino and is not a grant of rights beyond the referenced NVIDIA
+terms.
+
+Qualified payload identity
+--------------------------
+
+Source candidate SHA256:
+26f225121f8b085f0342ced7c3f2849503faaae9cadb3f3439735362607bf773
+
+Classification
+--------------
+
+All objects below are CONDITIONALLY REDISTRIBUTABLE. Each maps to an official
+NVIDIA distributable category and matching redistributable-manifest version.
+The classification records that NVIDIA's application-distribution conditions
+apply; it does not mean that any file identity is unresolved.
+
+Exact real shared objects
+-------------------------
+
+Each object is listed exactly once. Paths are relative to the candidate's
+top-level vrhino/ directory.
+
+filename | SONAME | version | SHA256 | library family | redistribution classification | pristine
+lib/libcudart.so.12.8.90 | libcudart.so.12 | 12.8.90 | c3a75b33af334a3486d197dbd1584a2985183ba4688d237a2be5f2f679329920 | CUDA Runtime | CONDITIONALLY REDISTRIBUTABLE | YES
+lib/libcublas.so.12.8.4.1 | libcublas.so.12 | 12.8.4.1 | 031ce6c2cbfbb9468f040527cab5c599069ce5609e73e28f87503881063eac21 | cuBLAS | CONDITIONALLY REDISTRIBUTABLE | YES
+lib/libcublasLt.so.12.8.4.1 | libcublasLt.so.12 | 12.8.4.1 | 10b5e6631cf8115c661eb895ed1533826308b58f7956466f53d236a40c9b622c | cuBLASLt | CONDITIONALLY REDISTRIBUTABLE | YES
+lib/libnvrtc.so.12.8.93 | libnvrtc.so.12 | 12.8.93 | 2bb82d1a34b9fefa46aca357299aed66763d4d6613d015d5a591224c00fa7e5a | NVRTC | CONDITIONALLY REDISTRIBUTABLE | YES
+lib/libnvrtc-builtins.so.12.8.93 | libnvrtc-builtins.so.12.8 | 12.8.93 | eccaa824230ee7858a94a3055cb01f1cb634df05d313880d0bdcf195161fcb4e | NVRTC builtins | CONDITIONALLY REDISTRIBUTABLE | YES
+lib/libnvJitLink.so.12.8.93 | libnvJitLink.so.12 | 12.8.93 | 0369e6867d44b800437de4e146d72c65afc6c75adf677a15c2ecd8e6a7ac135f | nvJitLink | CONDITIONALLY REDISTRIBUTABLE | YES
+lib/libcudnn.so.9.8.0 | libcudnn.so.9 | 9.8.0.87 | 72f74476dcdc074b9d56f8c5cf576ceff6a595989832b9b0798478dc48a4ffcd | cuDNN core runtime | CONDITIONALLY REDISTRIBUTABLE | YES
+lib/libcudnn_adv.so.9.8.0 | libcudnn_adv.so.9 | 9.8.0.87 | fe1f1468f2af89ebb80446cbb822d823ebf01509111faed8c271131ef53f0db2 | cuDNN advanced runtime | CONDITIONALLY REDISTRIBUTABLE | YES
+lib/libcudnn_cnn.so.9.8.0 | libcudnn_cnn.so.9 | 9.8.0.87 | 39f017b44b7a1b17b2a8ce8d139b3b7e71e7c6f73eb2e3393b828edfc516753a | cuDNN CNN runtime | CONDITIONALLY REDISTRIBUTABLE | YES
+lib/libcudnn_engines_precompiled.so.9.8.0 | libcudnn_engines_precompiled.so.9 | 9.8.0.87 | ea76b125b1f43d123d8501339578af615af71765d7cb586dbdcb231ed338ce06 | cuDNN precompiled engines runtime | CONDITIONALLY REDISTRIBUTABLE | YES
+lib/libcudnn_engines_runtime_compiled.so.9.8.0 | libcudnn_engines_runtime_compiled.so.9 | 9.8.0.87 | 7304751cddcc95e7a30b1cb8fe9ce82c9146862ed5882f245c2572994db58f9f | cuDNN runtime-compiled engines | CONDITIONALLY REDISTRIBUTABLE | YES
+lib/libcudnn_graph.so.9.8.0 | libcudnn_graph.so.9 | 9.8.0.87 | 8adf356b5509ee8b5f28846a81387ebca6de12ea6b19858f9b2f43c0f0e3fe2b | cuDNN graph runtime | CONDITIONALLY REDISTRIBUTABLE | YES
+lib/libcudnn_heuristic.so.9.8.0 | libcudnn_heuristic.so.9 | 9.8.0.87 | 7a6044a3df8e5642cc7356aff57c856fcc06ff37c8dd932de4540b47325050a0 | cuDNN heuristic runtime | CONDITIONALLY REDISTRIBUTABLE | YES
+lib/libcudnn_ops.so.9.8.0 | libcudnn_ops.so.9 | 9.8.0.87 | 3d50a4f59aeb54dfc01ef66489e48925156c083e20e1ece423eb388f9e60d013 | cuDNN operations runtime | CONDITIONALLY REDISTRIBUTABLE | YES
+
+Count summary
+-------------
+
+Real NVIDIA shared objects: 14
+Pristine NVIDIA objects: 14/14
+Modified NVIDIA objects: 0
+CLEARLY REDISTRIBUTABLE: 0
+CONDITIONALLY REDISTRIBUTABLE: 14
+UNCLEAR: 0
+NOT REDISTRIBUTABLE: 0
+
+Packaging boundary
+------------------
+
+HOST:
+- compatible NVIDIA Driver
+- libcuda.so.1
+- NVIDIA kernel and driver components
+
+VRHINO PACKAGE:
+- redistributable CUDA user-space runtime shared libraries listed above
+- redistributable cuDNN user-space runtime shared libraries listed above
+
+Bundled libcuda: NO
+Bundled NVIDIA driver/kernel modules: NO
+Modified NVIDIA libraries: NO
+Pristine NVIDIA objects: 14/14
+Bundled NVIDIA developer-tool executables: NO
+Bundled NVIDIA static libraries or object files: NO
+
+Official source and license references
+--------------------------------------
+
+CUDA Toolkit 12.8.2 EULA:
+https://docs.nvidia.com/cuda/archive/12.8.2/eula/index.html
+
+CUDA Toolkit 12.8.1 redistributable manifest (release date 2025-03-06):
+https://developer.download.nvidia.com/compute/cuda/redist/redistrib_12.8.1.json
+
+The official Linux x86_64 redistributable identities matching this package are:
+- CUDA Runtime 12.8.90
+- cuBLAS/cuBLASLt 12.8.4.1
+- NVRTC/NVRTC builtins 12.8.93
+- nvJitLink 12.8.93
+
+The exact NVIDIA-distributed LICENSE file retained for the CUDA 12.8 runtime
+payload is:
+licenses/nvidia/CUDA-EULA-12.8.2.txt
+
+It was extracted without modification from:
+cuda_cudart-linux-x86_64-12.8.90-archive.tar.xz
+
+Official archive SHA256:
+8d566b5fe745c46842dc16945cf36686227536decd2302c372be86da37faca68
+
+Extracted LICENSE / overlay file SHA256:
+e2c71babfd18a8e69542dd7e9ca018f9caa438094001a58e6bc4d8c999bf0d07
+
+cuDNN 9.8.0 Software License Agreement and supplement:
+https://docs.nvidia.com/deeplearning/cudnn/backend/v9.8.0/reference/eula.html
+
+cuDNN 9.8.0 redistributable manifest (release date 2025-03-04):
+https://developer.download.nvidia.com/compute/cudnn/redist/redistrib_9.8.0.json
+
+The matching runtime version is cuDNN 9.8.0.87. The applicable cuDNN license,
+supplement, and notices remain in the qualified payload at:
+licenses/nvidia/NVIDIA-cuDNN-license-and-notices.txt
+
+Application-distribution conditions
+-----------------------------------
+
+The official CUDA/cuDNN terms govern use and distribution. The engineering
+audit records these relevant conditions without attempting to replace or
+summarize the governing text: distribution with a qualifying application,
+material additional application functionality, application-only access to the
+redistributable portions, distribution terms consistent with NVIDIA's terms,
+NVIDIA GPU scope, and (for Linux CUDA Toolkit objects) no object modification
+except extraction from compressed files.
+
+VRhino is not sponsored or endorsed by NVIDIA. NVIDIA, CUDA, cuBLAS, NVRTC,
+nvJitLink, and cuDNN are trademarks or product names of NVIDIA Corporation.

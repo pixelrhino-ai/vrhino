@@ -1,0 +1,3 @@
+# VRhino freezes the qualified lock as an explicit hermetic build input even
+# though upstream tokenizers-cpp ignores Cargo.lock.
+!Cargo.lock

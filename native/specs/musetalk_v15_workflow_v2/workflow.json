@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "family": "lip_sync_workflow_v1",
+  "reference": {
+    "repository": "TMElyralab/MuseTalk",
+    "revision": "9deb9bea0d46b085d171d9a417671f6ef1af2f69",
+    "model_revision": "3ef28bc5cff08c90ad8178a25f1b570cd800170f"
+  },
+  "profile": {
+    "fps": 25,
+    "bbox_shift": 0,
+    "lower_margin": 10,
+    "audio_padding": [2, 2],
+    "facial_keypoint_range": [23, 91],
+    "frame_cycle": "forward_then_full_reverse",
+    "crop_resize": "lanczos4",
+    "detector_postprocess": "dense_anchors_short_range_v1",
+    "mask_mode": "landmark_constrained_v1",
+    "segmenter_classes": {
+      "background": 0, "hair": 1, "body_skin": 2,
+      "face_skin": 3, "clothes": 4, "accessories_other": 5
+    },
+    "lower_face": {"jaw": [2, 14], "upper_boundary": [35, 33, 31]},
+    "mouth_restoration": {"outer_mouth": [48, 59], "dilation": "ellipse_3x3"},
+    "mask_morphology": {
+      "closing": "ellipse_5x5",
+      "reapply_exclusions": true,
+      "connected_component": "largest_8_connected",
+      "resize": "bicubic",
+      "blur": "gaussian_11x11_reflect101"
+    },
+    "rng": "seed+source-index+branch-identity"
+  },
+  "components": [
+    {"role": "audio_encoder", "architecture": "audio-encoder", "bytes": 32866496, "sha256": "4527260f6727d202f0a964ff062d68bd03a00b6647e0809b18ba318afb76777d"},
+    {"role": "image_autoencoder", "architecture": "autoencoder-kl", "bytes": 334727552, "sha256": "49d6d814b8546535f36580543987ff0477ebd89040cc053d2a8f836b68db9b1e"},
+    {"role": "neural_edit", "architecture": "cond-unet-2d", "bytes": 3400098560, "sha256": "4fc8954eea557b636abe22450076b38ddea8a629fa38f9ab545014b1c1d22c47"},
+    {"role": "face_detector", "architecture": "vision-detector", "bytes": 434656, "sha256": "bbe5a9a5d83b13401a9b9bc7829ccb993af6ac28e2dd37c530001e90fdf06d17"},
+    {"role": "pose_estimator", "architecture": "pose-estimator", "bytes": 134774400, "sha256": "3f457d8ff6eb49098d9626e232785b7158d8838e8054eb1f85d0684decc6a7c5"},
+    {"role": "semantic_segmenter", "architecture": "segmenter-2d", "bytes": 16360832, "sha256": "e797157d562263919e28f74d4701074243a9c56fcadd6f1ba14703e85cc554f1"}
+  ],
+  "media_contract": "vrhino.media.lip-sync-v1.cli",
+  "public_eligibility": "candidate_pending_distribution_gate"
+}

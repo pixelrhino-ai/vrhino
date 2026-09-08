@@ -1,0 +1,38 @@
+VRhino v0.5.0-alpha Lip-Sync Media Extensions
+
+The separately executed FFmpeg 4.4.2 media helper adds the bounded media
+surfaces required by the lip-sync product family:
+
+  - WAV, MOV/MP4, Matroska and single-image input;
+  - H.264, AAC, PCM S16LE, FFV1, PNG and raw-video decode;
+  - deterministic audio resampling through libswresample/libsoxr;
+  - AAC-LC, PCM F32LE, raw-video and H.264 encode;
+  - MP4, WAV, raw-video and PCM F32LE output; and
+  - scale, format, aresample, aformat and pan filters.
+
+FFmpeg remains a separate GPL-enabled process. VRhino does not directly link
+or dynamically load FFmpeg, x264, or soxr. The x264 source archive is the fixed
+revision 5db6aa6cab1b146e07b60cc1736a01f21da01154. Because a git archive omits
+repository metadata, the retained build recipe restores the corresponding
+generated version string `r3060 5db6aa6`; it does not change encoder semantics.
+
+libsoxr is dynamically loaded by libswresample inside the media helper process.
+Its copyright and license terms are retained at:
+
+  licenses/dynamic/libsoxr0.copyright
+  licenses/common/LGPL-2.1
+
+The helper's transitive libgomp dependency is shipped in the package runtime
+library directory. Its GCC Runtime Library Exception terms are retained in the
+existing GCC/libgomp copyright material and common GPL texts.
+
+Matroska demuxing and FFV1 decoding are native FFmpeg capabilities. Their
+selected internal helpers (`riffdec` and `rangecoder`) do not add an external
+codec or library dependency, and the local-file-only protocol boundary remains
+unchanged.
+
+The image2 and PNG-pipe demuxers plus native PNG decoder provide bounded
+decoding of packaged workflow image assets, including content-addressed files
+without filename extensions. PNG decoding uses zlib, which is already included
+in the VRhino runtime library closure with its retained notice; no network
+protocol or external codec library is enabled.

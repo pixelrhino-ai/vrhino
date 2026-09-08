@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "component_kind": "autoencoder_kl",
+  "source": {
+    "provider": "huggingface",
+    "repository": "stabilityai/sd-vae-ft-mse",
+    "revision": "31f26fdeee1355a5c34592e401dd41e45d25a493"
+  },
+  "artifacts": [
+    {
+      "path": "config.json",
+      "bytes": 547,
+      "sha256": "92d3dfb746fca211a2c9e019e285f8597412211728dce3c5bcf4eda0f2d62e7e",
+      "role": "graph_config"
+    },
+    {
+      "path": "diffusion_pytorch_model.bin",
+      "bytes": 334707217,
+      "sha256": "1b4889b6b1d4ce7ae320a02dedaeff1780ad77d415ea0d744b476155c6377ddc",
+      "role": "fixed_checkpoint"
+    }
+  ],
+  "conversion": {
+    "source_tensor_count": 248,
+    "retained_tensor_count": 248,
+    "retained_tensor_bytes": 334615452,
+    "dtype": "float32",
+    "entry_points": ["encode", "decode"]
+  }
+}

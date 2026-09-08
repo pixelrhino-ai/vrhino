@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "model_reference": "vrhino/source-integrity-fixture:1",
+  "requested_source": {
+    "provider": "huggingface",
+    "repository": "Lightricks/LTX-Video",
+    "revision": "8984fa25007f376c1a299016d0957a37a2f797bb"
+  },
+  "artifacts": [
+    {
+      "id": "wrong-sha",
+      "role": "test.integrity",
+      "repository": "Lightricks/LTX-Video",
+      "revision": "8984fa25007f376c1a299016d0957a37a2f797bb",
+      "upstream_path": "ltx-video-2b-v0.9.1.license.txt",
+      "local_path": "license.txt",
+      "size": 15981,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ]
+}

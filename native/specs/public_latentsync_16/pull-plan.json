@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "model_reference": "vrhino/latentsync-1.6:1.0.0",
+  "distribution": {
+    "kind": "multi_component_source_backed",
+    "source": {
+      "provider": "huggingface",
+      "repository": "ByteDance/LatentSync-1.6",
+      "revision": "c42c7e6c8e9c213626389fa7d9a3c444b8536353"
+    },
+    "source_plan": "source-plan.json",
+    "converter": "native"
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "closure": "vrhino-tokenizer-build-sources-v1",
+  "normal_build_network_access": false,
+  "sources": [
+    {
+      "name": "tokenizers-cpp",
+      "role": "native tokenizer C/C++ and Rust bridge",
+      "upstream": "https://github.com/mlc-ai/tokenizers-cpp.git",
+      "revision": "c586c52f93f7b060753bd2388eb96a105cb7374d",
+      "git_archive_sha256": "f6bbc5b477b47ffeaf9f0e703c8f3464a77bdfd455b7cc071df63a806119345e",
+      "license": "Apache-2.0",
+      "license_path": "tokenizers-cpp/LICENSE",
+      "local_path": "tokenizers-cpp",
+      "parent": null
+    },
+    {
+      "name": "SentencePiece",
+      "role": "tokenizers-cpp production submodule",
+      "upstream": "https://github.com/google/sentencepiece",
+      "revision": "e0f0f966959108415183d6cbe7a9051ca8bc2da1",
+      "git_archive_sha256": "221d7df3e71472b6bcee114fa8045aca19a7e4375ee70bbb5457e02ec1187901",
+      "license": "Apache-2.0",
+      "license_path": "tokenizers-cpp/sentencepiece/LICENSE",
+      "local_path": "tokenizers-cpp/sentencepiece",
+      "parent": "tokenizers-cpp@c586c52f93f7b060753bd2388eb96a105cb7374d"
+    },
+    {
+      "name": "msgpack-c",
+      "role": "tokenizers-cpp production submodule",
+      "upstream": "https://github.com/msgpack/msgpack-c",
+      "revision": "092bc69b6e815980bce7808595c914dd3a29f905",
+      "git_archive_sha256": "6a13267364555343a3a328f5814b5b52aafe5753b3dc27518ca7df7534815c18",
+      "license": "BSL-1.0",
+      "license_path": "tokenizers-cpp/msgpack/LICENSE_1_0.txt",
+      "local_path": "tokenizers-cpp/msgpack",
+      "parent": "tokenizers-cpp@c586c52f93f7b060753bd2388eb96a105cb7374d"
+    },
+    {
+      "name": "Abseil",
+      "role": "SentencePiece C++ dependency supplied by the VRhino parent build",
+      "upstream": "https://github.com/abseil/abseil-cpp.git",
+      "requested_upstream_tag": "20260107.1",
+      "revision": "255c84dadd029fd8ad25c5efb5933e47beaa00c7",
+      "git_archive_sha256": "4c0d975b35c39357d9e99b366cd6ce7e00c3efa24017de0dc08d4343079db11a",
+      "license": "Apache-2.0",
+      "license_path": "abseil-cpp/LICENSE",
+      "local_path": "abseil-cpp",
+      "parent": "SentencePiece@e0f0f966959108415183d6cbe7a9051ca8bc2da1"
+    },
+    {
+      "name": "Cargo dependency graph",
+      "role": "locked Rust source replacement",
+      "upstream": "registry+https://github.com/rust-lang/crates.io-index",
+      "revision": "Cargo.lock sha256 ea028c09e0ac3a242df874856b34b1fbedd1eda0dfb6b6160c0e4598229669a1",
+      "lockfile_upstream_tracked": false,
+      "registry_crate_count": 80,
+      "license": "mixed; canonical per-package declarations and license files",
+      "license_path": "cargo-vendor/*",
+      "local_path": "cargo-vendor",
+      "parent": "tokenizers-cpp/rust tokenizers-c@0.1.0"
+    }
+  ],
+  "local_integrity": {
+    "tokenizers_expanded_inventory": {
+      "path": "inventories/tokenizers-cpp-expanded.sha256",
+      "sha256": "63c37881d795895fc65322f648552c5cfeaa2db8438cb0c59fa9537d2ddbc04e"
+    },
+    "abseil_inventory": {
+      "path": "inventories/abseil-cpp.sha256",
+      "sha256": "f5ff13fdf9f770f0f07c295b0ca1e9fca2d88038f49ebf20e83616c2c8f22346"
+    },
+    "cargo_vendor_inventory": {
+      "path": "inventories/cargo-vendor.sha256",
+      "sha256": "ebb8d6b25210908e1c45b0a585819c8fff177240d356bc5c76600628db1a76dd"
+    }
+  },
+  "source_only_projection": {
+    "omitted_upstream_binaries": [
+      {
+        "path": "native/third_party/tokenizer-build-sources/cargo-vendor/wit-bindgen/src/rt/libwit_bindgen_cabi.a",
+        "size": 858,
+        "sha256": "a18a4de12821dd777e6003625cc33896984a91a55bbf03c70abc5675842c60c1",
+        "reason": "upstream-generated WebAssembly binary; not a Native host build input; C/Rust sources retained"
+      },
+      {
+        "path": "native/third_party/tokenizer-build-sources/cargo-vendor/wit-bindgen/src/rt/wit_bindgen_cabi_realloc.o",
+        "size": 251,
+        "sha256": "f5bef0033f3baaada79949e9c8e506d1de1722259c24dc752d2084784317f8de",
+        "reason": "upstream-generated WebAssembly binary; not a Native host build input; C/Rust sources retained"
+      },
+      {
+        "path": "native/third_party/tokenizer-build-sources/cargo-vendor/wit-bindgen/src/rt/wit_bindgen_cabi_wasip3.o",
+        "size": 260,
+        "sha256": "76a7b6bf1529c2657f0e7620a443db23294647b009916df1b3b55646879ef61a",
+        "reason": "upstream-generated WebAssembly binary; not a Native host build input; C/Rust sources retained"
+      }
+    ],
+    "compiled_upstream_source_modified": false,
+    "cargo_checksum_files_reinventoried": [
+      "cargo-vendor/wit-bindgen/.cargo-checksum.json"
+    ],
+    "supported_closure": "Native host tokenizer builds. WebAssembly build outputs are not distributed.",
+    "notice": "SOURCE-PROJECTION.md"
+  }
+}

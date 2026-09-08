@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "component": "conditional_unet_2d",
+  "source_repository": "TMElyralab/MuseTalk",
+  "source_revision": "3ef28bc5cff08c90ad8178a25f1b570cd800170f",
+  "tensor_map_sha256": "8bcdd2f083d2a9b79db392b73b0c919202ab0e1dccb87acd28587bf27358f514",
+  "artifacts": [
+    {
+      "path": "musetalkV15/unet.pth",
+      "local_name": "unet.pth",
+      "bytes": 3400074924,
+      "sha256": "7ebf6c98c181e20838e4c0054e96e944ac60d5d692cc01db42839fe11b787007",
+      "role": "weights"
+    },
+    {
+      "path": "musetalkV15/musetalk.json",
+      "local_name": "musetalk.json",
+      "bytes": 748,
+      "sha256": "5b6923aee04d71692e0e9846c471e0a4ea07a4f686d39545e472bd4ba17e1b47",
+      "role": "config"
+    }
+  ]
+}

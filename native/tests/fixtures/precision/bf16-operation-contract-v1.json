@@ -1,0 +1,66 @@
+{
+  "schema": "vrhino.precision.policy.v1",
+  "id": "bf16-operation-contract-v1",
+  "requested_mode": "bf16",
+  "status": "PHASE16H_CANDIDATE",
+  "effective": {
+    "requested_mode": "bf16",
+    "operations": {
+      "LINEAR": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"},
+      "CONVOLUTION": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"},
+      "NORMALIZATION": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"},
+      "ATTENTION_PROJECTION": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"},
+      "ATTENTION_QK": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"},
+      "ATTENTION_PV": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"},
+      "ACTIVATION": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"},
+      "RESIDUAL_ADD": {"compute_dtype": "fp32", "accumulator_dtype": "fp32", "output_dtype": "fp32"},
+      "GUIDANCE": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"},
+      "SCHEDULER": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"},
+      "CONDITIONING": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"},
+      "DENOISER": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"},
+      "VAE": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"}
+    },
+    "roles": {
+      "CONDITIONING": "bf16",
+      "TEMPORARY_COMPUTE": "bf16",
+      "NORMALIZATION_STATISTIC": "fp32",
+      "ATTENTION_STATISTIC": "fp32",
+      "RESIDUAL_STATE": "fp32",
+      "SAMPLING_STATE": "bf16",
+      "DENOISER_OUTPUT": "bf16",
+      "VAE_INPUT": "bf16",
+      "VIDEO_OUTPUT": "bf16"
+    }
+  },
+  "storage_contract": {
+    "checkpoint_weights": "native_storage_converted_at_generic_consumer_operand_boundary",
+    "floating_activations": "operation_semantic_contract",
+    "persistent_state": "mixed_by_semantic_role",
+    "discrete_inputs": "source_exact"
+  },
+  "backend_realization": {
+    "linear_gemm": "bf16_heavy_operands_fp32_accumulator_operation_contract_output",
+    "convolution": "bf16_descriptors_fp32_cudnn_compute_bf16_output",
+    "normalization": "bf16_input_fp32_statistics_and_temporary_consumer_boundary_cast",
+    "attention": "bf16_qkv_fp32_stable_ordered_statistics_and_accumulation_bf16_output",
+    "modulation": "fp32_small_compute_and_temporary_consumer_boundary_cast",
+    "rope": "fp32_temporary_attention_consumer_boundary_cast",
+    "elementwise_state": "semantic_role_storage_fp32_element_arithmetic_semantic_role_output"
+  },
+  "research_switches": {
+    "canonical_qualification": "FAIL_CLOSED",
+    "required_by_policy": false,
+    "blocked_environment": [
+      "VRHINO_ATTENTION_CAPTURE_EXIT",
+      "VRHINO_ATTENTION_CAPTURE_MIN_TOKENS",
+      "VRHINO_ATTENTION_CAPTURE_PATH",
+      "VRHINO_BF16_ATTENTION_OUTPUT",
+      "VRHINO_BF16_CONV_COMPUTE",
+      "VRHINO_BF16_LINEAR_OUTPUT",
+      "VRHINO_BF16_NORM_OUTPUT",
+      "VRHINO_CUDA_ATTENTION_BF16_QK",
+      "VRHINO_CUDA_ATTENTION_KEY_TILE",
+      "VRHINO_CUDA_ATTENTION_VARIANT"
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "model_reference": "vrhino/source-missing-fixture:1",
+  "requested_source": {
+    "provider": "huggingface",
+    "repository": "Lightricks/LTX-Video",
+    "revision": "8984fa25007f376c1a299016d0957a37a2f797bb"
+  },
+  "artifacts": [
+    {
+      "id": "missing",
+      "role": "test.missing",
+      "repository": "Lightricks/LTX-Video",
+      "revision": "8984fa25007f376c1a299016d0957a37a2f797bb",
+      "upstream_path": "vrhino-phase26c-does-not-exist.bin",
+      "local_path": "missing.bin",
+      "size": 1,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ]
+}

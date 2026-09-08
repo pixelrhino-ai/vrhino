@@ -1,0 +1,9 @@
+VRhino
+Copyright (c) 2026 北京像素犀牛科技有限公司
+
+VRhino project-owned source, headers, build scripts, tests, documentation and
+architecture/spec/schema materials are licensed under the Apache License 2.0.
+Third-party materials retain their own licenses and notices. See
+THIRD_PARTY_NOTICES.md and the license files within native/third_party/.
+Model weights and checkpoints are not covered by this source license.
+The existing released binaries retain the terms distributed with those releases.

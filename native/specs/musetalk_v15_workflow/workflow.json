@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "family": "lip_sync_workflow_v1",
+  "reference": {
+    "repository": "TMElyralab/MuseTalk",
+    "revision": "9deb9bea0d46b085d171d9a417671f6ef1af2f69",
+    "model_revision": "3ef28bc5cff08c90ad8178a25f1b570cd800170f"
+  },
+  "profile": {
+    "fps": 25,
+    "bbox_shift": 0,
+    "lower_margin": 10,
+    "audio_padding": [2, 2],
+    "facial_keypoint_range": [23, 91],
+    "frame_cycle": "forward_then_full_reverse",
+    "crop_resize": "lanczos4",
+    "mask_mode": "jaw",
+    "cheek_widths": [90, 90],
+    "rng": "seed+source-index+branch-identity"
+  },
+  "components": [
+    {"role": "audio_encoder", "architecture": "audio-encoder", "bytes": 32866496, "sha256": "4527260f6727d202f0a964ff062d68bd03a00b6647e0809b18ba318afb76777d"},
+    {"role": "image_autoencoder", "architecture": "autoencoder-kl", "bytes": 334727552, "sha256": "49d6d814b8546535f36580543987ff0477ebd89040cc053d2a8f836b68db9b1e"},
+    {"role": "neural_edit", "architecture": "cond-unet-2d", "bytes": 3400098560, "sha256": "4fc8954eea557b636abe22450076b38ddea8a629fa38f9ab545014b1c1d22c47"},
+    {"role": "face_detector", "architecture": "vision-detector", "bytes": 89861568, "sha256": "0d8086e0293f17cbf2b2db59f22e3bec8cb6760d97fe986394b2f6f89ade70e6"},
+    {"role": "pose_estimator", "architecture": "pose-estimator", "bytes": 134774400, "sha256": "3f457d8ff6eb49098d9626e232785b7158d8838e8054eb1f85d0684decc6a7c5"},
+    {"role": "semantic_segmenter", "architecture": "segmenter-2d", "bytes": 52709376, "sha256": "25ea9ae79a4c81b718ce2b47d42d72e0da242553c7f64c4b2d92942b885d0a3e"}
+  ],
+  "media_contract": "vrhino.media.lip-sync-v1.cli",
+  "public_eligibility": "UNKNOWN"
+}

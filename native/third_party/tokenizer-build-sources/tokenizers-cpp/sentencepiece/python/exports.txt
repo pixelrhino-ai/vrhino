@@ -1,0 +1,6 @@
+{
+    global:
+        PyInit__sentencepiece;
+    local:
+        *;
+};

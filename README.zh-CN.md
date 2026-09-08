@@ -210,12 +210,13 @@ v0.6.0-alpha successor 路径。它不声称支持所有 NVIDIA GPU、所有 Lin
 
 详情见 [Alpha 限制](docs/alpha-limitations.md)。
 
+## 从源码构建
+
+Public main 包含生产源码、Shared Runtime、NeuralGraph、Backend、Converter 和原生 Product/API 实现。参见[源码构建与测试](docs/source-build.md)、[架构](docs/architecture.md)、[打包](docs/source-packaging.md)和[贡献指南](CONTRIBUTING.md)。源码存在不等于历史版本已支持；HunyuanVideo 和 CogVideoX canary 不加入 v0.6 已支持模型列表。
+
 ## 许可证
 
-VRhino 二进制是专有软件，按
-[VRhino Alpha Binary License](licenses/VRHINO-BINARY-LICENSE.txt) 分发。
-第三方组件继续适用各自的许可证，详见
-[THIRD_PARTY_NOTICES.txt](licenses/THIRD_PARTY_NOTICES.txt)。
+VRhino 项目自有源码采用 [Apache-2.0](LICENSE)。第三方组件保留各自许可证，参见[第三方源码声明](THIRD_PARTY_NOTICES.md)。现有已发布二进制继续适用其随包提供的 [Alpha Binary License](licenses/VRHINO-BINARY-LICENSE.txt)。
 
 模型许可证彼此独立。VRhino 不授予模型权重、输入、输出或其他第三方内容的
 任何权利。

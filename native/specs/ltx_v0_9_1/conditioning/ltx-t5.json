@@ -1,0 +1,1218 @@
+{
+  "blocks": [
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.0.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.0.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.0.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.0.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "capture": "first_block",
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.0.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.0.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.0.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.0.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.0.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.1.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.1.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.1.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.1.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.1.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.1.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.1.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.1.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.1.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.2.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.2.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.2.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.2.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.2.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.2.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.2.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.2.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.2.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.3.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.3.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.3.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.3.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.3.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.3.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.3.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.3.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.3.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.4.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.4.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.4.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.4.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.4.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.4.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.4.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.4.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.4.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.5.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.5.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.5.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.5.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.5.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.5.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.5.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.5.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.5.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.6.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.6.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.6.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.6.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.6.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.6.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.6.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.6.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.6.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.7.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.7.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.7.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.7.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.7.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.7.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.7.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.7.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.7.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.8.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.8.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.8.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.8.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.8.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.8.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.8.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.8.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.8.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.9.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.9.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.9.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.9.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.9.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.9.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.9.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.9.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.9.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.10.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.10.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.10.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.10.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.10.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.10.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.10.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.10.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.10.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.11.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.11.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.11.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.11.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "capture": "middle_block",
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.11.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.11.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.11.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.11.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.11.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.12.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.12.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.12.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.12.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.12.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.12.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.12.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.12.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.12.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.13.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.13.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.13.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.13.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.13.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.13.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.13.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.13.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.13.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.14.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.14.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.14.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.14.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.14.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.14.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.14.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.14.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.14.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.15.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.15.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.15.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.15.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.15.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.15.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.15.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.15.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.15.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.16.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.16.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.16.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.16.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.16.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.16.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.16.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.16.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.16.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.17.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.17.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.17.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.17.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.17.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.17.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.17.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.17.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.17.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.18.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.18.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.18.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.18.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.18.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.18.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.18.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.18.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.18.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.19.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.19.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.19.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.19.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.19.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.19.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.19.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.19.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.19.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.20.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.20.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.20.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.20.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.20.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.20.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.20.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.20.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.20.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.21.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.21.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.21.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.21.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.21.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.21.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.21.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.21.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.21.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.22.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.22.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.22.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.22.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.22.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.22.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.22.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.22.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.22.layer.1.layer_norm.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "encoder.block.23.layer.0.SelfAttention.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "encoder.block.23.layer.0.SelfAttention.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "encoder.block.0.layer.0.SelfAttention.relative_attention_bias.weight"
+        },
+        "q": {
+          "weight": "encoder.block.23.layer.0.SelfAttention.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "encoder.block.23.layer.0.SelfAttention.v.weight"
+        }
+      },
+      "capture": "last_block",
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.23.layer.0.layer_norm.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "encoder.block.23.layer.1.DenseReluDense.wi_0.weight"
+        },
+        "gate_input": {
+          "weight": "encoder.block.23.layer.1.DenseReluDense.wi_1.weight"
+        },
+        "output": {
+          "weight": "encoder.block.23.layer.1.DenseReluDense.wo.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "encoder.block.23.layer.1.layer_norm.weight"
+      }
+    }
+  ],
+  "embedding": {
+    "weight": "shared.weight"
+  },
+  "final_norm": {
+    "eps": 1e-06,
+    "kind": "rms_norm",
+    "weight": "encoder.final_layer_norm.weight"
+  },
+  "id": "ltx_t5",
+  "kind": "pre_norm_transformer",
+  "schema_version": 1
+}

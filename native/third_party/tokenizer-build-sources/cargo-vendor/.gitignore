@@ -1,0 +1,5 @@
+# Cargo packages legitimately contain paths named build and prebuilt .a/.o
+# source fixtures. Keep the complete checksum-qualified vendor tree visible to
+# Git despite the repository's build-output ignore rules.
+!**/
+!**

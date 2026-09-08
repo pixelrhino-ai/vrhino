@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "model_reference": "vrhino/mochi-1-preview:1.0.1",
+  "distribution": {
+    "kind": "source_backed",
+    "source": {
+      "provider": "huggingface",
+      "repository": "genmo/mochi-1-preview",
+      "revision": "14be5fcea23095ed330cb214647916a451e38b6e"
+    },
+    "source_plan": "source-plan.json",
+    "converter": "native"
+  }
+}

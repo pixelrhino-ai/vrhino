@@ -1,0 +1,3 @@
+# This is VRhino's fixed include bridge to the separately inventoried local
+# Abseil source, not a generated SentencePiece checkout.
+!absl

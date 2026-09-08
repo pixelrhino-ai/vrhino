@@ -1,0 +1,10 @@
+* text=auto
+*.png binary
+*.jpg binary
+*.model binary
+native/third_party/** -text linguist-vendored
+# Preserve upstream and immutable spec/license bytes, including whitespace.
+native/third_party/** -whitespace
+native/specs/** -text -whitespace
+release/compliance-overlay/licenses/** -text -whitespace
+LICENSE -text -whitespace

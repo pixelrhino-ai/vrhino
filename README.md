@@ -223,12 +223,16 @@ Alpha.
 
 See [Alpha limitations](docs/alpha-limitations.md) for details.
 
+## Build from source
+
+Public main contains the production source, Shared Runtime, NeuralGraph, backends, converters and native Product/API implementation. See [source build and tests](docs/source-build.md), [architecture](docs/architecture.md), [packaging](docs/source-packaging.md) and [contribution guide](CONTRIBUTING.md). Source presence does not expand historical release support; HunyuanVideo and the CogVideoX canary are not added to the v0.6 supported-model list.
+
 ## License
 
-The VRhino binary is proprietary and distributed under the
-[VRhino Alpha Binary License](licenses/VRHINO-BINARY-LICENSE.txt).
-Third-party components remain under their own licenses; see
-[THIRD_PARTY_NOTICES.txt](licenses/THIRD_PARTY_NOTICES.txt).
+VRhino project-owned source is available under [Apache-2.0](LICENSE).
+Third-party components retain their respective licenses; see
+[third-party source notices](THIRD_PARTY_NOTICES.md). Existing released binaries
+retain their distributed [Alpha Binary License](licenses/VRHINO-BINARY-LICENSE.txt).
 
 Model licenses are independent. VRhino grants no rights to model weights,
 inputs, outputs, or other third-party content.

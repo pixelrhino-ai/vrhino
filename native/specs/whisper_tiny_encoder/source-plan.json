@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "component_kind": "audio_encoder",
+  "source": {
+    "provider": "huggingface",
+    "repository": "openai/whisper-tiny",
+    "revision": "169d4a4341b33bc18d8881c4b69c2e104e1cc0af"
+  },
+  "artifacts": [
+    {
+      "path": "config.json",
+      "bytes": 1983,
+      "sha256": "ffdccec4f3211f4c63310f2b7098f309fe70f3952cedc5e4d11e43f5b2379b98",
+      "role": "graph_config"
+    },
+    {
+      "path": "preprocessor_config.json",
+      "bytes": 184990,
+      "sha256": "9b5cd03a36fbb8a627c64d98a5b5b126ead95a77720723944487311f0110b666",
+      "role": "audio_preprocess"
+    },
+    {
+      "path": "pytorch_model.bin",
+      "bytes": 151095027,
+      "sha256": "9607f98a2b22d9e229ae43c52ecea79dcede9e0c5cfae67e8da6eda86d8aac1d",
+      "role": "fixed_checkpoint"
+    },
+    {
+      "path": "README.md",
+      "bytes": 19787,
+      "sha256": "57a3bbbbf1e79369e4d1ced790812a1723b43a256c1b43fc70cc2f3339ae9881",
+      "role": "provenance_license"
+    }
+  ],
+  "conversion": {
+    "source_tensor_count": 167,
+    "retained_encoder_tensor_count": 67,
+    "retained_encoder_tensor_bytes": 32833536,
+    "decoder_included": false,
+    "tokenizer_included": false
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "component": "semantic_segmenter_2d",
+  "graph_identity": "semantic_segmenter_2d.v1",
+  "reference": {
+    "repository": "TMElyralab/MuseTalk",
+    "revision": "9deb9bea0d46b085d171d9a417671f6ef1af2f69"
+  },
+  "sources": [
+    {
+      "path": "79999_iter.pth",
+      "source": "https://drive.google.com/uc?id=154JgKpzCPW82qINcVieuPH3fZ2e0P812",
+      "bytes": 53289463,
+      "sha256": "468e13ca13a9b43cc0881a9f99083a430e9c0a38abd935431d1c28ee94b26567",
+      "license": "UNKNOWN"
+    }
+  ],
+  "excluded_sources": [
+    {
+      "path": "resnet18-5c106cde.pth",
+      "reason": "construction-only initialization; every inference parameter and buffer is overwritten by the complete 79999_iter.pth state_dict"
+    }
+  ],
+  "production_python_dependency": false
+}

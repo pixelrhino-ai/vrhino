@@ -1,0 +1,84 @@
+VRhino MuseTalk v1.5 Public Model Notices
+
+Public model identity: vrhino/musetalk-v1.5:1.0.0
+Product family: lip_sync
+Distribution mode: upstream acquisition and local conversion (Mode C)
+
+Pixel Rhino distributes VRhino software, fixed source metadata, hashes,
+workflow configuration, and these notices. Pixel Rhino does not distribute or
+host the original model weights or locally converted VRhino model components.
+The user obtains each model directly from its official upstream source.
+
+Conversion statement
+--------------------
+
+Converted from the upstream model representation into VRhino's Native model
+representation. Conversion changes representation, not ownership or licensing.
+Locally converted artifacts remain subject to their governing upstream terms.
+
+MuseTalk v1.5 Conditional UNet
+------------------------------
+
+Source: TMElyralab/MuseTalk, revision
+3ef28bc5cff08c90ad8178a25f1b570cd800170f, musetalkV15/unet.pth.
+Model license: CreativeML OpenRAIL-M. Copyright and attribution belong to the
+MuseTalk model rightsholders, including TME / Lyra Lab as identified upstream.
+Commercial inference is permitted subject to the license, including its
+Attachment A use-based restrictions. The complete license is provided in
+licenses/CreativeML-OpenRAIL-M.txt and applies to local conversions.
+
+MuseTalk code and configuration material is licensed under the MIT License.
+Copyright (c) 2024 Tencent Music Entertainment Group.
+
+Whisper Tiny
+------------
+
+Source: openai/whisper-tiny, revision
+169d4a4341b33bc18d8881c4b69c2e104e1cc0af.
+Upstream Whisper project: Copyright (c) 2022 OpenAI, MIT License. The exact
+Hugging Face representation also declares Apache-2.0 metadata; both MIT and
+Apache-2.0 texts are supplied conservatively.
+
+SD AutoencoderKL
+----------------
+
+Source: stabilityai/sd-vae-ft-mse, revision
+31f26fdeee1355a5c34592e401dd41e45d25a493.
+Copyright Stability AI. License: MIT.
+
+MediaPipe BlazeFace Short Range
+-------------------------------
+
+Source: Google MediaPipe Models, versioned asset
+blaze_face_short_range/float16/1/blaze_face_short_range.tflite.
+Copyright Google LLC. License: Apache-2.0.
+
+DWPose
+------
+
+Source: yzd-v/DWPose, revision
+1a7144101628d69ee7a3768d1ee3a094070dc388,
+dw-ll_ucoco_384.pth. License: Apache-2.0.
+Attribution is retained for IDEA Research and for the MMPose/OpenMMLab work
+identified by the upstream project. No separate upstream NOTICE file was
+published with this exact model repository revision.
+
+MediaPipe Selfie Multiclass 256x256
+-----------------------------------
+
+Source: Google MediaPipe Models, versioned asset
+selfie_multiclass_256x256/float32/1/selfie_multiclass_256x256.tflite.
+Copyright Google LLC. License: Apache-2.0.
+
+License texts
+-------------
+
+CreativeML OpenRAIL-M: licenses/CreativeML-OpenRAIL-M.txt
+Apache License 2.0: licenses/Apache-2.0.txt
+MIT License: licenses/MIT.txt
+
+No upstream owner sponsors or endorses VRhino. Their names and trademarks are
+used only to identify the source of the applicable model or software.
+
+Users are responsible for complying with upstream licenses and for lawful,
+consented use of input video, images, faces, and audio.

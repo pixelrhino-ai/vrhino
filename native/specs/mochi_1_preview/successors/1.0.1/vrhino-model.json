@@ -1,0 +1,164 @@
+{
+  "schema_version": 1,
+  "identity": {
+    "namespace": "vrhino",
+    "name": "mochi-1-preview",
+    "version": "1.0.1",
+    "architecture": "mochi",
+    "publisher": "VRhino"
+  },
+  "compatibility": {
+    "runtime_contract": "cuda-v1",
+    "vrm_schema": {"format_major": 0, "format_minor": 1, "metadata_schema": 1}
+  },
+  "artifacts": [
+    {
+      "id": "runtime", "role": "runtime.vrm", "path": "model/model.vrm",
+      "size": 20780961408,
+      "sha256": "37fb840eaa8953ba28ccbfc80b3a601dbfc78c423ff10c40e8762ae4620525d0",
+      "required": true
+    },
+    {
+      "id": "t5-index", "role": "conditioning.weights.index",
+      "path": "conditioning/model.safetensors.index.json", "size": 19886,
+      "sha256": "a545bb25dc0f423d84be7b577311bba8bb7c6931f1eefcea65fc8b0a61a60a76",
+      "required": true
+    },
+    {
+      "id": "t5-shard-1", "role": "conditioning.weights.shard",
+      "path": "conditioning/model-00001-of-00004.safetensors", "size": 4989319680,
+      "sha256": "7a68b2c8c080696a10109612a649bc69330991ecfea65930ccfdfbdb011f2686",
+      "required": true
+    },
+    {
+      "id": "t5-shard-2", "role": "conditioning.weights.shard",
+      "path": "conditioning/model-00002-of-00004.safetensors", "size": 4999830656,
+      "sha256": "b8ed6556d7507e38af5b428c605fb2a6f2bdb7e80bd481308b865f7a40c551ca",
+      "required": true
+    },
+    {
+      "id": "t5-shard-3", "role": "conditioning.weights.shard",
+      "path": "conditioning/model-00003-of-00004.safetensors", "size": 4865612720,
+      "sha256": "c831635f83041f83faf0024b39c6ecb21b45d70dd38a63ea5bac6c7c6e5e558c",
+      "required": true
+    },
+    {
+      "id": "t5-shard-4", "role": "conditioning.weights.shard",
+      "path": "conditioning/model-00004-of-00004.safetensors", "size": 4194506688,
+      "sha256": "02a5f2d69205be92ad48fe5d712d38c2ff55627969116aeffc58bd75a28da468",
+      "required": true
+    },
+    {
+      "id": "tokenizer", "role": "tokenizer.model",
+      "path": "tokenizer/spiece.model", "size": 791656,
+      "sha256": "d60acb128cf7b7f2536e8f38a5b18a05535c9e14c7a355904270e15b0945ea86",
+      "required": true
+    },
+    {
+      "id": "conditioning-graph", "role": "conditioning.graph",
+      "path": "conditioning/mochi-t5.json", "size": 36365,
+      "sha256": "d7221a58e3ebfce8010b1324fb4a7fb9d8d10ae0082ec828db612aeb2d6a74e1",
+      "required": true
+    },
+    {
+      "id": "precision-policy", "role": "execution.precision_policy",
+      "path": "policy/bf16-operation-contract-v1.json", "size": 3235,
+      "sha256": "183d01bd04c34068ec5584696a0eb51bb7ca5a1a34b7f4b79d98e9b3dee51f26",
+      "required": true
+    },
+    {
+      "id": "default-profile", "role": "execution.profile",
+      "path": "execution/default-preset.json", "size": 3991,
+      "sha256": "dc47685c0767575bfff865eb4e35a2ec3164c07745cc343608adf3085bfb1dc8",
+      "required": true
+    },
+    {
+      "id": "license", "role": "legal.license", "path": "legal/README.md",
+      "size": 8812,
+      "sha256": "1f98f31b65b34445be9383b805ec61707a062067f77e21c2cdbdf91a744ecce4",
+      "required": true
+    }
+  ],
+  "entrypoint": {
+    "runtime_artifact": "runtime",
+    "components": [
+      {
+        "id": "positive-conditioning", "kind": "conditioning.text_encoder",
+        "artifacts": ["conditioning-graph", "t5-index", "t5-shard-1", "t5-shard-2", "t5-shard-3", "t5-shard-4", "tokenizer"]
+      },
+      {
+        "id": "negative-conditioning", "kind": "conditioning.text_encoder",
+        "artifacts": ["conditioning-graph", "t5-index", "t5-shard-1", "t5-shard-2", "t5-shard-3", "t5-shard-4", "tokenizer"]
+      }
+    ],
+    "default_preset": "default"
+  },
+  "defaults": {
+    "default_preset": "default",
+    "presets": {
+      "default": {
+        "profile_artifact": "default-profile",
+        "inputs": {
+          "width": 848, "height": 480, "frames": 163, "fps": 30,
+          "steps": 64, "cfg": 6.0, "threshold_noise": 0.025,
+          "linear_steps": 32, "precision": "bfloat16"
+        }
+      }
+    }
+  },
+  "product": {
+    "family": "text_to_video",
+    "status": "public_supported",
+    "public_distribution": "supported",
+    "input_schema": {
+      "schema": "vrhino.product.input-schema.v1",
+      "inputs": [
+        {"name":"prompt","type":"text","required":true,"validation":{"min_length":1}}
+      ],
+      "parameters": [
+        {"name":"seed","type":"integer","required":false,"default":11001,"validation":{"minimum":0,"maximum":"18446744073709551615"}}
+      ],
+      "outputs": [
+        {"name":"output","type":"media.mp4","required":false,"default":"output.mp4","validation":{"parent_creatable_and_writable":true}}
+      ]
+    },
+    "frozen_profile": {
+      "output": {
+        "width": 848,
+        "height": 480,
+        "frames": 163,
+        "fps": {"numerator":30,"denominator":1},
+        "duration": "fixed",
+        "audio": "none"
+      },
+      "sampling": {"steps":64,"guidance_scale":6.0}
+    }
+  },
+  "hardware": {
+    "presets": {
+      "default": {
+        "minimum_vram_bytes": 85899345920,
+        "recommended_vram_bytes": 103079215104,
+        "minimum_compute_capability": null,
+        "qualifications": [
+          {
+            "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+            "scope": "848x480, 163 frames, 64 steps, BF16",
+            "status": "production-qualified"
+          }
+        ]
+      }
+    }
+  },
+  "source": {
+    "repository": "genmo/mochi-1-preview",
+    "revision": "14be5fcea23095ed330cb214647916a451e38b6e",
+    "upstream_source_revision": "0c86aebf386e6622deadfb47ff1996878cefc0ac",
+    "converter_version": "vrhino-native-mochi-1-preview-v1"
+  },
+  "license": {
+    "identifier": "Apache-2.0",
+    "artifact": "license",
+    "upstream_notice": "https://huggingface.co/genmo/mochi-1-preview/blob/14be5fcea23095ed330cb214647916a451e38b6e/README.md"
+  }
+}

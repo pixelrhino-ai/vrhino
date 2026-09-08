@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "model_reference": "vrhino/wan2.1-t2v-1.3b:1.0.1",
+  "requested_source": {
+    "provider": "huggingface",
+    "repository": "Wan-AI/Wan2.1-T2V-1.3B",
+    "revision": "37ec512624d61f7aa208f7ea8140a131f93afc9a"
+  },
+  "artifacts": [
+    {
+      "id": "wan-config",
+      "role": "checkpoint.config",
+      "repository": "Wan-AI/Wan2.1-T2V-1.3B",
+      "revision": "37ec512624d61f7aa208f7ea8140a131f93afc9a",
+      "upstream_path": "config.json",
+      "local_path": "config.json",
+      "size": 249,
+      "sha256": "ab37994c43740513f94b3ba6233a784035a67b43c8cde83c8f31aa90468c67ce"
+    },
+    {
+      "id": "wan-denoiser",
+      "role": "checkpoint.denoiser",
+      "repository": "Wan-AI/Wan2.1-T2V-1.3B",
+      "revision": "37ec512624d61f7aa208f7ea8140a131f93afc9a",
+      "upstream_path": "diffusion_pytorch_model.safetensors",
+      "local_path": "diffusion_pytorch_model.safetensors",
+      "size": 5676070424,
+      "sha256": "96b6b242ca1c2f24e9d02cd6596066fab6d310e2d7538f33ae267cb18d957e8f"
+    },
+    {
+      "id": "wan-text-encoder",
+      "role": "conditioning.weights.source",
+      "repository": "Wan-AI/Wan2.1-T2V-1.3B",
+      "revision": "37ec512624d61f7aa208f7ea8140a131f93afc9a",
+      "upstream_path": "models_t5_umt5-xxl-enc-bf16.pth",
+      "local_path": "models_t5_umt5-xxl-enc-bf16.pth",
+      "size": 11361920418,
+      "sha256": "7cace0da2b446bbbbc57d031ab6cf163a3d59b366da94e5afe36745b746fd81d"
+    },
+    {
+      "id": "wan-vae",
+      "role": "checkpoint.vae",
+      "repository": "Wan-AI/Wan2.1-T2V-1.3B",
+      "revision": "37ec512624d61f7aa208f7ea8140a131f93afc9a",
+      "upstream_path": "Wan2.1_VAE.pth",
+      "local_path": "Wan2.1_VAE.pth",
+      "size": 507609880,
+      "sha256": "38071ab59bd94681c686fa51d75a1968f64e470262043be31f7a094e442fd981"
+    },
+    {
+      "id": "wan-tokenizer",
+      "role": "tokenizer.model",
+      "repository": "Wan-AI/Wan2.1-T2V-1.3B",
+      "revision": "37ec512624d61f7aa208f7ea8140a131f93afc9a",
+      "upstream_path": "google/umt5-xxl/tokenizer.json",
+      "local_path": "google/umt5-xxl/tokenizer.json",
+      "size": 16837417,
+      "sha256": "6e197b4d3dbd71da14b4eb255f4fa91c9c1f2068b20a2de2472967ca3d22602b"
+    },
+    {
+      "id": "wan-license",
+      "role": "legal.license",
+      "repository": "Wan-AI/Wan2.1-T2V-1.3B",
+      "revision": "37ec512624d61f7aa208f7ea8140a131f93afc9a",
+      "upstream_path": "LICENSE.txt",
+      "local_path": "LICENSE.txt",
+      "size": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "schema": "vrhino.precision.policy.v1",
+  "id": "bf16-heavy-consumer-fp32-state-v1",
+  "requested_mode": "bf16",
+  "status": "QUALIFIED_CANDIDATE",
+  "effective": {
+    "requested_mode": "bf16",
+    "operations": {
+      "LINEAR": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"},
+      "CONVOLUTION": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"},
+      "NORMALIZATION": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"},
+      "ATTENTION_PROJECTION": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"},
+      "ATTENTION_QK": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"},
+      "ATTENTION_PV": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"},
+      "ACTIVATION": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"},
+      "RESIDUAL_ADD": {"compute_dtype": "fp32", "accumulator_dtype": "fp32", "output_dtype": "fp32"},
+      "GUIDANCE": {"compute_dtype": "fp32", "accumulator_dtype": "fp32", "output_dtype": "fp32"},
+      "SCHEDULER": {"compute_dtype": "fp32", "accumulator_dtype": "fp32", "output_dtype": "fp32"},
+      "CONDITIONING": {"compute_dtype": "fp32", "accumulator_dtype": "fp32", "output_dtype": "fp32"},
+      "DENOISER": {"compute_dtype": "bf16", "accumulator_dtype": "fp32", "output_dtype": "bf16"},
+      "VAE": {"compute_dtype": "fp32", "accumulator_dtype": "fp32", "output_dtype": "fp32"}
+    },
+    "roles": {
+      "CONDITIONING": "fp32",
+      "TEMPORARY_COMPUTE": "bf16",
+      "NORMALIZATION_STATISTIC": "fp32",
+      "ATTENTION_STATISTIC": "fp32",
+      "RESIDUAL_STATE": "fp32",
+      "SAMPLING_STATE": "fp32",
+      "DENOISER_OUTPUT": "fp32",
+      "VAE_INPUT": "fp32",
+      "VIDEO_OUTPUT": "fp32"
+    },
+    "producer_outputs": {
+      "DENOISER_OUTPUT": "bf16"
+    }
+  },
+  "storage_contract": {
+    "checkpoint_weights": "source_dtype_preserved_host_bf16_device_consumer_cache",
+    "heavy_consumer_parameters": "bf16_device",
+    "heavy_consumer_activations": "bf16",
+    "persistent_state": "fp32",
+    "statistics": "fp32",
+    "sampling_state": "fp32",
+    "vae_boundary": "fp32"
+  },
+  "backend_realization": {
+    "linear_gemm": "bf16_operands_fp32_accumulator_bf16_output",
+    "convolution": "bf16_io_fp32_cudnn_compute_bf16_output",
+    "normalization": "bf16_io_fp32_statistics",
+    "attention": "bf16_qkv_fp32_statistics_bf16_output",
+    "residual": "fp32",
+    "scheduler": "fp32"
+  },
+  "research_switches": {
+    "required_by_policy": false,
+    "blocked_environment": [
+      "VRHINO_BF16_ATTENTION_OUTPUT",
+      "VRHINO_BF16_CONV_COMPUTE",
+      "VRHINO_BF16_LINEAR_OUTPUT",
+      "VRHINO_BF16_NORM_OUTPUT",
+      "VRHINO_CUDA_ATTENTION_BF16_QK",
+      "VRHINO_CUDA_ATTENTION_KEY_TILE",
+      "VRHINO_CUDA_ATTENTION_SDPA_ADMISSION",
+      "VRHINO_CUDA_ATTENTION_VARIANT"
+    ]
+  }
+}
+

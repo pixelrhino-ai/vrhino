@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "identity": {
+    "namespace": "vrhino",
+    "name": "ltx-video-v0.9.1",
+    "version": "1.1.1",
+    "architecture": "ltx_v0_9_1",
+    "publisher": "VRhino"
+  },
+  "compatibility": {
+    "runtime_contract": "cuda-v1",
+    "vrm_schema": {
+      "format_major": 0,
+      "format_minor": 1,
+      "metadata_schema": 1
+    }
+  },
+  "product": {
+    "family": "text_to_video",
+    "status": "public_supported",
+    "public_distribution": "supported",
+    "input_schema": {
+      "schema": "vrhino.product.input-schema.v1",
+      "inputs": [
+        {"name":"prompt","type":"text","required":true,"validation":{"min_length":1}}
+      ],
+      "parameters": [
+        {"name":"seed","type":"integer","required":false,"default":5703,"validation":{"minimum":0,"maximum":"18446744073709551615"}}
+      ],
+      "outputs": [
+        {"name":"output","type":"media.mp4","required":false,"default":"output.mp4","validation":{"parent_creatable_and_writable":true}}
+      ]
+    },
+    "frozen_profile": {
+      "output": {
+        "width": 704,
+        "height": 480,
+        "frames": 121,
+        "fps": {"numerator":25,"denominator":1},
+        "duration": "fixed",
+        "audio": "none"
+      },
+      "sampling": {"steps":40,"guidance_scale":3.0}
+    }
+  },
+  "artifacts": [
+    {
+      "id": "runtime",
+      "role": "runtime.vrm",
+      "path": "model/model.vrm",
+      "size": 5717174080,
+      "sha256": "267a95330f48dbe2134220e6116c60cddddf54f7548a661e20b18531fb70fa7d",
+      "required": true
+    },
+    {
+      "id": "t5-index",
+      "role": "conditioning.weights.index",
+      "path": "conditioning/model.safetensors.index.json",
+      "size": 19886,
+      "sha256": "fb4665a1a122b7e5270f0e4494c653839c11a5a978e03b0df6dfa714258716e6",
+      "required": true
+    },
+    {
+      "id": "t5-shard-1",
+      "role": "conditioning.weights.shard",
+      "path": "conditioning/model-00001-of-00002.safetensors",
+      "size": 9989150328,
+      "sha256": "eb529f693f4b17773a24e787fcba29486d5e1700dadcc20bb91e4c8b00212d08",
+      "required": true
+    },
+    {
+      "id": "t5-shard-2",
+      "role": "conditioning.weights.shard",
+      "path": "conditioning/model-00002-of-00002.safetensors",
+      "size": 9060119392,
+      "sha256": "58f33f4acba7a5502b6b3e4cb7863f8fd503d5012016428099bb460c98e2fe77",
+      "required": true
+    },
+    {
+      "id": "tokenizer",
+      "role": "tokenizer.model",
+      "path": "tokenizer/spiece.model",
+      "size": 791656,
+      "sha256": "d60acb128cf7b7f2536e8f38a5b18a05535c9e14c7a355904270e15b0945ea86",
+      "required": true
+    },
+    {
+      "id": "conditioning-graph",
+      "role": "conditioning.graph",
+      "path": "conditioning/ltx-t5.json",
+      "size": 36363,
+      "sha256": "31c9e9d0c747e76e480828b4f92c43ef3bcf557a90e4947e0cb28cd6f9c766f0",
+      "required": true
+    },
+    {
+      "id": "precision-policy",
+      "role": "execution.precision_policy",
+      "path": "policy/bf16-operation-contract-v1.json",
+      "size": 3235,
+      "sha256": "183d01bd04c34068ec5584696a0eb51bb7ca5a1a34b7f4b79d98e9b3dee51f26",
+      "required": true
+    },
+    {
+      "id": "default-profile",
+      "role": "execution.profile",
+      "path": "execution/default-preset.json",
+      "size": 3724,
+      "sha256": "5fb5b5718b2944ccd57edb0a8b2eef06f3eaf8283728984e7ebe233e268f67a7",
+      "required": true
+    },
+    {
+      "id": "license",
+      "role": "legal.license",
+      "path": "legal/ltx-video-2b-v0.9.1.license.txt",
+      "size": 15981,
+      "sha256": "f63e6ebb9cfed1bab7cccf290905d807420f810092c4346f5441f7f1f82f4ce7",
+      "required": true
+    }
+  ],
+  "entrypoint": {
+    "runtime_artifact": "runtime",
+    "components": [
+      {
+        "id": "positive-conditioning",
+        "kind": "conditioning.text_encoder",
+        "artifacts": [
+          "conditioning-graph",
+          "t5-index",
+          "t5-shard-1",
+          "t5-shard-2",
+          "tokenizer"
+        ]
+      },
+      {
+        "id": "negative-conditioning",
+        "kind": "conditioning.text_encoder",
+        "artifacts": [
+          "conditioning-graph",
+          "t5-index",
+          "t5-shard-1",
+          "t5-shard-2",
+          "tokenizer"
+        ]
+      }
+    ],
+    "default_preset": "default"
+  },
+  "defaults": {
+    "default_preset": "default",
+    "presets": {
+      "default": {
+        "profile_artifact": "default-profile",
+        "inputs": {
+          "width": 704,
+          "height": 480,
+          "frames": 121,
+          "fps": 25,
+          "steps": 40,
+          "cfg": 3.0,
+          "precision": "bfloat16"
+        }
+      }
+    }
+  },
+  "hardware": {
+    "presets": {
+      "default": {
+        "minimum_vram_bytes": null,
+        "recommended_vram_bytes": 25757220864,
+        "minimum_compute_capability": null,
+        "qualifications": [
+          {
+            "gpu": "NVIDIA RTX 4090 D",
+            "scope": "standard CFG 3.0, STG disabled",
+            "status": "production-qualified"
+          }
+        ]
+      }
+    }
+  },
+  "source": {
+    "repository": "Lightricks/LTX-Video",
+    "revision": "8984fa25007f376c1a299016d0957a37a2f797bb",
+    "upstream_source_revision": "ea6d5d64894d617ec16b7d70a44e85b8499b3225",
+    "converter_version": "vrhino-native-ltx-v1"
+  },
+  "license": {
+    "identifier": "LicenseRef-LTX-Video-0.9.1-RAIL-M",
+    "artifact": "license",
+    "upstream_notice": "https://huggingface.co/Lightricks/LTX-Video/blob/8984fa25007f376c1a299016d0957a37a2f797bb/ltx-video-2b-v0.9.1.license.txt"
+  }
+}

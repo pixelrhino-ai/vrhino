@@ -1,0 +1,70 @@
+{
+  "architecture": "wan",
+  "default_dtype": "bfloat16",
+  "external_assets": {
+    "text_encoder": {
+      "embedded": false,
+      "required": true
+    },
+    "tokenizer": {
+      "embedded": false,
+      "required": true
+    }
+  },
+  "latent_contract": {
+    "channels": 16,
+    "layout": "BCTHW",
+    "spatial_scale": 8,
+    "temporal_decode": "1+4*(F-1)"
+  },
+  "model": {
+    "config": {
+      "cross_attn_norm": true,
+      "dim": 1536,
+      "eps": 1e-06,
+      "ffn_dim": 8960,
+      "freq_dim": 256,
+      "in_dim": 16,
+      "model_type": "t2v",
+      "num_heads": 12,
+      "num_layers": 30,
+      "out_dim": 16,
+      "patch_size": [
+        1,
+        2,
+        2
+      ],
+      "qk_norm": true,
+      "text_dim": 4096,
+      "text_len": 512,
+      "window_size": [
+        -1,
+        -1
+      ]
+    },
+    "name": "Wan2.1-T2V-1.3B",
+    "source_commit": "9737cba9c1c3c4d04b33fcad41c111989865d315",
+    "source_model": "Wan-AI/Wan2.1-T2V-1.3B-Diffusers",
+    "source_revision": "37ec512624d61f7aa208f7ea8140a131f93afc9a"
+  },
+  "profile": "dit-flow",
+  "vae": {
+    "decoder": "wan.vae_decoder.v1",
+    "latent_scaling": "per_channel_mean_std",
+    "output_range": [
+      -1,
+      1
+    ]
+  },
+  "versions": {
+    "architecture": 1,
+    "backend_abi": 1,
+    "component_schema": 1,
+    "graph_schema": 1,
+    "profile": 1,
+    "sampling_primitives": 13,
+    "sampling_schema": 1,
+    "tensor_layout": 1,
+    "tensor_primitives": 26
+  }
+}

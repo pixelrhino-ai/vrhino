@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "component": "audio_encoder_transformer",
+  "graph_identity": "audio_encoder_transformer.v1",
+  "code": {
+    "repository": "bytedance/LatentSync",
+    "revision": "a229c3948406bc2cf6eaf4873e662e70c6a04746"
+  },
+  "sources": [
+    {
+      "repository": "ByteDance/LatentSync-1.6",
+      "revision": "c42c7e6c8e9c213626389fa7d9a3c444b8536353",
+      "path": "whisper/tiny.pt",
+      "bytes": 75572083,
+      "sha256": "65147644a518d12f04e32d6f3b26facc3f8dd46e5390956a9424a650c0ce22b9"
+    },
+    {
+      "repository": "bytedance/LatentSync",
+      "revision": "a229c3948406bc2cf6eaf4873e662e70c6a04746",
+      "path": "latentsync/whisper/whisper/assets/mel_filters.npz",
+      "bytes": 2048,
+      "sha256": "dd2cc75e70e36fcbdd8ffbc2499062f30094093e6bf2cbafa9859f59972b420b"
+    },
+    {
+      "repository": "bytedance/LatentSync",
+      "revision": "a229c3948406bc2cf6eaf4873e662e70c6a04746",
+      "path": "latentsync/utils/mask.png",
+      "bytes": 1871,
+      "sha256": "aa233251b9ff5691a1565a4108f0910ab1e5e7ad79a7bb2b741ab4d92c81053c"
+    }
+  ],
+  "checkpoint": {
+    "container": "pytorch_zip",
+    "pickle_execution": false,
+    "entries": 169,
+    "half_storage_tensors": 167,
+    "raw_tensor_bytes": 75521280,
+    "retained_encoder_tensors": 67,
+    "retained_encoder_source_bytes": 16416768,
+    "allowed_pickle_globals": [
+      "torch._utils._rebuild_tensor_v2",
+      "torch.HalfStorage",
+      "collections.OrderedDict"
+    ]
+  },
+  "license": "MIT"
+}

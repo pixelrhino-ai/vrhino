@@ -1,0 +1,1219 @@
+{
+  "blocks": [
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.0.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.0.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.0.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.0.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.0.attn.v.weight"
+        }
+      },
+      "capture": "first_block",
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.0.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.0.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.0.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.0.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.0.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.1.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.1.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.1.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.1.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.1.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.1.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.1.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.1.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.1.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.1.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.2.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.2.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.2.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.2.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.2.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.2.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.2.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.2.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.2.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.2.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.3.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.3.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.3.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.3.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.3.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.3.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.3.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.3.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.3.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.3.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.4.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.4.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.4.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.4.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.4.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.4.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.4.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.4.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.4.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.4.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.5.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.5.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.5.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.5.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.5.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.5.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.5.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.5.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.5.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.5.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.6.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.6.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.6.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.6.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.6.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.6.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.6.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.6.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.6.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.6.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.7.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.7.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.7.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.7.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.7.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.7.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.7.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.7.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.7.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.7.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.8.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.8.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.8.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.8.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.8.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.8.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.8.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.8.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.8.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.8.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.9.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.9.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.9.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.9.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.9.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.9.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.9.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.9.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.9.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.9.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.10.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.10.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.10.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.10.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.10.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.10.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.10.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.10.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.10.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.10.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.11.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.11.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.11.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.11.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.11.attn.v.weight"
+        }
+      },
+      "capture": "middle_block",
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.11.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.11.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.11.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.11.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.11.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.12.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.12.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.12.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.12.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.12.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.12.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.12.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.12.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.12.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.12.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.13.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.13.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.13.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.13.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.13.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.13.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.13.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.13.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.13.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.13.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.14.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.14.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.14.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.14.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.14.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.14.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.14.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.14.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.14.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.14.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.15.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.15.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.15.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.15.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.15.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.15.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.15.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.15.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.15.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.15.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.16.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.16.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.16.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.16.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.16.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.16.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.16.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.16.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.16.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.16.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.17.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.17.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.17.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.17.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.17.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.17.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.17.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.17.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.17.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.17.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.18.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.18.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.18.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.18.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.18.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.18.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.18.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.18.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.18.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.18.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.19.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.19.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.19.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.19.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.19.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.19.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.19.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.19.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.19.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.19.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.20.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.20.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.20.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.20.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.20.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.20.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.20.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.20.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.20.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.20.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.21.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.21.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.21.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.21.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.21.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.21.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.21.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.21.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.21.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.21.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.22.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.22.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.22.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.22.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.22.attn.v.weight"
+        }
+      },
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.22.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.22.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.22.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.22.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.22.norm2.weight"
+      }
+    },
+    {
+      "attention": {
+        "causal": false,
+        "k": {
+          "weight": "blocks.23.attn.k.weight"
+        },
+        "kv_heads": 64,
+        "mask_semantic": "additive_finite",
+        "output": {
+          "weight": "blocks.23.attn.o.weight"
+        },
+        "position": {
+          "bidirectional": true,
+          "buckets": 32,
+          "kind": "relative_bucket",
+          "max_distance": 128,
+          "weight": "blocks.23.pos_embedding.embedding.weight"
+        },
+        "q": {
+          "weight": "blocks.23.attn.q.weight"
+        },
+        "query_heads": 64,
+        "scale": 1.0,
+        "v": {
+          "weight": "blocks.23.attn.v.weight"
+        }
+      },
+      "capture": "last_block",
+      "input_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.23.norm1.weight"
+      },
+      "mlp": {
+        "activation": "gelu_tanh",
+        "activation_input": {
+          "weight": "blocks.23.ffn.gate.0.weight"
+        },
+        "gate_input": {
+          "weight": "blocks.23.ffn.fc1.weight"
+        },
+        "output": {
+          "weight": "blocks.23.ffn.fc2.weight"
+        }
+      },
+      "post_attention_norm": {
+        "eps": 1e-06,
+        "kind": "rms_norm",
+        "weight": "blocks.23.norm2.weight"
+      }
+    }
+  ],
+  "embedding": {
+    "weight": "token_embedding.weight"
+  },
+  "final_norm": {
+    "eps": 1e-06,
+    "kind": "rms_norm",
+    "weight": "norm.weight"
+  },
+  "id": "wan_umt5",
+  "kind": "pre_norm_transformer",
+  "output_trim_to_mask": true,
+  "schema_version": 1
+}

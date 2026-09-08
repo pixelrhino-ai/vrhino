@@ -15,12 +15,7 @@ The Rust tokenizer build uses the locked 80-crate registry graph and local
 source replacement qualified by the release builder. Cargo is invoked with
 locked and offline resolution.
 
-This repository is a release-facing contract projection, not a mirror of the
-private production build tree. It intentionally does not include the roughly
-114.8 MB repository-local tokenizer build-source closure or Cargo vendor tree.
-The statement above records the qualified production-build property; it does
-not claim that this Public repository alone is a complete reproducible build
-source.
+At the v0.6.0-alpha tag, the Public repository was a release-facing contract projection and did not contain the full tokenizer build-source closure. Current main now contains the full production source and pinned vendored build inputs. See [source build and tests](../source-build.md) for current build instructions. This change does not alter the historical release, tag or binary assets.
 
 The vendored build-source payload is not placed in the binary runtime package.
 Runtime third-party notices and license texts remain inventoried in

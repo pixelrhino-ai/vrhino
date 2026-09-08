@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+
+export CARGO_HOME="@VRHINO_TOKENIZER_CARGO_HOME@"
+export CARGO_NET_OFFLINE=true
+
+exec "@VRHINO_REAL_CARGO_EXECUTABLE@" "$@" --locked --offline

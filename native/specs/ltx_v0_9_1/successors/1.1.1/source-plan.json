@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "model_reference": "vrhino/ltx-video-v0.9.1:1.1.1",
+  "requested_source": {
+    "provider": "huggingface",
+    "repository": "Lightricks/LTX-Video",
+    "revision": "8984fa25007f376c1a299016d0957a37a2f797bb"
+  },
+  "artifacts": [
+    {
+      "id": "ltx-checkpoint",
+      "role": "checkpoint.denoiser_vae",
+      "repository": "Lightricks/LTX-Video",
+      "revision": "8984fa25007f376c1a299016d0957a37a2f797bb",
+      "upstream_path": "ltx-video-2b-v0.9.1.safetensors",
+      "local_path": "ltx-video-2b-v0.9.1.safetensors",
+      "size": 5716863844,
+      "sha256": "a23200896c5eddf215c7cb9517820c5763a2b054eb62ba86cbce6b871a4577e3"
+    },
+    {
+      "id": "ltx-license",
+      "role": "legal.license",
+      "repository": "Lightricks/LTX-Video",
+      "revision": "8984fa25007f376c1a299016d0957a37a2f797bb",
+      "upstream_path": "ltx-video-2b-v0.9.1.license.txt",
+      "local_path": "ltx-video-2b-v0.9.1.license.txt",
+      "size": 15981,
+      "sha256": "f63e6ebb9cfed1bab7cccf290905d807420f810092c4346f5441f7f1f82f4ce7"
+    },
+    {
+      "id": "t5-index",
+      "role": "conditioning.weights.index",
+      "repository": "PixArt-alpha/PixArt-XL-2-1024-MS",
+      "revision": "b89adadeccd9ead2adcb9fa2825d3fabec48d404",
+      "upstream_path": "text_encoder/model.safetensors.index.json",
+      "local_path": "text_encoder/model.safetensors.index.json",
+      "size": 19886,
+      "sha256": "fb4665a1a122b7e5270f0e4494c653839c11a5a978e03b0df6dfa714258716e6"
+    },
+    {
+      "id": "t5-shard-1",
+      "role": "conditioning.weights.shard",
+      "repository": "PixArt-alpha/PixArt-XL-2-1024-MS",
+      "revision": "b89adadeccd9ead2adcb9fa2825d3fabec48d404",
+      "upstream_path": "text_encoder/model-00001-of-00002.safetensors",
+      "local_path": "text_encoder/model-00001-of-00002.safetensors",
+      "size": 9989150328,
+      "sha256": "eb529f693f4b17773a24e787fcba29486d5e1700dadcc20bb91e4c8b00212d08"
+    },
+    {
+      "id": "t5-shard-2",
+      "role": "conditioning.weights.shard",
+      "repository": "PixArt-alpha/PixArt-XL-2-1024-MS",
+      "revision": "b89adadeccd9ead2adcb9fa2825d3fabec48d404",
+      "upstream_path": "text_encoder/model-00002-of-00002.safetensors",
+      "local_path": "text_encoder/model-00002-of-00002.safetensors",
+      "size": 9060119392,
+      "sha256": "58f33f4acba7a5502b6b3e4cb7863f8fd503d5012016428099bb460c98e2fe77"
+    },
+    {
+      "id": "tokenizer",
+      "role": "tokenizer.model",
+      "repository": "PixArt-alpha/PixArt-XL-2-1024-MS",
+      "revision": "b89adadeccd9ead2adcb9fa2825d3fabec48d404",
+      "upstream_path": "tokenizer/spiece.model",
+      "local_path": "tokenizer/spiece.model",
+      "size": 791656,
+      "sha256": "d60acb128cf7b7f2536e8f38a5b18a05535c9e14c7a355904270e15b0945ea86"
+    }
+  ]
+}

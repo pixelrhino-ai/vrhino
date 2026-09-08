@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "family": "lip_sync_diffusion_workflow_v1",
+  "reference": {
+    "code_repository": "bytedance/LatentSync",
+    "code_revision": "a229c3948406bc2cf6eaf4873e662e70c6a04746",
+    "model_repository": "ByteDance/LatentSync-1.6",
+    "model_revision": "c42c7e6c8e9c213626389fa7d9a3c444b8536353"
+  },
+  "profile": {
+    "fps": 25,
+    "audio_sample_rate": 16000,
+    "alignment_space": [420, 560],
+    "model_resolution": [512, 512],
+    "facial_keypoint_range": [23, 91],
+    "source_anchors": {
+      "image_left": [17, 22],
+      "image_right": [22, 27],
+      "nose_indices": [31, 32, 34, 35]
+    },
+    "target_anchors": [[95.2, 112.0], [324.8, 112.0], [210.0, 224.0]],
+    "affine": "orientation_preserving_similarity",
+    "affine_smoothing": {"current": 0.8, "previous": 0.2, "reset_roi_iou": 0.10},
+    "invalid_geometry": "reject_and_clear_state",
+    "alignment_resize": "lanczos4",
+    "frame_cycle": "forward_then_full_reverse",
+    "temporal_chunk": 16,
+    "temporal_overlap": 0,
+    "temporal_position_reset": "per_chunk",
+    "source_mask": "fixed_rgb_first_channel",
+    "latent_scale": 0.18215,
+    "unet_channels": [4, 1, 4, 4],
+    "sampling": {
+      "steps": 20,
+      "guidance": 1.5,
+      "eta": 0.0,
+      "prediction": "epsilon",
+      "scheduler": "ddim_scaled_linear_alpha_cumprod"
+    },
+    "rng": {
+      "algorithm": "pytorch_compat.v1",
+      "stream_derivation": "splitmix64(seed,semantic_index,branch_identity)",
+      "posterior_semantic_index": "source_frame_identity",
+      "initial_noise_semantic_index": "temporal_chunk_start",
+      "initial_noise_shape": [1, 4, 1, 64, 64],
+      "repeat_initial_noise_across_chunk_frames": true
+    }
+  },
+  "components": [
+    {"role":"audio_encoder","architecture":"audio-encoder","bytes":32867584,"sha256":"3322531357af02994de5f180b12a1c7cb72a800dd7ed40ab11ec5865304ed1a0"},
+    {"role":"image_autoencoder","architecture":"autoencoder-kl","bytes":334727552,"sha256":"49d6d814b8546535f36580543987ff0477ebd89040cc053d2a8f836b68db9b1e"},
+    {"role":"neural_edit","architecture":"temporal-unet","bytes":5072414720,"sha256":"47508970409f6a3cb8ee366446af243fa985e688a5170549316af8a450a6c467"},
+    {"role":"face_detector","architecture":"vision-detector","bytes":434656,"sha256":"bbe5a9a5d83b13401a9b9bc7829ccb993af6ac28e2dd37c530001e90fdf06d17"},
+    {"role":"pose_estimator","architecture":"pose-estimator","bytes":134774400,"sha256":"3f457d8ff6eb49098d9626e232785b7158d8838e8054eb1f85d0684decc6a7c5"}
+  ],
+  "media_contract": "vrhino.media.lip-sync-v1.cli",
+  "public_eligibility": "pending_distribution_gate"
+}

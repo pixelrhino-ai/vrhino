@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "component": "vision_detector_dense",
+  "source": {
+    "owner": "Google/MediaPipe",
+    "url": "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite",
+    "filename": "blaze_face_short_range.tflite",
+    "bytes": 229746,
+    "sha256": "b4578f35940bf5a1a655214a1cce5cab13eba73c1297cd78e1a04c2380b0152f",
+    "accessed": "2026-08-30"
+  },
+  "model_card": {
+    "url": "https://storage.googleapis.com/mediapipe-assets/MediaPipe%20BlazeFace%20Model%20Card%20(Short%20Range).pdf",
+    "bytes": 434425,
+    "sha256": "cd335c06fc0de7807cd815a0777a697932598bcdb28fa98adaaabf847485f758",
+    "accessed": "2026-08-30"
+  },
+  "license": "Apache-2.0",
+  "conversion_notice": "FP16 constants are converted deterministically to FP32 and convolution kernels are transposed to Native OIHW layout."
+}

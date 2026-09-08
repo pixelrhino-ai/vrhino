@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "profile": "mochi-1-preview-production-qualified",
+  "inputs": {
+    "width": 848,
+    "height": 480,
+    "frames": 163,
+    "fps": 30,
+    "steps": 64,
+    "cfg": 6.0,
+    "threshold_noise": 0.025,
+    "linear_steps": 32,
+    "precision": "bfloat16"
+  },
+  "components": {
+    "positive_conditioning": "positive-conditioning",
+    "negative_conditioning": "negative-conditioning"
+  },
+  "run": {
+    "default_seed": 11001,
+    "negative_prompt": "",
+    "execution_dtype": "bfloat16",
+    "precision_policy_artifact": "precision-policy",
+    "memory_runtime": {
+      "device_budget_bytes": 85899345920,
+      "activation_reserve_bytes": 2147483648,
+      "host_budget_bytes": 68719476736,
+      "host_staging_bytes": 2147483648,
+      "safety_margin_bytes": 1073741824
+    },
+    "runtime_inputs": [
+      {"target": "latent_shape", "dtype": "i64", "source": "literal", "shape": [5], "values": [1, 12, 28, 60, 106]},
+      {"target": "sampling_steps", "dtype": "i64", "source": "inputs.steps"},
+      {"target": "guidance_scale", "dtype": "f32", "source": "inputs.cfg"},
+      {"target": "threshold_noise", "dtype": "f32", "source": "inputs.threshold_noise"},
+      {"target": "linear_steps", "dtype": "i64", "source": "inputs.linear_steps"}
+    ],
+    "components": [
+      {
+        "component_id": "positive-conditioning",
+        "text_source": "prompt",
+        "trim": true,
+        "graph_artifact": "conditioning-graph",
+        "weights_index_artifact": "t5-index",
+        "weight_shards": {
+          "model-00001-of-00004.safetensors": "t5-shard-1",
+          "model-00002-of-00004.safetensors": "t5-shard-2",
+          "model-00003-of-00004.safetensors": "t5-shard-3",
+          "model-00004-of-00004.safetensors": "t5-shard-4"
+        },
+        "tokenizer_artifact": "tokenizer",
+        "tokenizer_spec": {
+          "format": "sentencepiece", "max_length": 256, "pad_id": 0,
+          "suffix_ids": [1], "suppress_metaspace_after_added_token": true,
+          "added_tokens": [
+            {"content": "<extra_id_0>", "id": 32099, "lstrip": true, "rstrip": false}
+          ]
+        },
+        "bindings": [
+          {"source": "hidden_states", "target": "positive"},
+          {"source": "attention_mask", "target": "positive_mask"}
+        ]
+      },
+      {
+        "component_id": "negative-conditioning",
+        "text_source": "negative_prompt",
+        "trim": true,
+        "graph_artifact": "conditioning-graph",
+        "weights_index_artifact": "t5-index",
+        "weight_shards": {
+          "model-00001-of-00004.safetensors": "t5-shard-1",
+          "model-00002-of-00004.safetensors": "t5-shard-2",
+          "model-00003-of-00004.safetensors": "t5-shard-3",
+          "model-00004-of-00004.safetensors": "t5-shard-4"
+        },
+        "tokenizer_artifact": "tokenizer",
+        "tokenizer_spec": {
+          "format": "sentencepiece", "max_length": 256, "pad_id": 0,
+          "suffix_ids": [1], "suppress_metaspace_after_added_token": true,
+          "added_tokens": [
+            {"content": "<extra_id_0>", "id": 32099, "lstrip": true, "rstrip": false}
+          ]
+        },
+        "bindings": [
+          {"source": "hidden_states", "target": "negative"},
+          {"source": "attention_mask", "target": "negative_mask"}
+        ]
+      }
+    ],
+    "component_execution": {
+      "mode": "TILED",
+      "tiling": {
+        "planner_policy": "RECURSIVE_BISECTION",
+        "axis_priority": ["WIDTH", "HEIGHT"],
+        "tile_counts": [2, 4],
+        "input_overlap": [8, 8],
+        "minimum_block": [1, 1],
+        "rounding_policy": "TIES_TO_EVEN",
+        "temporal_policy": "FULL",
+        "temporal_boundary": "PRESERVE_FIRST_FRAME_CAUSAL",
+        "output_scale": [6, 8, 8],
+        "merge_policy": "RECURSIVE_OVERLAP_REPLACE",
+        "blend_weights": "INTERIOR_LINSPACE",
+        "merge_order": "PLANNER_TREE"
+      }
+    },
+    "output": {"layout": "BCTHW", "range": [0.0, 1.0], "channel_order": "RGB"}
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "component": "semantic_segmenter_2d",
+  "graph_identity": "semantic_segmenter_2d.v1",
+  "source_format": "tflite-flatbuffer-fixed",
+  "artifacts": [
+    {
+      "filename": "selfie_multiclass_256x256.tflite",
+      "origin": "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float32/1/selfie_multiclass_256x256.tflite",
+      "size": 16371837,
+      "sha256": "c6748b1253a99067ef71f7e26ca71096cd449baefa8f101900ea23016507e0e0",
+      "license": "Apache-2.0",
+      "model_card": "https://storage.googleapis.com/mediapipe-assets/Model%20Card%20Multiclass%20Segmentation.pdf"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "component": "pose_estimator_2d",
+  "source": {
+    "repository": "yzd-v/DWPose",
+    "revision": "1a7144101628d69ee7a3768d1ee3a094070dc388",
+    "reference_repository": "TMElyralab/MuseTalk",
+    "reference_revision": "9deb9bea0d46b085d171d9a417671f6ef1af2f69",
+    "license": "Apache-2.0"
+  },
+  "artifacts": [
+    {
+      "path": "dw-ll_ucoco_384.pth",
+      "url": "https://huggingface.co/yzd-v/DWPose/resolve/1a7144101628d69ee7a3768d1ee3a094070dc388/dw-ll_ucoco_384.pth",
+      "bytes": 406878486,
+      "sha256": "0d9408b13cd863c4e95a149dd31232f88f2a12aa6cf8964ed74d7d97748c7a07",
+      "role": "conversion_only_checkpoint",
+      "required": true
+    },
+    {
+      "path": "rtmpose-l_8xb32-270e_coco-ubody-wholebody-384x288.py",
+      "url": "https://raw.githubusercontent.com/TMElyralab/MuseTalk/9deb9bea0d46b085d171d9a417671f6ef1af2f69/musetalk/utils/dwpose/rtmpose-l_8xb32-270e_coco-ubody-wholebody-384x288.py",
+      "bytes": 7364,
+      "sha256": "7c0da61ee9517ee6c97ec10dd6be592eb51501434a93fa0a8e7f3f3739b5e477",
+      "role": "conversion_only_config",
+      "required": true
+    }
+  ],
+  "tensor_map": {
+    "path": "tensor-map.tsv",
+    "rows": 395,
+    "sha256": "5e593a715f7a0c6676ea5709c8d9ab14d34a6fbadfcbcf8ce34249bca965bd1f"
+  }
+}
