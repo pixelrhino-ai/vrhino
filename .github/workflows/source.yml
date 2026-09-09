@@ -21,13 +21,15 @@ jobs:
           export RUSTUP_HOME="$RUNNER_TEMP/vrhino-rustup"
           echo "RUSTUP_HOME=$RUSTUP_HOME" >> "$GITHUB_ENV"
           sudo apt-get update
-          sudo apt-get install -y cmake g++ libcurl4-openssl-dev python3-jsonschema
+          sudo apt-get install -y cmake g++ libcurl4-openssl-dev python3-venv
+          python3 -m venv "$RUNNER_TEMP/vrhino-validation"
+          "$RUNNER_TEMP/vrhino-validation/bin/pip" install jsonschema==4.25.0
           rustup toolchain install 1.97.1 --profile minimal
           rustup default 1.97.1
       - name: Source and public contract checks
         run: |
-          python3 tools/validate_source_hygiene.py
-          python3 tools/validate_public_contract.py
+          "$RUNNER_TEMP/vrhino-validation/bin/python" tools/validate_source_hygiene.py
+          "$RUNNER_TEMP/vrhino-validation/bin/python" tools/validate_public_contract.py
       - name: Configure without network
         run: |
           sudo --preserve-env=PATH,RUSTUP_HOME unshare --net -- \
