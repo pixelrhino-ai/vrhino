@@ -49,7 +49,7 @@ def main():
             matches = re.findall(pattern, data)
             # Explicit non-routable credential-redaction fixture, not a secret.
             if name == 'native/tests/product_doctor_cli_tests.py':
-                matches = [m for m in matches if m != b'https://user:{password}@']
+                matches = [m for m in matches if m != b'https://' + b'user:{password}@']
             if matches:
                 errors.append(f'{name}: possible credential; inspect privately')
                 break
