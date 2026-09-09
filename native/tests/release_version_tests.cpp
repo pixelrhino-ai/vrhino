@@ -40,8 +40,8 @@ int main() {
         const vrhino::product::VersionInfo version =
             vrhino::product::current_version_info();
 
-        require(canonical == "v0.6.0-alpha", "unexpected frozen release identity");
-        require(std::string(VRHINO_TEST_PROJECT_VERSION) == "0.6.0",
+        require(canonical == "v0.7.0-alpha", "unexpected frozen release identity");
+        require(std::string(VRHINO_TEST_PROJECT_VERSION) == "0.7.0",
                 "CMake project version diverges from the release identity");
         require(version.version == canonical,
                 "VersionInfo diverges from the canonical release identity");
