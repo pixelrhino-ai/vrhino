@@ -29,7 +29,7 @@ def main():
         if not path.exists() or not path.resolve().is_relative_to(ROOT):
             errors.append(f'{name}: missing file or escaping symlink')
             continue
-        if (FORBIDDEN_PARTS.intersection(relative.parts) or relative.name == 'banner.png'
+        if (FORBIDDEN_PARTS.intersection(relative.parts) or name == 'banner.png'
                 or (not vendor and relative.suffix.lower() in FORBIDDEN_SUFFIXES)):
             errors.append(f'{name}: forbidden source artifact')
         if path.is_symlink() and path.is_dir():

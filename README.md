@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/branding/logo.png" alt="VRhino" width="160">
+  <img src="assets/branding/banner.png" alt="VRhino" width="960">
 </p>
 
 # VRhino
