@@ -1,0 +1,42 @@
+name: Public source
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: source-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  host:
+    name: Linux host and offline tokenizer build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    env:
+      RUSTUP_HOME: ${{ runner.temp }}/vrhino-rustup
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install developer prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ libcurl4-openssl-dev python3-jsonschema
+          rustup toolchain install 1.97.1 --profile minimal
+          rustup default 1.97.1
+      - name: Source and public contract checks
+        run: |
+          python3 tools/validate_source_hygiene.py
+          python3 tools/validate_public_contract.py
+      - name: Configure without network
+        run: |
+          sudo --preserve-env=PATH,RUSTUP_HOME unshare --net -- \
+            cmake -S native -B "$RUNNER_TEMP/vrhino-host" \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DVRHINO_ENABLE_CUDA=OFF -DVRHINO_ENABLE_TOKENIZERS=ON
+      - name: Build without network
+        run: |
+          sudo --preserve-env=PATH,RUSTUP_HOME unshare --net -- \
+            cmake --build "$RUNNER_TEMP/vrhino-host" -j2
+      - name: Host tests
+        run: sudo ctest --test-dir "$RUNNER_TEMP/vrhino-host" -L public --output-on-failure --no-tests=error

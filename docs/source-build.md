@@ -21,3 +21,11 @@ Other compiled test/probe executables are optional developer qualification harne
 The source build intentionally does not search PATH for FFmpeg. To enable MP4 encoding, explicitly select the qualified media helper with `-DVRHINO_FFMPEG_EXECUTABLE=/path/to/vrhino-ffmpeg` and provide its runtime dependencies, or assemble the package described in [source packaging](source-packaging.md). Without an encoder, core build/tests and CLI metadata remain available; generation fails before inference when the helper is missing. A published package must contain the helper and its dependencies.
 
 A CPU-only developer configuration can use `-DVRHINO_ENABLE_CUDA=OFF`; its host tests do not qualify CPU video generation. Metal source is present, but Linux qualification does not establish Metal release support.
+
+## Public CI and local qualification
+
+The `Public source` GitHub workflow runs on Ubuntu 22.04 without a GPU. It checks the tracked source boundary and public contracts, then configures and builds the host configuration with tokenizers enabled inside a network namespace with no external network. Its prerequisites are installed before that offline boundary. Tests use the `public` CTest label; with CUDA disabled, this contains only host tests. CI does not qualify CUDA execution or real models.
+
+Use external build directories, for example `-B ../vrhino-build-host`, to keep generated files outside source Git. Locally run `python3 tools/validate_source_hygiene.py` and `python3 tools/validate_public_contract.py` (the latter requires the developer-only `jsonschema` module). The hygiene check covers tracked artifact boundaries and common credential forms; it is not a complete secret or provenance audit. Vendored input integrity is checked by CMake and the fail-closed test.
+
+CUDA qualification remains an explicit local or suitably equipped self-hosted task using the CUDA configuration above and `ctest -L public`. Follow relevant model harness usage messages for external, legitimate reference inputs. Report unavailable qualification as unavailable; a host CI pass does not replace it.
