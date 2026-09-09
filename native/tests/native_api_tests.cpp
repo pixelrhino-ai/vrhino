@@ -315,7 +315,12 @@ int main() {
         }
 
         const product::VersionInfo version = product::current_version_info();
-        require_test(version_example.at("version").string() == version.version &&
+        // The published v0.6 example remains historical; current builds follow
+        // the canonical VERSION file without rewriting that released example.
+        require_test(version_example.at("version").string() == "v0.6.0-alpha",
+                     "historical version example drift");
+        require_test(read_text(std::filesystem::path(VRHINO_REPOSITORY_ROOT) /
+                               "VERSION") == version.version + "\n" &&
                          product::build_version_info().at("version").string() ==
                          version.version &&
                          product::format_cli_version(version).find(version.git_head) !=
