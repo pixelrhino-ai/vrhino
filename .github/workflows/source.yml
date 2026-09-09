@@ -14,12 +14,12 @@ jobs:
     name: Linux host and offline tokenizer build
     runs-on: ubuntu-22.04
     timeout-minutes: 30
-    env:
-      RUSTUP_HOME: ${{ runner.temp }}/vrhino-rustup
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install developer prerequisites
         run: |
+          export RUSTUP_HOME="$RUNNER_TEMP/vrhino-rustup"
+          echo "RUSTUP_HOME=$RUSTUP_HOME" >> "$GITHUB_ENV"
           sudo apt-get update
           sudo apt-get install -y cmake g++ libcurl4-openssl-dev python3-jsonschema
           rustup toolchain install 1.97.1 --profile minimal
