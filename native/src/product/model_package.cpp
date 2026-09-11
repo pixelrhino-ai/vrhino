@@ -10,9 +10,13 @@
 #include <sstream>
 #include <system_error>
 
+#ifdef _WIN32
+#include "vrhino/product/windows_cache.h"
+#else
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#endif
 
 #include "vrhino/error.h"
 #include "vrhino/json.h"
@@ -23,7 +27,9 @@ namespace fs = std::filesystem;
 namespace {
 
 constexpr uint64_t kMaximumManifestBytes = 8U * 1024U * 1024U;
+#ifndef _WIN32
 std::atomic<uint64_t> g_staging_sequence = 0;
+#endif
 
 [[noreturn]] void fail(ModelPackageErrorCode code, const std::string& message) {
     throw ModelPackageError(code, message);
@@ -150,6 +156,7 @@ fs::path cache_blob_path(const CacheLayout& layout, const std::string& sha256) {
     return layout.blobs / "sha256" / sha256.substr(0, 2) / sha256;
 }
 
+#ifndef _WIN32
 fs::path unique_staging_path(const fs::path& parent, const std::string& prefix) {
     const auto clock = std::chrono::steady_clock::now().time_since_epoch().count();
     const uint64_t sequence = g_staging_sequence.fetch_add(1);
@@ -177,6 +184,9 @@ void sync_directory(const fs::path& path) {
                           "cannot sync directory: " + path.string());
 }
 
+#endif
+
+#ifndef _WIN32
 void create_cache_directories(const fs::path& path) {
     std::error_code error;
     fs::create_directories(path, error);
@@ -195,6 +205,8 @@ void write_manifest(const fs::path& path, const std::string& text) {
     output.close();
     sync_file(path);
 }
+
+#endif
 
 void ensure_reference_exists(const std::set<std::string>& artifact_ids,
                              const std::string& artifact_id,
@@ -607,7 +619,11 @@ ModelPackageManifest load_model_package_manifest(const fs::path& path) {
     return manifest;
 }
 
-LocalModelCache::LocalModelCache(fs::path root) : layout_(cache_layout(root)) {}
+LocalModelCache::LocalModelCache(fs::path root) : layout_(cache_layout(root)) {
+#ifdef _WIN32
+    windows_cache::ensure_directory(layout_.root);
+#endif
+}
 
 fs::path LocalModelCache::artifact_path(const std::string& sha256) const {
     if (!valid_sha256(sha256)) {
@@ -629,6 +645,7 @@ bool LocalModelCache::contains_blob(const ArtifactDeclaration& artifact,
     return !verify_hash || sha256_file(path, progress) == artifact.sha256;
 }
 
+#ifndef _WIN32
 BlobAdmissionResult LocalModelCache::admit_downloaded_blob(
     const fs::path& completed_download,
     const ArtifactDeclaration& artifact,
@@ -907,6 +924,10 @@ InstallResult LocalModelCache::install(const fs::path& package_directory) {
     return result;
 }
 
+#else
+#include "model_package_windows.inc"
+#endif
+
 ResolvedRunnableModel LocalModelCache::resolve(const std::string& reference,
                                                const bool verify_hashes) const {
     const PackageIdentity requested = parse_package_reference(reference);
@@ -969,7 +990,11 @@ void LocalModelCache::discard_installed_package_for_repair(
                  "refusing to repair package directory containing unexpected data");
     }
     std::error_code error;
+#ifdef _WIN32
+    windows_cache::retire_tree(version_directory, layout_.temporary);
+#else
     fs::remove_all(version_directory, error);
+#endif
     if (error)
         fail(ModelPackageErrorCode::CacheError,
              "cannot discard invalid installed package: " + error.message());
@@ -984,7 +1009,11 @@ void LocalModelCache::discard_invalid_blob(const ArtifactDeclaration& artifact) 
         !fs::is_regular_file(path, error))
         fail(ModelPackageErrorCode::CacheError,
              "refusing to discard non-regular CAS path: " + artifact.sha256);
+#ifdef _WIN32
+    windows_cache::remove(path);
+#else
     fs::remove(path, error);
+#endif
     if (error)
         fail(ModelPackageErrorCode::CacheError,
              "cannot discard invalid CAS blob: " + error.message());
@@ -1040,6 +1069,9 @@ void LocalModelCache::remove(const std::string& reference) {
     }
     if (entries != 1) fail(ModelPackageErrorCode::CacheError,
                            "installed package directory is malformed");
+#ifdef _WIN32
+    windows_cache::retire_tree(version_directory, layout_.temporary);
+#else
     std::error_code error;
     fs::remove(manifest_path, error);
     if (error || !fs::remove(version_directory, error)) {
@@ -1049,6 +1081,7 @@ void LocalModelCache::remove(const std::string& reference) {
     fs::remove(version_directory.parent_path(), error);
     fs::remove(version_directory.parent_path().parent_path(), error);
     sync_directory(layout_.models);
+#endif
 }
 
 }  // namespace vrhino::product

@@ -8,10 +8,14 @@
 #include <limits>
 #include <set>
 #include <sstream>
+#ifdef _WIN32
+#include "vrhino/product/windows_cache.h"
+#else
 #include <fcntl.h>
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#endif
 
 #include "vrhino/error.h"
 #include "vrhino/json.h"
@@ -30,6 +34,50 @@ uint64_t checked_add_bytes(const uint64_t left, const uint64_t right) {
         fail(ModelPackageErrorCode::CacheError,
              "source cleanup byte count overflows uint64");
     return left + right;
+}
+
+void cache_directories(const fs::path& path, std::error_code& error) {
+#ifdef _WIN32
+    windows_cache::ensure_directory(path); error.clear();
+#else
+    fs::create_directories(path, error);
+#endif
+}
+bool cache_remove(const fs::path& path, std::error_code& error) {
+#ifdef _WIN32
+    const bool existed = fs::exists(path);
+    windows_cache::remove(path); error.clear(); return existed;
+#else
+    return fs::remove(path, error);
+#endif
+}
+void cache_remove_tree(const fs::path& path, std::error_code& error) {
+#ifdef _WIN32
+    windows_cache::remove_tree(path); error.clear();
+#else
+    fs::remove_all(path, error);
+#endif
+}
+void cache_link(const fs::path& source, const fs::path& target, std::error_code& error) {
+#ifdef _WIN32
+    windows_cache::required_link(source, target); error.clear();
+#else
+    fs::create_hard_link(source, target, error);
+#endif
+}
+bool cache_equivalent(const fs::path& source, const fs::path& target, std::error_code& error) {
+#ifdef _WIN32
+    error.clear(); return windows_cache::equivalent(source, target);
+#else
+    return fs::equivalent(source, target, error);
+#endif
+}
+uint64_t cache_link_count(const fs::path& path, std::error_code& error) {
+#ifdef _WIN32
+    error.clear(); return windows_cache::link_count(path);
+#else
+    return fs::hard_link_count(path, error);
+#endif
 }
 
 bool safe_segment(const std::string& value) {
@@ -206,11 +254,16 @@ SourceArtifactPlanDocument parse_plan(const fs::path& path) {
     }
 }
 
+#ifdef _WIN32
+using FileLock = windows_cache::Lock;
+constexpr auto LOCK_SH = windows_cache::LockMode::Shared;
+constexpr auto LOCK_EX = windows_cache::LockMode::Exclusive;
+#else
 class FileLock {
 public:
     explicit FileLock(const fs::path& path, const int operation = LOCK_EX) {
         std::error_code error;
-        fs::create_directories(path.parent_path(), error);
+        cache_directories(path.parent_path(), error);
         if (error) fail(ModelPackageErrorCode::CacheError,
                         "cannot create source lock directory: " + error.message());
         descriptor_ = ::open(path.c_str(), O_CREAT | O_RDWR, 0600);
@@ -231,6 +284,7 @@ public:
 private:
     int descriptor_ = -1;
 };
+#endif
 
 std::string trim_slashes(std::string value) {
     while (!value.empty() && value.back() == '/') value.pop_back();
@@ -277,13 +331,17 @@ fs::path tree_path(const SourceCacheLayout& layout, const SourceReference& sourc
 }
 
 fs::path unique_staging(const fs::path& root) {
+#ifdef _WIN32
+    return windows_cache::unique_path(root, "source-tree");
+#else
     return root / ("source-tree-" + std::to_string(getpid()) + "-" +
                    std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+#endif
 }
 
 void remove_tree(const fs::path& path) {
     std::error_code error;
-    fs::remove_all(path, error);
+    cache_remove_tree(path, error);
     if (error) fail(ModelPackageErrorCode::CacheError,
                     "cannot remove invalid source tree: " + error.message());
 }
@@ -320,7 +378,7 @@ bool verified_linked_tree(const fs::path& tree, const SourceCacheLayout& layout,
         const fs::path blob = blob_path(layout, artifact.sha256);
         if (!fs::is_regular_file(target, error) || error ||
             fs::file_size(target, error) != artifact.size || error ||
-            !fs::equivalent(target, blob, error) || error)
+            !cache_equivalent(target, blob, error) || error)
             return false;
     }
     return fs::is_regular_file(tree / "vrhino-source-plan.json", error) && !error;
@@ -331,19 +389,22 @@ void materialize_tree(const fs::path& destination,
                       const SourceArtifactPlanDocument& plan) {
     const fs::path staging = unique_staging(layout.temporary / "materialize");
     std::error_code error;
-    fs::create_directories(staging, error);
+    cache_directories(staging, error);
     if (error) fail(ModelPackageErrorCode::CacheError,
                     "cannot create source materialization staging: " + error.message());
     try {
         for (const SourceArtifactPlan& artifact : plan.artifacts) {
             const fs::path target = staging / artifact.local_path;
-            fs::create_directories(target.parent_path(), error);
+            cache_directories(target.parent_path(), error);
             if (error) fail(ModelPackageErrorCode::CacheError,
                             "cannot create source tree directory: " + error.message());
-            fs::create_hard_link(blob_path(layout, artifact.sha256), target, error);
+            cache_link(blob_path(layout, artifact.sha256), target, error);
             if (error) fail(ModelPackageErrorCode::CacheError,
                             "cannot hard-link source CAS object: " + error.message());
         }
+#ifdef _WIN32
+        windows_cache::write_text(staging / "vrhino-source-plan.json", plan.raw_json);
+#else
         {
             std::ofstream output(staging / "vrhino-source-plan.json",
                                  std::ios::binary | std::ios::trunc);
@@ -352,14 +413,19 @@ void materialize_tree(const fs::path& destination,
             if (!output) fail(ModelPackageErrorCode::CacheError,
                               "cannot write materialized source plan");
         }
-        fs::create_directories(destination.parent_path(), error);
+#endif
+        cache_directories(destination.parent_path(), error);
         if (error) fail(ModelPackageErrorCode::CacheError,
                         "cannot create source tree parent: " + error.message());
+#ifdef _WIN32
+        windows_cache::publish_directory(staging, destination);
+#else
         fs::rename(staging, destination, error);
+#endif
         if (error) fail(ModelPackageErrorCode::CacheError,
                         "cannot atomically publish source tree: " + error.message());
     } catch (...) {
-        fs::remove_all(staging, error);
+        cache_remove_tree(staging, error);
         throw;
     }
 }
@@ -528,6 +594,12 @@ LocalSourceCache::LocalSourceCache(fs::path root, fs::path temporary_root) {
     legacy_temporary_ = layout_.root / "tmp";
     layout_.temporary = temporary_root.empty()
         ? legacy_temporary_ : std::move(temporary_root);
+#ifdef _WIN32
+    windows_cache::ensure_directory(layout_.root);
+    windows_cache::ensure_directory(layout_.temporary);
+    windows_cache::Parents root_parent(layout_.root), temp_parent(layout_.temporary);
+    windows_cache::same_volume(root_parent.leaf(), temp_parent.leaf());
+#endif
 }
 
 AcquisitionResult LocalSourceCache::acquire(
@@ -600,7 +672,7 @@ AcquisitionResult LocalSourceCache::acquire(
                 blob, artifact.size, artifact.sha256,
                 options.network.cancellation_requested, blob_progress)) {
             std::error_code error;
-            fs::remove(blob, error);
+            cache_remove(blob, error);
             if (error) fail(ModelPackageErrorCode::CacheError,
                             "cannot remove corrupt source CAS object: " + error.message());
         }
@@ -613,14 +685,18 @@ AcquisitionResult LocalSourceCache::acquire(
             std::error_code error;
             if (partial != legacy_partial && !fs::exists(partial) &&
                 fs::exists(legacy_partial)) {
-                fs::create_directories(partial.parent_path(), error);
+                cache_directories(partial.parent_path(), error);
                 if (error) fail(ModelPackageErrorCode::CacheError,
                                 "cannot create download directory: " + error.message());
+#ifdef _WIN32
+                windows_cache::migrate_partial(legacy_partial, partial);
+#else
                 fs::rename(legacy_partial, partial, error);
+#endif
                 if (error) fail(ModelPackageErrorCode::CacheError,
                                 "cannot migrate legacy source partial: " + error.message());
             }
-            fs::create_directories(layout_.root, error);
+            cache_directories(layout_.root, error);
             if (error) fail(ModelPackageErrorCode::CacheError,
                             "cannot create source cache root: " + error.message());
             const uint64_t partial_size = fs::exists(partial)
@@ -640,6 +716,9 @@ AcquisitionResult LocalSourceCache::acquire(
                      artifact.id + " requires " + std::to_string(remaining) + " bytes");
             result.temporary_disk_peak_bytes = std::max(
                 result.temporary_disk_peak_bytes, artifact.size);
+#ifdef _WIN32
+            std::shared_ptr<windows_cache::StagedFile> staging;
+#endif
             bool valid = false;
             for (int integrity_attempt = 0; integrity_attempt < 2 && !valid;
                  ++integrity_attempt) {
@@ -679,6 +758,9 @@ AcquisitionResult LocalSourceCache::acquire(
                                      " (" + failure_description(mirror_error) + ")");
                         }
                     }
+#ifdef _WIN32
+                    staging = transfer.staging;
+#endif
                     result.downloaded_bytes += transfer.network_bytes;
                     result.resumed_bytes += transfer.resumed_bytes;
                     if (artifact.provider == "huggingface")
@@ -693,10 +775,24 @@ AcquisitionResult LocalSourceCache::acquire(
                         throw;
                     fail(map_download_error(download_error), download_error.what());
                 }
+#ifdef _WIN32
+                try {
+                    staging->flush(); staging->validate(artifact.size, artifact.sha256);
+                    valid = true;
+                } catch (const ModelPackageError& validation_error) {
+                    if (validation_error.code() != ModelPackageErrorCode::ChecksumMismatch) throw;
+                    valid = false;
+                }
+#else
                 valid = verified_file(partial, artifact.size, artifact.sha256,
                                       options.network.cancellation_requested);
+#endif
                 if (!valid) {
-                    fs::remove(partial, error);
+#ifdef _WIN32
+                    staging->discard(); staging.reset();
+#else
+                    cache_remove(partial, error);
+#endif
                     if (error) fail(ModelPackageErrorCode::CacheError,
                                     "cannot remove corrupt source partial: " + error.message());
                 }
@@ -704,10 +800,14 @@ AcquisitionResult LocalSourceCache::acquire(
             if (!valid)
                 fail(ModelPackageErrorCode::SourceIntegrityFailed,
                      "downloaded source artifact failed SHA256: " + artifact.id);
-            fs::create_directories(blob.parent_path(), error);
+            cache_directories(blob.parent_path(), error);
             if (error) fail(ModelPackageErrorCode::CacheError,
                             "cannot create source CAS directory: " + error.message());
+#ifdef _WIN32
+            staging->publish(blob);
+#else
             fs::rename(partial, blob, error);
+#endif
             if (error) fail(ModelPackageErrorCode::CacheError,
                             "cannot atomically publish source CAS object: " + error.message());
             downloaded = true;
@@ -762,13 +862,13 @@ SourceCleanupResult LocalSourceCache::reclaim_after_install(
                 continue;
             }
             ++result.files_removed;
-            const uint64_t links = fs::hard_link_count(entry.path(), error);
+            const uint64_t links = cache_link_count(entry.path(), error);
             if (error) fail(ModelPackageErrorCode::CacheError,
                             "cannot inspect source tree link count: " + error.message());
             if (links == 1) result.reclaimed_bytes = checked_add_bytes(
                 result.reclaimed_bytes, fs::file_size(entry.path()));
         }
-        fs::remove_all(expected_tree, error);
+        cache_remove_tree(expected_tree, error);
         if (error) fail(ModelPackageErrorCode::CacheError,
                         "cannot remove completed source tree: " + error.message());
     }
@@ -787,12 +887,12 @@ SourceCleanupResult LocalSourceCache::reclaim_after_install(
                 error.clear();
                 continue;
             }
-            const uint64_t links = fs::hard_link_count(partial, error);
+            const uint64_t links = cache_link_count(partial, error);
             if (error) fail(ModelPackageErrorCode::CacheError,
                             "cannot inspect stale partial link count: " + error.message());
             if (links == 1) result.reclaimed_bytes = checked_add_bytes(
                 result.reclaimed_bytes, fs::file_size(partial));
-            if (!fs::remove(partial, error) || error)
+            if (!cache_remove(partial, error) || error)
                 fail(ModelPackageErrorCode::CacheError,
                      "cannot remove stale completed partial: " + error.message());
             ++result.files_removed;
@@ -803,17 +903,21 @@ SourceCleanupResult LocalSourceCache::reclaim_after_install(
             error.clear();
             continue;
         }
-        const uint64_t links = fs::hard_link_count(blob, error);
+        const uint64_t links = cache_link_count(blob, error);
         if (error) fail(ModelPackageErrorCode::CacheError,
                         "cannot inspect source blob link count: " + error.message());
         if (links != 1) continue;
         result.reclaimed_bytes = checked_add_bytes(
             result.reclaimed_bytes, fs::file_size(blob));
-        if (!fs::remove(blob, error) || error)
+        if (!cache_remove(blob, error) || error)
             fail(ModelPackageErrorCode::CacheError,
                  "cannot remove unshared source blob: " + error.message());
         ++result.files_removed;
-        fs::remove(blob.parent_path(), error);
+#ifdef _WIN32
+        if (fs::is_empty(blob.parent_path(), error) && !error) windows_cache::remove(blob.parent_path());
+#else
+        cache_remove(blob.parent_path(), error);
+#endif
         error.clear();
     }
     return result;

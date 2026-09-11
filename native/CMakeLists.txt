@@ -39,6 +39,7 @@ option(VRHINO_ENABLE_CUDA "Build the CUDA backend and CUDA validation targets" $
 option(VRHINO_ENABLE_METAL "Build the Metal backend (Phase 12B and later)" OFF)
 option(VRHINO_ENABLE_TOKENIZERS "Build the Phase 13 native tokenizer layer" OFF)
 option(VRHINO_ENABLE_PRODUCT_CLI "Build the native registry and unified product CLI" ON)
+option(VRHINO_BUILD_WINDOWS_CACHE_TESTS "Build focused native Windows Product cache validation" OFF)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -77,6 +78,29 @@ if(WIN32)
     if(MSVC)
         target_compile_options(vrhino-stable-file-verification-tests PRIVATE /W4 /WX /utf-8)
     endif()
+endif()
+
+if(WIN32 AND VRHINO_BUILD_WINDOWS_CACHE_TESTS)
+    find_package(CURL CONFIG REQUIRED)
+    add_executable(vrhino-windows-cache-publication-tests
+        tests/windows_cache_publication_tests.cpp
+        src/product/windows_cache.cpp src/product/model_package.cpp
+        src/product/model_package_error.cpp src/product/sha256.cpp
+        src/product/input_schema.cpp src/json.cpp
+        src/product/registry.cpp src/product/source_acquisition.cpp)
+    target_include_directories(vrhino-windows-cache-publication-tests PRIVATE include)
+    target_compile_definitions(vrhino-windows-cache-publication-tests PRIVATE
+        VRHINO_WINDOWS_CACHE_TESTING=1 _CRT_SECURE_NO_WARNINGS)
+    target_compile_options(vrhino-windows-cache-publication-tests PRIVATE /W4 /WX /utf-8 /Gy)
+    target_link_options(vrhino-windows-cache-publication-tests PRIVATE /OPT:REF)
+    target_link_libraries(vrhino-windows-cache-publication-tests PRIVATE CURL::libcurl)
+    # Compile the real lock integration without pulling in converter execution.
+    add_library(vrhino-windows-pull-lock-compile OBJECT
+        src/product/pull_orchestration.cpp src/product/registry_component.cpp)
+    target_include_directories(vrhino-windows-pull-lock-compile PRIVATE include)
+    target_compile_definitions(vrhino-windows-pull-lock-compile PRIVATE _CRT_SECURE_NO_WARNINGS)
+    target_compile_options(vrhino-windows-pull-lock-compile PRIVATE /W4 /WX /utf-8)
+    add_dependencies(vrhino-windows-cache-publication-tests vrhino-windows-pull-lock-compile)
 endif()
 
 add_library(vrhino_native_common
@@ -329,8 +353,17 @@ add_library(vrhino_model_package
     src/product/sha256.cpp
     src/product/vrm_verification.cpp)
 target_include_directories(vrhino_model_package PUBLIC include)
+if(WIN32)
+    target_sources(vrhino_model_package PRIVATE src/product/windows_cache.cpp)
+    target_compile_definitions(vrhino_model_package PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
 target_link_libraries(vrhino_model_package PUBLIC vrhino_native_common PRIVATE Threads::Threads)
-target_compile_options(vrhino_model_package PRIVATE -Wall -Wextra -Werror)
+if(MSVC)
+    target_compile_options(vrhino_model_package PRIVATE /W4 /WX /utf-8)
+    target_compile_definitions(vrhino_model_package PRIVATE _CRT_SECURE_NO_WARNINGS)
+else()
+    target_compile_options(vrhino_model_package PRIVATE -Wall -Wextra -Werror)
+endif()
 
 # Transport-neutral, synchronous Product execution lifecycle. The executor is
 # injected so cancellation/event state remains CPU-testable and independent of
@@ -630,18 +663,28 @@ if(VRHINO_ENABLE_PRODUCT_CLI)
     endif()
 
     find_package(CURL REQUIRED)
-    add_library(vrhino_registry src/product/registry.cpp)
+    add_library(vrhino_registry src/product/registry.cpp src/product/registry_component.cpp)
     target_include_directories(vrhino_registry PUBLIC include)
     target_link_libraries(vrhino_registry PUBLIC vrhino_model_package vrhino_component_package
         PRIVATE CURL::libcurl)
-    target_compile_options(vrhino_registry PRIVATE -Wall -Wextra -Werror)
+    if(MSVC)
+        target_compile_options(vrhino_registry PRIVATE /W4 /WX /utf-8)
+        target_compile_definitions(vrhino_registry PRIVATE _CRT_SECURE_NO_WARNINGS)
+    else()
+        target_compile_options(vrhino_registry PRIVATE -Wall -Wextra -Werror)
+    endif()
 
     # Provider-extensible upstream source acquisition and immutable source
     # cache. This remains product orchestration and never enters Runtime/CUDA.
     add_library(vrhino_source_acquisition src/product/source_acquisition.cpp)
     target_include_directories(vrhino_source_acquisition PUBLIC include)
     target_link_libraries(vrhino_source_acquisition PUBLIC vrhino_registry)
-    target_compile_options(vrhino_source_acquisition PRIVATE -Wall -Wextra -Werror)
+    if(MSVC)
+        target_compile_options(vrhino_source_acquisition PRIVATE /W4 /WX /utf-8)
+        target_compile_definitions(vrhino_source_acquisition PRIVATE _CRT_SECURE_NO_WARNINGS)
+    else()
+        target_compile_options(vrhino_source_acquisition PRIVATE -Wall -Wextra -Werror)
+    endif()
 
     add_executable(vrhino-native-source-acquisition-tests
         tests/native_source_acquisition_tests.cpp)
@@ -655,7 +698,12 @@ if(VRHINO_ENABLE_PRODUCT_CLI)
     target_include_directories(vrhino_pull_orchestration PUBLIC include)
     target_link_libraries(vrhino_pull_orchestration PUBLIC
         vrhino_source_acquisition vrhino_converter)
-    target_compile_options(vrhino_pull_orchestration PRIVATE -Wall -Wextra -Werror)
+    if(MSVC)
+        target_compile_options(vrhino_pull_orchestration PRIVATE /W4 /WX /utf-8)
+        target_compile_definitions(vrhino_pull_orchestration PRIVATE _CRT_SECURE_NO_WARNINGS)
+    else()
+        target_compile_options(vrhino_pull_orchestration PRIVATE -Wall -Wextra -Werror)
+    endif()
 
     add_executable(vrhino-native-pull-orchestration-tests
         tests/native_pull_orchestration_tests.cpp)
