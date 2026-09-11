@@ -54,6 +54,16 @@ else()
     target_compile_options(vrhino-host-allocation-tests PRIVATE -Wall -Wextra -Werror)
 endif()
 
+# Standalone loader ownership validation without Product or Runtime linkage.
+add_executable(vrhino-file-mapping-tests
+    tests/file_mapping_tests.cpp src/loader.cpp src/tensor.cpp src/json.cpp)
+target_include_directories(vrhino-file-mapping-tests PRIVATE include)
+if(MSVC)
+    target_compile_options(vrhino-file-mapping-tests PRIVATE /W4 /WX /utf-8)
+else()
+    target_compile_options(vrhino-file-mapping-tests PRIVATE -Wall -Wextra -Werror)
+endif()
+
 add_library(vrhino_native_common
     src/json.cpp
     src/tensor.cpp

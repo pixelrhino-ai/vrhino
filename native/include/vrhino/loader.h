@@ -19,10 +19,18 @@ struct TensorRecord {
 
 class VrmModel {
 public:
+    // On Windows, narrow paths are UTF-8; native UTF-16 paths use the overload
+    // below. The model owns the mapping: it must outlive all borrowed tensors,
+    // including their copies and reshape views.
     explicit VrmModel(const std::string& path, bool verify_checksum = true);
+#ifdef _WIN32
+    explicit VrmModel(const std::wstring& path, bool verify_checksum = true);
+#endif
     // Takes ownership of an already-open read-only descriptor. This permits
     // callers to bind parsing and payload verification to a stable open-file
     // identity rather than reopening a pathname.
+    // On Windows this is a CRT descriptor owning a native HANDLE (for example,
+    // from _open_osfhandle); ownership is consumed even if construction fails.
     explicit VrmModel(int owned_descriptor, bool verify_checksum = true);
     ~VrmModel();
     VrmModel(const VrmModel&) = delete;
@@ -44,7 +52,17 @@ public:
 private:
     void release_storage() noexcept;
 
+#ifdef _WIN32
+    // Constructed before potentially allocating JSON/map members, so an
+    // exception during member initialization also closes the consumed file.
+    struct OwnedDescriptor {
+        int value = -1;
+        ~OwnedDescriptor();
+    };
+    OwnedDescriptor fd_;
+#else
     int fd_ = -1;
+#endif
     void* mapping_ = nullptr;
     size_t mapping_size_ = 0;
     std::string profile_id_;
