@@ -43,6 +43,17 @@ option(VRHINO_ENABLE_PRODUCT_CLI "Build the native registry and unified product 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Standalone allocation contract: also buildable with MSVC without linking the
+# not-yet-ported file loader or the rest of the production library.
+add_executable(vrhino-host-allocation-tests
+    tests/host_allocation_tests.cpp src/tensor.cpp src/json.cpp)
+target_include_directories(vrhino-host-allocation-tests PRIVATE include)
+if(MSVC)
+    target_compile_options(vrhino-host-allocation-tests PRIVATE /W4 /WX /utf-8)
+else()
+    target_compile_options(vrhino-host-allocation-tests PRIVATE -Wall -Wextra -Werror)
+endif()
+
 add_library(vrhino_native_common
     src/json.cpp
     src/tensor.cpp
