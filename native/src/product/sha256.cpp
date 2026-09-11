@@ -8,7 +8,16 @@
 #include <iomanip>
 #include <sstream>
 #include <vector>
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <io.h>
+#include <limits>
+#else
 #include <unistd.h>
+#endif
 
 #if (defined(__x86_64__) || defined(__i386__)) && \
     (defined(__GNUC__) || defined(__clang__))
@@ -221,11 +230,11 @@ public:
         const uint64_t total_bits = total_bytes_ * 8U;
         block_[block_size_++] = 0x80;
         if (block_size_ > 56) {
-            std::fill(block_.begin() + static_cast<std::ptrdiff_t>(block_size_), block_.end(), 0);
+            std::fill(block_.begin() + static_cast<std::ptrdiff_t>(block_size_), block_.end(), uint8_t{0});
             transform_blocks_(state_, block_.data(), 1);
             block_size_ = 0;
         }
-        std::fill(block_.begin() + static_cast<std::ptrdiff_t>(block_size_), block_.begin() + 56, 0);
+        std::fill(block_.begin() + static_cast<std::ptrdiff_t>(block_size_), block_.begin() + 56, uint8_t{0});
         for (size_t index = 0; index < 8; ++index) {
             block_[63 - index] = static_cast<uint8_t>(total_bits >> (index * 8));
         }
@@ -258,6 +267,42 @@ std::string hex_digest(const std::array<uint8_t, 32>& digest) {
     for (const uint8_t byte : digest) stream << std::setw(2) << static_cast<unsigned>(byte);
     return stream.str();
 }
+
+#ifdef _WIN32
+struct ReadEvent {
+    HANDLE handle = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    ReadEvent() {
+        if (!handle) throw ModelPackageError(ModelPackageErrorCode::CacheError, "cannot create SHA-256 read event");
+    }
+    ~ReadEvent() { CloseHandle(handle); }
+    ReadEvent(const ReadEvent&) = delete;
+    ReadEvent& operator=(const ReadEvent&) = delete;
+};
+
+int64_t read_descriptor_at(int descriptor, uint8_t* buffer, size_t requested,
+                           uint64_t offset, HANDLE event) {
+    if (requested > std::numeric_limits<DWORD>::max() ||
+        offset > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()))
+        throw ModelPackageError(ModelPackageErrorCode::CacheError, "artifact read range overflow");
+    const HANDLE file = reinterpret_cast<HANDLE>(_get_osfhandle(descriptor));
+    OVERLAPPED operation{};
+    operation.Offset = static_cast<DWORD>(offset);
+    operation.OffsetHigh = static_cast<DWORD>(offset >> 32);
+    operation.hEvent = event;
+    ResetEvent(event);
+    DWORD count = 0;
+    BOOL completed = ReadFile(file, buffer, static_cast<DWORD>(requested), &count, &operation);
+    if (!completed && GetLastError() == ERROR_IO_PENDING)
+        completed = GetOverlappedResult(file, &operation, &count, TRUE);
+    // Completion is drained before the stack OVERLAPPED or buffer can unwind.
+    if (!completed) {
+        if (GetLastError() == ERROR_HANDLE_EOF) return 0;
+        throw ModelPackageError(ModelPackageErrorCode::CacheError,
+                                "failed while reading artifact descriptor");
+    }
+    return count;
+}
+#endif
 
 std::string sha256_file_with_implementation(
         const std::filesystem::path& path,
@@ -339,10 +384,16 @@ std::string sha256_file_descriptor(const int descriptor, const uint64_t size,
     }
     Sha256 hash;
     std::vector<uint8_t> buffer(8 * 1024 * 1024);
+#ifdef _WIN32
+    ReadEvent event;
+#endif
     uint64_t offset = 0;
     while (offset < size) {
         const size_t requested = static_cast<size_t>(
             std::min<uint64_t>(buffer.size(), size - offset));
+#ifdef _WIN32
+        const int64_t count = read_descriptor_at(descriptor, buffer.data(), requested, offset, event.handle);
+#else
         ssize_t count = -1;
         do {
             count = pread(descriptor, buffer.data(), requested,
@@ -352,6 +403,7 @@ std::string sha256_file_descriptor(const int descriptor, const uint64_t size,
             throw ModelPackageError(ModelPackageErrorCode::CacheError,
                                     "failed while reading artifact descriptor");
         }
+#endif
         if (count == 0) {
             throw ModelPackageError(ModelPackageErrorCode::CacheError,
                                     "premature EOF while reading artifact descriptor");
@@ -362,6 +414,20 @@ std::string sha256_file_descriptor(const int descriptor, const uint64_t size,
     }
     return hex_digest(hash.finish());
 }
+
+#if defined(_WIN32) && defined(VRHINO_STABLE_VERIFICATION_TESTING)
+namespace stable_verification_testing {
+std::string descriptor_range_digest(int descriptor, uint64_t offset, size_t size) {
+    std::vector<uint8_t> buffer(size);
+    ReadEvent event;
+    const auto count = read_descriptor_at(descriptor, buffer.data(), size, offset, event.handle);
+    if (static_cast<uint64_t>(count) != size) throw std::runtime_error("short test range read");
+    Sha256 hash;
+    hash.update(buffer.data(), size);
+    return hex_digest(hash.finish());
+}
+}
+#endif
 
 std::string copy_file_and_sha256(const std::filesystem::path& source,
                                  const std::filesystem::path& destination,

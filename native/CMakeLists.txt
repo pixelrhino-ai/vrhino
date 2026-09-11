@@ -64,6 +64,21 @@ else()
     target_compile_options(vrhino-file-mapping-tests PRIVATE -Wall -Wextra -Werror)
 endif()
 
+if(WIN32)
+    # Exercise the real verification/SHA/loader boundary without cache/CUDA linkage.
+    add_executable(vrhino-stable-file-verification-tests
+        tests/stable_file_verification_tests.cpp
+        src/product/vrm_verification.cpp src/product/sha256.cpp
+        src/product/model_package_error.cpp src/loader.cpp src/tensor.cpp src/json.cpp)
+    target_include_directories(vrhino-stable-file-verification-tests PRIVATE include)
+    target_link_libraries(vrhino-stable-file-verification-tests PRIVATE Threads::Threads)
+    target_compile_definitions(vrhino-stable-file-verification-tests PRIVATE
+        VRHINO_STABLE_VERIFICATION_TESTING=1)
+    if(MSVC)
+        target_compile_options(vrhino-stable-file-verification-tests PRIVATE /W4 /WX /utf-8)
+    endif()
+endif()
+
 add_library(vrhino_native_common
     src/json.cpp
     src/tensor.cpp
@@ -310,6 +325,7 @@ add_library(vrhino_model_package
     src/product/info.cpp
     src/product/input_schema.cpp
     src/product/model_package.cpp
+    src/product/model_package_error.cpp
     src/product/sha256.cpp
     src/product/vrm_verification.cpp)
 target_include_directories(vrhino_model_package PUBLIC include)

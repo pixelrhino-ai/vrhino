@@ -33,6 +33,19 @@ struct VrmVerificationObservation {
 // production callers leave this empty.
 using StableOpenVerificationHook = std::function<void()>;
 
+#ifdef VRHINO_STABLE_VERIFICATION_TESTING
+// Compiled only into the focused synthetic test executable.
+namespace stable_verification_testing {
+enum class Stage { AfterShaDuplicate, AfterDuplicates, HashChunk, AfterDigests };
+extern std::function<void(Stage, unsigned)> hook;
+std::string descriptor_range_digest(int descriptor, uint64_t offset, size_t size);
+}
+#endif
+
+// Windows accepts a native UTF-16 filesystem path (construct from u8string at
+// a UTF-8 caller boundary). Verification requires handle identity queries and
+// a read oplock; unsupported filesystems fail closed. READ/WRITE/DELETE sharing
+// permits namespace replacement while duplicate readers retain the opened file.
 std::unique_ptr<VrmModel> load_verified_vrm_component(
     const std::filesystem::path& path,
     const VrmComponentIntegrityContract& contract,
