@@ -40,6 +40,42 @@ option(VRHINO_ENABLE_METAL "Build the Metal backend (Phase 12B and later)" OFF)
 option(VRHINO_ENABLE_TOKENIZERS "Build the Phase 13 native tokenizer layer" OFF)
 option(VRHINO_ENABLE_PRODUCT_CLI "Build the native registry and unified product CLI" ON)
 option(VRHINO_BUILD_WINDOWS_CACHE_TESTS "Build focused native Windows Product cache validation" OFF)
+option(VRHINO_BUILD_WINDOWS_ARCHIVE_TESTS "Build focused native Windows component archive validation" OFF)
+option(VRHINO_BUILD_WINDOWS_PROCESS_TESTS "Build focused native Windows process and media validation" OFF)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if(WIN32)
+    add_library(vrhino_windows_process src/product/windows_process.cpp)
+    target_include_directories(vrhino_windows_process PUBLIC include)
+    target_compile_options(vrhino_windows_process PRIVATE /W4 /WX /utf-8)
+endif()
+
+if(WIN32 AND VRHINO_BUILD_WINDOWS_PROCESS_TESTS)
+    add_executable(vrhino-process-fixture tests/windows_process_fixture.cpp)
+    target_link_libraries(vrhino-process-fixture PRIVATE vrhino_windows_process)
+    add_library(vrhino-process-fixture-dependency SHARED tests/windows_process_fixture_dependency.cpp)
+    add_executable(vrhino-process-missing-dependency tests/windows_process_missing_dependency.cpp)
+    target_link_libraries(vrhino-process-missing-dependency PRIVATE vrhino-process-fixture-dependency)
+    add_executable(vrhino-windows-process-tests tests/windows_process_tests.cpp
+        src/product/windows_process.cpp src/product/run_media.cpp src/workflow/media_helper.cpp
+        src/product/model_package_error.cpp src/tensor.cpp src/json.cpp)
+    target_include_directories(vrhino-windows-process-tests PRIVATE include src/product)
+    target_compile_definitions(vrhino-windows-process-tests PRIVATE VRHINO_WINDOWS_PROCESS_TESTING=1)
+    target_link_libraries(vrhino-windows-process-tests PRIVATE advapi32)
+    foreach(target vrhino-process-fixture vrhino-process-fixture-dependency
+                   vrhino-process-missing-dependency vrhino-windows-process-tests)
+        target_compile_options(${target} PRIVATE /W4 /WX /utf-8)
+    endforeach()
+    add_dependencies(vrhino-windows-process-tests vrhino-process-fixture vrhino-process-missing-dependency)
+    add_library(vrhino-windows-cli-process-compile OBJECT tools/vrhino_cli.cpp
+        src/product/lip_sync_product.cpp src/product/lip_sync_diffusion_product.cpp)
+    target_include_directories(vrhino-windows-cli-process-compile PRIVATE include)
+    target_compile_definitions(vrhino-windows-cli-process-compile PRIVATE
+        VRHINO_PRODUCT_RUN_ENABLED=1 _CRT_SECURE_NO_WARNINGS)
+    target_compile_options(vrhino-windows-cli-process-compile PRIVATE /W4 /WX /utf-8)
+    add_dependencies(vrhino-windows-process-tests vrhino-windows-cli-process-compile)
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -101,6 +137,28 @@ if(WIN32 AND VRHINO_BUILD_WINDOWS_CACHE_TESTS)
     target_compile_definitions(vrhino-windows-pull-lock-compile PRIVATE _CRT_SECURE_NO_WARNINGS)
     target_compile_options(vrhino-windows-pull-lock-compile PRIVATE /W4 /WX /utf-8)
     add_dependencies(vrhino-windows-cache-publication-tests vrhino-windows-pull-lock-compile)
+endif()
+
+if(WIN32 AND (VRHINO_BUILD_WINDOWS_ARCHIVE_TESTS OR VRHINO_ENABLE_PRODUCT_CLI))
+    find_package(LibArchive REQUIRED)
+    find_package(ZLIB REQUIRED)
+endif()
+if(WIN32 AND VRHINO_BUILD_WINDOWS_ARCHIVE_TESTS)
+    find_package(CURL CONFIG REQUIRED)
+    add_executable(vrhino-windows-component-archive-tests
+        tests/windows_component_archive_tests.cpp
+        src/product/component_package.cpp src/product/windows_component_archive.cpp
+        src/product/windows_cache.cpp src/product/model_package.cpp
+        src/product/model_package_error.cpp src/product/sha256.cpp
+        src/product/input_schema.cpp src/json.cpp
+        src/product/registry.cpp src/product/registry_component.cpp)
+    target_include_directories(vrhino-windows-component-archive-tests PRIVATE include src/product)
+    target_compile_definitions(vrhino-windows-component-archive-tests PRIVATE
+        VRHINO_WINDOWS_ARCHIVE_TESTING=1 VRHINO_WINDOWS_CACHE_TESTING=1 _CRT_SECURE_NO_WARNINGS)
+    target_compile_options(vrhino-windows-component-archive-tests PRIVATE /W4 /WX /utf-8 /Gy)
+    target_link_options(vrhino-windows-component-archive-tests PRIVATE /OPT:REF)
+    target_link_libraries(vrhino-windows-component-archive-tests PRIVATE
+        LibArchive::LibArchive ZLIB::ZLIB CURL::libcurl)
 endif()
 
 add_library(vrhino_native_common
@@ -215,11 +273,16 @@ target_compile_options(vrhino_face_mask PRIVATE -Wall -Wextra -Werror)
 
 # Narrow typed digital-human workflow operations. This is fixed orchestration
 # over known component contracts and media/image operations, not a DAG engine.
-add_library(vrhino_lip_sync_workflow src/workflow/lip_sync_workflow.cpp)
+add_library(vrhino_lip_sync_workflow src/workflow/lip_sync_workflow.cpp src/workflow/media_helper.cpp)
 target_include_directories(vrhino_lip_sync_workflow PUBLIC include)
 target_link_libraries(vrhino_lip_sync_workflow PUBLIC
     vrhino_native_common vrhino_face_mask vrhino_model_package)
-target_compile_options(vrhino_lip_sync_workflow PRIVATE -Wall -Wextra -Werror)
+if(MSVC)
+    target_compile_options(vrhino_lip_sync_workflow PRIVATE /W4 /WX /utf-8)
+    target_link_libraries(vrhino_lip_sync_workflow PUBLIC vrhino_windows_process)
+else()
+    target_compile_options(vrhino_lip_sync_workflow PRIVATE -Wall -Wextra -Werror)
+endif()
 
 # Typed non-overlapping temporal lip-sync workflow operations. This composes
 # existing generic components and Sampling without a model Runtime or DAG.
@@ -431,7 +494,17 @@ target_link_libraries(vrhino-native-progress-tests PRIVATE vrhino_product_progre
 add_library(vrhino_component_package src/product/component_package.cpp)
 target_include_directories(vrhino_component_package PUBLIC include)
 target_link_libraries(vrhino_component_package PUBLIC vrhino_model_package)
-target_compile_options(vrhino_component_package PRIVATE -Wall -Wextra -Werror)
+if(WIN32)
+    target_sources(vrhino_component_package PRIVATE src/product/windows_component_archive.cpp)
+    if(TARGET LibArchive::LibArchive AND TARGET ZLIB::ZLIB)
+        target_link_libraries(vrhino_component_package PRIVATE LibArchive::LibArchive ZLIB::ZLIB)
+    endif()
+endif()
+if(MSVC)
+    target_compile_options(vrhino_component_package PRIVATE /W4 /WX /utf-8)
+else()
+    target_compile_options(vrhino_component_package PRIVATE -Wall -Wextra -Werror)
+endif()
 
 # Product-only source conversion framework. It emits the frozen VRM/package
 # contracts and has no dependency on Runtime execution, CUDA, Python, or
@@ -767,6 +840,10 @@ if(VRHINO_ENABLE_PRODUCT_CLI)
         vrhino_pull_orchestration)
 
     add_executable(vrhino tools/vrhino_cli.cpp)
+    if(WIN32)
+        target_link_libraries(vrhino PRIVATE vrhino_windows_process)
+        target_compile_options(vrhino PRIVATE /utf-8)
+    endif()
     target_link_libraries(vrhino PRIVATE vrhino_registry vrhino_converter
         vrhino_source_acquisition vrhino_pull_orchestration vrhino_product_progress
         vrhino_native_api vrhino_product_metadata)
@@ -1157,6 +1234,7 @@ if(VRHINO_ENABLE_CUDA)
         # every component; this layer contains no architecture-name dispatch.
         add_library(vrhino_product_run
             src/product/run.cpp
+            src/product/run_media.cpp
             src/product/lip_sync_product.cpp
             src/product/lip_sync_diffusion_product.cpp
             src/product/safetensors.cpp)

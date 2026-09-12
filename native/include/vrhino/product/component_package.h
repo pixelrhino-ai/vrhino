@@ -10,8 +10,12 @@
 namespace vrhino::product {
 
 inline constexpr int64_t kComponentPackageSchemaVersion = 1;
+#ifdef _WIN32
+inline constexpr const char* kMediaComponentReference = "vrhino/media-windows-x86_64:1.0.0";
+#else
 inline constexpr const char* kMediaComponentReference =
     "vrhino/media-linux-x86_64:1.0.0";
+#endif
 inline constexpr const char* kMediaComponentContract =
     "vrhino.media.rgb24-h264-mp4.cli";
 
@@ -59,6 +63,10 @@ public:
     ResolvedComponent resolve(const std::string& exact_reference,
                               bool verify_hashes = true) const;
     ComponentInstallResult install_archive(const std::filesystem::path& archive);
+#ifdef _WIN32
+    ComponentInstallResult install_archive(const std::filesystem::path& archive,
+                                         const std::function<bool()>& cancelled);
+#endif
 
 private:
     CacheLayout layout_;

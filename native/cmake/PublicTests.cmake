@@ -15,6 +15,15 @@ if(BUILD_TESTING)
     vrhino_public_test(vrhino-file-mapping-tests host)
     vrhino_public_test(vrhino-stable-file-verification-tests host)
     vrhino_public_test(vrhino-windows-cache-publication-tests host)
+    vrhino_public_test(vrhino-windows-process-tests host)
+    if(TARGET vrhino-windows-component-archive-tests)
+        find_package(Python3 REQUIRED COMPONENTS Interpreter)
+        add_test(NAME vrhino-windows-component-archive-tests
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/windows_component_archive_fixture.py"
+                $<TARGET_FILE:vrhino-windows-component-archive-tests>)
+        set_tests_properties(vrhino-windows-component-archive-tests PROPERTIES
+            LABELS "public;host" TIMEOUT 240 RUN_SERIAL TRUE)
+    endif()
     vrhino_public_test(vrhino-component-executor-identity-tests host)
     vrhino_public_test(vrhino-neural-graph-tests host)
     vrhino_public_test(vrhino-neural-graph-extension-tests host)

@@ -12,7 +12,14 @@
 #include <string>
 #include <thread>
 #include <vector>
+#ifdef _WIN32
+#define NOMINMAX
+#include <windows.h>
+#include <io.h>
+#include "vrhino/product/windows_process.h"
+#else
 #include <unistd.h>
+#endif
 
 #include "vrhino/api/server.h"
 #include "vrhino/product/model_package.h"
@@ -95,11 +102,27 @@ struct CliOptions {
     product::RegistryOptions component_registry;
 };
 
+#ifdef _WIN32
+std::atomic<int> cancellation_requested{0};
+std::atomic<int> serve_stop_requested{0};
+BOOL WINAPI console_control(DWORD event) {
+    if (event != CTRL_C_EVENT && event != CTRL_BREAK_EVENT && event != CTRL_CLOSE_EVENT) return FALSE;
+    cancellation_requested.store(1); serve_stop_requested.store(1); return TRUE;
+}
+struct ConsoleControl {
+    ConsoleControl() {
+        if (!SetConsoleCtrlHandler(console_control, TRUE))
+            throw std::runtime_error("cannot install Windows cancellation handler");
+    }
+    ~ConsoleControl() { SetConsoleCtrlHandler(console_control, FALSE); }
+};
+#else
 volatile std::sig_atomic_t cancellation_requested = 0;
 volatile std::sig_atomic_t serve_stop_requested = 0;
 
 void cancel_handler(int) { cancellation_requested = 1; }
 void serve_stop_handler(int) { serve_stop_requested = 1; }
+#endif
 
 vrhino::api::ServerConfig parse_serve_config(
     const std::vector<std::string>& arguments,
@@ -161,11 +184,31 @@ product::RunOptions parse_run_options(const std::vector<std::string>& arguments)
         if (index + 1 >= arguments.size()) usage();
         const std::string value = arguments[++index];
         if (option == "--prompt") result.prompt = value;
-        else if (option == "--video") result.video = value;
-        else if (option == "--audio") result.audio = value;
-        else if (option == "--output") result.output = value;
+        else if (option == "--video") result.video =
+#ifdef _WIN32
+                    product::windows_process::wide(value);
+#else
+                    value;
+#endif
+        else if (option == "--audio") result.audio =
+#ifdef _WIN32
+                    product::windows_process::wide(value);
+#else
+                    value;
+#endif
+        else if (option == "--output") result.output =
+#ifdef _WIN32
+                    product::windows_process::wide(value);
+#else
+                    value;
+#endif
         else if (option == "--preset") result.preset = value;
-        else if (option == "--encoder") result.encoder_path = value;
+        else if (option == "--encoder") result.encoder_path =
+#ifdef _WIN32
+                    product::windows_process::wide(value);
+#else
+                    value;
+#endif
         else {
             if (value.empty() ||
                 !std::all_of(value.begin(), value.end(),
@@ -214,13 +257,33 @@ CliOptions consume_options(std::vector<std::string>& arguments) {
             if (index + 1 >= arguments.size()) usage();
             const std::string option = arguments[index];
             const std::string value = arguments[index + 1];
-            if (option == "--cache-root") options.cache_root = value;
-            if (option == "--converter-spec-root") options.converter_spec_root = value;
+            if (option == "--cache-root") options.cache_root =
+#ifdef _WIN32
+                    product::windows_process::wide(value);
+#else
+                    value;
+#endif
+            if (option == "--converter-spec-root") options.converter_spec_root =
+#ifdef _WIN32
+                    product::windows_process::wide(value);
+#else
+                    value;
+#endif
             if (option == "--registry") options.registry.base_url = value;
             if (option == "--component-registry") options.component_registry.base_url = value;
             if (option == "--ca-file") {
-                options.registry.ca_file = value;
-                options.component_registry.ca_file = value;
+                options.registry.ca_file =
+#ifdef _WIN32
+                    product::windows_process::wide(value);
+#else
+                    value;
+#endif
+                options.component_registry.ca_file =
+#ifdef _WIN32
+                    product::windows_process::wide(value);
+#else
+                    value;
+#endif
             }
             arguments.erase(arguments.begin() + static_cast<std::ptrdiff_t>(index),
                             arguments.begin() + static_cast<std::ptrdiff_t>(index + 2));
@@ -277,9 +340,20 @@ void print_info(const product::ResolvedRunnableModel& model) {
 
 }  // namespace
 
+#ifdef _WIN32
+int wmain(int argc, wchar_t** argv) {
+#else
 int main(int argc, char** argv) {
+#endif
     try {
+#ifdef _WIN32
+        ConsoleControl console_control_owner;
+        std::vector<std::string> arguments;
+        for (int index = 1; index < argc; ++index)
+            arguments.push_back(product::windows_process::utf8(std::filesystem::path(argv[index])));
+#else
         std::vector<std::string> arguments(argv + 1, argv + argc);
+#endif
         CliOptions options = consume_options(arguments);
         if (arguments.empty()) usage();
         const std::string command = arguments.front();
@@ -315,11 +389,13 @@ int main(int argc, char** argv) {
                       << ':' << config.port << '\n' << std::flush;
 
             serve_stop_requested = 0;
+#ifndef _WIN32
             const auto previous_handler = std::signal(SIGINT, serve_stop_handler);
             if (previous_handler == SIG_ERR) {
                 std::cerr << "VRhino API could not install its shutdown handler\n";
                 return 1;
             }
+#endif
             std::atomic<bool> control_done{false};
             std::thread control([&] {
                 while (!control_done.load(std::memory_order_acquire)) {
@@ -333,7 +409,9 @@ int main(int argc, char** argv) {
             const bool listened = server.listen();
             control_done.store(true, std::memory_order_release);
             control.join();
+#ifndef _WIN32
             std::signal(SIGINT, previous_handler);
+#endif
             if (serve_stop_requested != 0) return 0;
             if (!listened) {
                 std::cerr << "VRhino API stopped after a server error\n";
@@ -405,10 +483,20 @@ int main(int argc, char** argv) {
 
         if (command == "component") {
             if (arguments.size() != 3 || arguments[1] != "install") usage();
+#ifdef _WIN32
+            const product::ComponentInstallResult result = component_cache.install_archive(
+                std::filesystem::path(product::windows_process::wide(arguments[2])),
+                [] { return cancellation_requested != 0; });
+#else
             const product::ComponentInstallResult result =
                 component_cache.install_archive(arguments[2]);
+#endif
             std::cout << "Installed component: " << result.identity.reference() << '\n'
+#ifdef _WIN32
+                      << "Cache path: " << product::windows_process::utf8(result.root) << '\n'
+#else
                       << "Cache path: " << result.root.string() << '\n'
+#endif
                       << "Already installed: " << (result.already_installed ? "yes" : "no")
                       << '\n';
             return 0;
@@ -417,8 +505,14 @@ int main(int argc, char** argv) {
         if (command == "pull") {
             if (arguments.size() != 2) usage();
             cancellation_requested = 0;
+#ifndef _WIN32
             std::signal(SIGINT, cancel_handler);
+#endif
+#ifdef _WIN32
+            product::ConsoleProgress progress(std::cout, ::_isatty(::_fileno(stdout)) == 1);
+#else
             product::ConsoleProgress progress(std::cout, ::isatty(STDOUT_FILENO) == 1);
+#endif
             product::UnifiedPullOptions pull_options;
             pull_options.converter_spec_root = options.converter_spec_root;
             pull_options.registry = options.registry;
@@ -492,8 +586,14 @@ int main(int argc, char** argv) {
         if (command == "import") {
             if (arguments.size() != 3) usage();
             cancellation_requested = 0;
+#ifndef _WIN32
             std::signal(SIGINT, cancel_handler);
+#endif
+#ifdef _WIN32
+            product::ConsoleProgress progress(std::cout, ::_isatty(::_fileno(stdout)) == 1);
+#else
             product::ConsoleProgress progress(std::cout, ::isatty(STDOUT_FILENO) == 1);
+#endif
             product::ImportOptions import_options;
             import_options.converter_spec_root = options.converter_spec_root;
             import_options.cancellation_requested = [] {
@@ -507,7 +607,11 @@ int main(int argc, char** argv) {
                     const uint64_t completed, const uint64_t total) {
                 progress.update("Finalizing", completed, total);
             };
+#ifdef _WIN32
+            std::filesystem::path source_directory = product::windows_process::wide(arguments[2]);
+#else
             std::filesystem::path source_directory = arguments[2];
+#endif
             std::optional<product::AcquisitionResult> acquisition;
             if (arguments[2].starts_with("hf://")) {
                 const product::SourceReference source =
@@ -602,7 +706,9 @@ int main(int argc, char** argv) {
         if (command == "run") {
             product::RunOptions run_options = parse_run_options(arguments);
             cancellation_requested = 0;
+#ifndef _WIN32
             std::signal(SIGINT, cancel_handler);
+#endif
             const product::ResolvedRunnableModel model =
                 cache.resolve(run_options.model_reference, false);
             const char* external_encoder = std::getenv("VRHINO_FFMPEG");

@@ -7,9 +7,13 @@
 #include <sstream>
 #include <system_error>
 
+#ifdef _WIN32
+#include "windows_component_archive.h"
+#else
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#endif
 
 #include "vrhino/error.h"
 #include "vrhino/json.h"
@@ -70,6 +74,10 @@ uint64_t unsigned_field(const Json& value, const std::string& key) {
 }
 
 fs::path safe_relative_path(const std::string& value, const std::string& field) {
+#ifdef _WIN32
+    (void)field;
+    return windows_component_archive::relative_path(value);
+#else
     const fs::path path(value);
     if (path.empty() || path.is_absolute()) {
         fail(ModelPackageErrorCode::ComponentInvalid, field + " must be relative");
@@ -81,9 +89,13 @@ fs::path safe_relative_path(const std::string& value, const std::string& field) 
         }
     }
     return path;
+#endif
 }
 
 std::string read_file(const fs::path& path) {
+#ifdef _WIN32
+    return windows_component_archive::read_text(path);
+#else
     std::ifstream input(path, std::ios::binary);
     if (!input) fail(ModelPackageErrorCode::ComponentInvalid,
                      "cannot read component manifest: " + path.string());
@@ -92,8 +104,10 @@ std::string read_file(const fs::path& path) {
     if (!input.eof() && input.fail()) fail(ModelPackageErrorCode::ComponentInvalid,
                                            "cannot read component manifest: " + path.string());
     return output.str();
+#endif
 }
 
+#ifndef _WIN32
 std::string run_capture(const std::vector<std::string>& arguments) {
     int pipe_fds[2];
     if (::pipe(pipe_fds) != 0) {
@@ -163,8 +177,20 @@ void validate_archive_listing(const std::string& listing) {
                              "component archive has no vrhino-component.json");
 }
 
+#endif
+
 fs::path destination_for(const fs::path& components, const PackageIdentity& identity) {
+#ifdef _WIN32
+    windows_component_archive::identity_segment(identity.name_space);
+    windows_component_archive::identity_segment(identity.name);
+    windows_component_archive::identity_segment(identity.version);
+    return windows_cache::native_path(components /
+        windows_component_archive::relative_path(identity.name_space) /
+        windows_component_archive::relative_path(identity.name) /
+        windows_component_archive::relative_path(identity.version));
+#else
     return components / identity.name_space / identity.name / identity.version;
+#endif
 }
 
 void validate_platform_and_contract(const ComponentPackageManifest& manifest) {
@@ -177,16 +203,26 @@ void validate_platform_and_contract(const ComponentPackageManifest& manifest) {
         fail(ModelPackageErrorCode::ComponentVersionUnsupported,
              "unsupported media component contract");
     }
+#ifdef _WIN32
+    if (manifest.operating_system != "windows" || manifest.machine_architecture != "x86_64") {
+        fail(ModelPackageErrorCode::ComponentVersionUnsupported, "component platform is not windows/x86_64");
+    }
+#else
     if (manifest.operating_system != "linux" ||
         manifest.machine_architecture != "x86_64") {
         fail(ModelPackageErrorCode::ComponentVersionUnsupported,
              "component platform is not linux/x86_64");
     }
+#endif
 }
 
 ResolvedComponent validate_installed(const fs::path& root,
                                      const std::string& requested,
-                                     const bool verify_hashes) {
+                                     const bool verify_hashes
+#ifdef _WIN32
+                                     , const WorkProgressCallback& progress = {}
+#endif
+                                     ) {
     const fs::path manifest_path = root / "vrhino-component.json";
     ComponentPackageManifest manifest = load_component_package_manifest(manifest_path);
     if (manifest.identity.reference() != requested) {
@@ -195,6 +231,16 @@ ResolvedComponent validate_installed(const fs::path& root,
     }
     for (const ComponentArtifact& artifact : manifest.artifacts) {
         const fs::path path = root / artifact.relative_path;
+#ifdef _WIN32
+        windows_cache::LocalSource object(path);
+        if (static_cast<uint64_t>(object.before().standard.EndOfFile.QuadPart) != artifact.size)
+            fail(ModelPackageErrorCode::ComponentInvalid, "component artifact size mismatch");
+        if (verify_hashes && object.digest(progress) != artifact.sha256)
+            fail(ModelPackageErrorCode::ChecksumMismatch, "component artifact SHA256 mismatch");
+        if (artifact.executable && !windows_component_archive::executable(path))
+            fail(ModelPackageErrorCode::ComponentInvalid, "component artifact is not executable");
+        object.verify();
+#else
         std::error_code error;
         if (!fs::is_regular_file(path, error) || error) {
             fail(ModelPackageErrorCode::ArtifactMissing,
@@ -212,9 +258,14 @@ ResolvedComponent validate_installed(const fs::path& root,
             fail(ModelPackageErrorCode::ComponentInvalid,
                  "component artifact is not executable: " + artifact.relative_path.string());
         }
+#endif
     }
     const fs::path entrypoint = root / manifest.entrypoint;
+#ifdef _WIN32
+    if (!windows_component_archive::executable(entrypoint)) {
+#else
     if (!fs::is_regular_file(entrypoint) || ::access(entrypoint.c_str(), X_OK) != 0) {
+#endif
         fail(ModelPackageErrorCode::ArtifactMissing, "component entrypoint is unavailable");
     }
     return ResolvedComponent{std::move(manifest), root, entrypoint};
@@ -235,6 +286,12 @@ ComponentPackageManifest load_component_package_manifest(const fs::path& path) {
         manifest.identity.name = string_field(identity, "name");
         manifest.identity.version = string_field(identity, "version");
         manifest.identity.publisher = string_field(identity, "publisher");
+#ifdef _WIN32
+        (void)parse_package_reference(manifest.identity.reference());
+        windows_component_archive::identity_segment(manifest.identity.name_space);
+        windows_component_archive::identity_segment(manifest.identity.name);
+        windows_component_archive::identity_segment(manifest.identity.version);
+#endif
         const Json& contract = object_field(root, "contract");
         manifest.contract_name = string_field(contract, "name");
         manifest.contract_major = integer_field(contract, "major");
@@ -243,7 +300,17 @@ ComponentPackageManifest load_component_package_manifest(const fs::path& path) {
         manifest.operating_system = string_field(platform, "os");
         manifest.machine_architecture = string_field(platform, "architecture");
         manifest.entrypoint = safe_relative_path(string_field(root, "entrypoint"), "entrypoint");
+#ifdef _WIN32
+        const auto less = [](const fs::path& first, const fs::path& second) {
+            const auto& a = first.native();
+            const auto& b = second.native();
+            return CompareStringOrdinal(a.data(), static_cast<int>(a.size()), b.data(),
+                                        static_cast<int>(b.size()), TRUE) == CSTR_LESS_THAN;
+        };
+        std::set<fs::path, decltype(less)> paths(less);
+#else
         std::set<fs::path> paths;
+#endif
         for (const Json& value : array_field(root, "artifacts").array()) {
             if (!value.is_object()) fail(ModelPackageErrorCode::ComponentInvalid,
                                          "component artifact must be an object");
@@ -295,6 +362,9 @@ ResolvedComponent LocalComponentCache::resolve(const std::string& exact_referenc
 }
 
 ComponentInstallResult LocalComponentCache::install_archive(const fs::path& archive) {
+#ifdef _WIN32
+    return install_archive(archive, {});
+#else
     if (!fs::is_regular_file(archive)) fail(ModelPackageErrorCode::ArtifactMissing,
                                             "component archive does not exist: " + archive.string());
     validate_archive_listing(run_capture({"/usr/bin/tar", "-tzf", archive.string()}));
@@ -331,6 +401,65 @@ ComponentInstallResult LocalComponentCache::install_archive(const fs::path& arch
         fs::remove_all(staging, error);
         throw;
     }
+#endif
 }
+
+#ifdef _WIN32
+ComponentInstallResult LocalComponentCache::install_archive(
+    const fs::path& archive, const std::function<bool()>& cancelled) {
+    namespace wc = windows_cache;
+    auto check_cancel = [&](uint64_t = 0) {
+        if (cancelled && cancelled()) fail(ModelPackageErrorCode::Cancelled, "component extraction cancelled");
+    };
+    check_cancel();
+    wc::LocalSource source(archive);
+    const std::string digest = source.digest(check_cancel);
+    wc::ensure_directory(layout_.temporary);
+    // This archive-specific lock also owns recovery of its private interrupted
+    // extraction. No general scavenger and no deletion of published components.
+    wc::Lock lock(layout_.root / "locks" / ("component-extraction-" + digest + ".lock"));
+    const fs::path staging = wc::native_path(layout_.temporary / ("component-extraction-" + digest));
+    if (fs::exists(staging)) wc::remove_tree(staging);
+    wc::ensure_directory(staging);
+    try {
+        windows_component_archive::extract(source, staging, cancelled);
+        const fs::path extracted = staging / "vrhino-media";
+        ComponentPackageManifest manifest = load_component_package_manifest(extracted / "vrhino-component.json");
+        const std::string reference = manifest.identity.reference();
+        (void)validate_installed(extracted, reference, true, check_cancel);
+        source.verify();
+        check_cancel();
+        const fs::path destination = destination_for(components_root(), manifest.identity);
+        wc::ensure_directory(destination.parent_path());
+        // Reuse and publication share the established package-lock order at the
+        // registry boundary; standalone competing installs use no-replace rename.
+        if (fs::exists(destination)) {
+            (void)validate_installed(destination, reference, true, check_cancel);
+            wc::remove_tree(staging);
+            return ComponentInstallResult{manifest.identity, destination, true};
+        }
+#ifdef VRHINO_WINDOWS_ARCHIVE_TESTING
+        windows_component_archive::checkpoint(windows_component_archive::Point::BeforeCommit);
+#endif
+        source.verify();
+        check_cancel();
+        bool reused = false;
+        try { wc::publish_directory(extracted, destination); }
+        catch (...) {
+            // A successful-but-uncertain rename or a competing winner is checked
+            // in place. The final destination is never a rollback target.
+            if (!fs::exists(destination)) throw;
+            (void)validate_installed(destination, reference, true, check_cancel);
+            reused = fs::exists(extracted);
+        }
+        wc::remove_tree(staging);
+        return ComponentInstallResult{manifest.identity, destination, reused};
+    } catch (...) {
+        const auto failure = std::current_exception();
+        wc::remove_tree(staging);
+        std::rethrow_exception(failure);
+    }
+}
+#endif
 
 }  // namespace vrhino::product

@@ -93,7 +93,11 @@ ComponentPullResult ComponentRegistryClient::pull(const std::string& exact_refer
         if (options_.progress)
             options_.progress(archive_artifact.size, archive_artifact.size);
     }
+#ifdef _WIN32
+    const ComponentInstallResult installed = component_cache_.install_archive(archive, options_.cancellation_requested);
+#else
     const ComponentInstallResult installed = component_cache_.install_archive(archive);
+#endif
     result.identity = installed.identity;
     result.root = installed.root;
     result.already_installed = installed.already_installed;

@@ -1,4 +1,7 @@
 #include "vrhino/product/run.h"
+#ifdef _WIN32
+#include "vrhino/product/windows_process.h"
+#endif
 
 #include <algorithm>
 #include <chrono>
@@ -323,13 +326,23 @@ RunResult run_lip_sync_diffusion_product(
     const ProductInputSchema* product_schema =
         model.manifest.product.input_schema
             ? &*model.manifest.product.input_schema : nullptr;
+#ifdef _WIN32
+    const std::filesystem::path output = windows_process::wide(resolve_product_output(
+        product_schema, windows_process::utf8(options.output)));
+#else
     const std::string output = resolve_product_output(
         product_schema, options.output.string());
+#endif
     preflight_output_destination(output, options.overwrite);
     fs::path helper = options.encoder_path;
     if (helper.empty()) {
+#ifdef _WIN32
+        if (const wchar_t* configured = _wgetenv(L"VRHINO_FFMPEG");
+            configured != nullptr && *configured != L'\0')
+#else
         if (const char* configured = std::getenv("VRHINO_FFMPEG");
             configured != nullptr && *configured != '\0')
+#endif
             helper = configured;
         else
             helper = default_media_encoder_path();

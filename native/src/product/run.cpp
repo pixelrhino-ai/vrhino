@@ -1,4 +1,5 @@
 #include "vrhino/product/run.h"
+#include "run_media.h"
 
 #include <algorithm>
 #include <array>
@@ -18,8 +19,12 @@
 #include <sstream>
 #include <sys/stat.h>
 #include <sys/types.h>
+#ifdef _WIN32
+#include "vrhino/product/windows_process.h"
+#else
 #include <sys/wait.h>
 #include <unistd.h>
+#endif
 
 #include <cuda_runtime_api.h>
 
@@ -40,8 +45,8 @@ namespace vrhino::product {
 namespace {
 
 using Clock = std::chrono::steady_clock;
+using namespace run_media_detail;
 
-std::atomic<uint64_t> output_probe_counter = 0;
 
 [[noreturn]] void product_fail(ModelPackageErrorCode code, const std::string& message) {
     throw ModelPackageError(code, message);
@@ -85,143 +90,6 @@ std::string gibibytes(const uint64_t bytes) {
     return output.str();
 }
 
-std::filesystem::path absolute_output_path(const std::filesystem::path& output) {
-    if (output.empty() || output.string().find('\0') != std::string::npos)
-        product_fail(ModelPackageErrorCode::OutputInvalid,
-                     "output path is empty or contains an invalid character");
-    std::error_code error;
-    const std::filesystem::path absolute = std::filesystem::absolute(output, error);
-    if (error)
-        product_fail(ModelPackageErrorCode::OutputInvalid,
-                     "cannot resolve output path " + output.string() + ": " +
-                         error.message());
-    return absolute.lexically_normal();
-}
-
-std::string output_probe_name(const char* suffix) {
-    return ".vrhino-output-preflight-" + std::to_string(getpid()) + "-" +
-           std::to_string(output_probe_counter.fetch_add(1)) + suffix;
-}
-
-void remove_probe(const std::filesystem::path& path) {
-    std::error_code ignored;
-    std::filesystem::remove(path, ignored);
-}
-
-void check_output_destination(const std::filesystem::path& requested,
-                              const bool overwrite) {
-    const std::filesystem::path output = absolute_output_path(requested);
-    std::error_code error;
-    const std::filesystem::file_status output_status =
-        std::filesystem::symlink_status(output, error);
-    if (error && error != std::errc::no_such_file_or_directory)
-        product_fail(ModelPackageErrorCode::OutputInvalid,
-                     "cannot inspect output path " + output.string() + ": " +
-                         error.message());
-    if (!error && std::filesystem::exists(output_status)) {
-        if (!std::filesystem::is_regular_file(output_status) &&
-            !std::filesystem::is_symlink(output_status))
-            product_fail(ModelPackageErrorCode::OutputInvalid,
-                         "output path is not a regular file: " + output.string());
-        if (!overwrite)
-            product_fail(ModelPackageErrorCode::OutputExists,
-                         "output already exists; pass --overwrite: " + output.string());
-    }
-
-    const std::filesystem::path parent = output.parent_path();
-    error.clear();
-    std::filesystem::create_directories(parent, error);
-    if (error)
-        product_fail(ModelPackageErrorCode::OutputInvalid,
-                     "cannot create output parent " + parent.string() +
-                         " for " + output.string() + ": " + error.message());
-    const std::filesystem::file_status parent_status =
-        std::filesystem::status(parent, error);
-    if (error || !std::filesystem::is_directory(parent_status))
-        product_fail(ModelPackageErrorCode::OutputInvalid,
-                     "output parent is not a directory: " + parent.string());
-
-    std::filesystem::path partial = output;
-    partial += ".partial";
-    const std::filesystem::file_status partial_status =
-        std::filesystem::symlink_status(partial, error);
-    if (error && error != std::errc::no_such_file_or_directory)
-        product_fail(ModelPackageErrorCode::OutputInvalid,
-                     "cannot inspect temporary output path " + partial.string() +
-                         ": " + error.message());
-    if (!error && std::filesystem::exists(partial_status) &&
-        !std::filesystem::is_regular_file(partial_status))
-        product_fail(ModelPackageErrorCode::OutputInvalid,
-                     "temporary output path is not a regular file: " +
-                         partial.string());
-
-    const std::filesystem::path probe = parent / output_probe_name(".partial");
-    const int descriptor = ::open(probe.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC,
-                                  S_IRUSR | S_IWUSR);
-    if (descriptor < 0)
-        product_fail(ModelPackageErrorCode::OutputInvalid,
-                     "output parent is not writable for " + output.string() +
-                         " (parent " + parent.string() + "): " +
-                         std::strerror(errno));
-    if (::close(descriptor) != 0) {
-        const std::string reason = std::strerror(errno);
-        remove_probe(probe);
-        product_fail(ModelPackageErrorCode::OutputInvalid,
-                     "cannot close output preflight probe in " + parent.string() +
-                         ": " + reason);
-    }
-    if (::unlink(probe.c_str()) != 0) {
-        const std::string reason = std::strerror(errno);
-        remove_probe(probe);
-        product_fail(ModelPackageErrorCode::OutputInvalid,
-                     "cannot remove output preflight probe from " + parent.string() +
-                         ": " + reason);
-    }
-}
-
-void check_media_encoder(const std::filesystem::path& requested) {
-    if (requested.empty())
-        product_fail(ModelPackageErrorCode::VideoEncodingFailed,
-                     "bundled VRhino media encoder path is empty; installation is "
-                     "incomplete or damaged; inference did not start");
-    std::error_code error;
-    const std::filesystem::path encoder = std::filesystem::absolute(requested, error);
-    if (error || !std::filesystem::is_regular_file(encoder, error) || error)
-        product_fail(ModelPackageErrorCode::VideoEncodingFailed,
-                     "bundled VRhino media encoder is missing: " + requested.string() +
-                         "; installation is incomplete or damaged; inference did not start");
-    if (::access(encoder.c_str(), X_OK) != 0)
-        product_fail(ModelPackageErrorCode::VideoEncodingFailed,
-                     "bundled VRhino media encoder is not executable: " + encoder.string() +
-                         "; installation is incomplete or damaged; inference did not start");
-
-    const pid_t child = ::fork();
-    if (child < 0)
-        product_fail(ModelPackageErrorCode::VideoEncodingFailed,
-                     "cannot launch bundled VRhino media encoder preflight: " +
-                         encoder.string() + "; inference did not start");
-    if (child == 0) {
-        const int null_fd = ::open("/dev/null", O_WRONLY | O_CLOEXEC);
-        if (null_fd >= 0) {
-            ::dup2(null_fd, STDOUT_FILENO);
-            ::dup2(null_fd, STDERR_FILENO);
-            ::close(null_fd);
-        }
-        ::execl(encoder.c_str(), encoder.c_str(), "-version",
-                static_cast<char*>(nullptr));
-        _exit(127);
-    }
-    int status = 0;
-    pid_t waited = -1;
-    do {
-        waited = ::waitpid(child, &status, 0);
-    } while (waited < 0 && errno == EINTR);
-    if (waited != child || !WIFEXITED(status) || WEXITSTATUS(status) != 0)
-        product_fail(ModelPackageErrorCode::VideoEncodingFailed,
-                     "bundled VRhino media encoder failed its readiness check: " +
-                         encoder.string() +
-                         "; installation is incomplete or damaged; inference did not start");
-}
 
 Json load_run_profile(const ResolvedRunnableModel& model, const std::string& preset) {
     const Json manifest = Json::parse(model.manifest.raw_json);
@@ -518,155 +386,6 @@ void add_runtime_inputs(TensorBundle& input, const Json& run,
     }
 }
 
-std::filesystem::path product_encoder_path() {
-    std::array<char, 4096> executable {};
-    const ssize_t length = readlink("/proc/self/exe", executable.data(), executable.size() - 1);
-    if (length <= 0)
-        product_fail(ModelPackageErrorCode::VideoEncodingFailed,
-                     "cannot locate product executable");
-    executable[static_cast<size_t>(length)] = '\0';
-    return std::filesystem::path(executable.data()).parent_path() / "vrhino-ffmpeg";
-}
-
-uint8_t video_u8(const Tensor& video, int64_t index, float& minimum, float& maximum,
-                 int64_t& nan_count, int64_t& inf_count,
-                 const float declared_minimum, const float declared_maximum) {
-    const float value = load_float(video, index);
-    if (std::isnan(value)) ++nan_count;
-    if (std::isinf(value)) ++inf_count;
-    minimum = std::min(minimum, value);
-    maximum = std::max(maximum, value);
-    if (!std::isfinite(value)) return 0;
-    const float normalized = (value - declared_minimum) /
-                             (declared_maximum - declared_minimum);
-    return static_cast<uint8_t>(std::lround(std::clamp(normalized, 0.0f, 1.0f) * 255.0f));
-}
-
-void write_all(int fd, const uint8_t* data, size_t bytes) {
-    while (bytes > 0) {
-        const ssize_t written = write(fd, data, bytes);
-        if (written < 0 && errno == EINTR) continue;
-        if (written <= 0)
-            product_fail(ModelPackageErrorCode::VideoEncodingFailed,
-                         "video encoder input pipe failed");
-        data += written;
-        bytes -= static_cast<size_t>(written);
-    }
-}
-
-struct EncodeResult {
-    double seconds = 0.0;
-    uint64_t bytes = 0;
-    float minimum = std::numeric_limits<float>::infinity();
-    float maximum = -std::numeric_limits<float>::infinity();
-    int64_t nan_count = 0;
-    int64_t inf_count = 0;
-};
-
-EncodeResult encode_mp4(const Tensor& video, int64_t fps,
-                        const std::filesystem::path& encoder,
-                        const std::filesystem::path& output, bool overwrite,
-                        const std::function<bool()>& cancelled,
-                        const float declared_minimum, const float declared_maximum) {
-    if (!video.device().is_host() || (video.dtype() != DType::F32 && video.dtype() != DType::BF16) ||
-        video.shape().size() != 5 || video.dim(0) != 1 || video.dim(1) != 3)
-        product_fail(ModelPackageErrorCode::RuntimeError,
-                     "video output must be host FP32/BF16 BCTHW with batch=1 and RGB channels");
-    if (fps <= 0) product_fail(ModelPackageErrorCode::PackageInvalid, "fps must be positive");
-    if (!std::isfinite(declared_minimum) || !std::isfinite(declared_maximum) ||
-        declared_minimum >= declared_maximum)
-        product_fail(ModelPackageErrorCode::PackageInvalid,
-                     "video output range must contain two increasing finite values");
-    if (std::filesystem::exists(output) && !overwrite)
-        product_fail(ModelPackageErrorCode::OutputExists,
-                     "output already exists; pass --overwrite: " + output.string());
-    if (!std::filesystem::exists(encoder))
-        product_fail(ModelPackageErrorCode::VideoEncodingFailed,
-                     "bundled encoder is missing: " + encoder.string());
-    std::filesystem::path partial = output;
-    partial += ".partial";
-    std::error_code remove_error;
-    std::filesystem::remove(partial, remove_error);
-    if (!output.parent_path().empty()) std::filesystem::create_directories(output.parent_path());
-
-    int pipe_fds[2];
-    if (pipe(pipe_fds) != 0)
-        product_fail(ModelPackageErrorCode::VideoEncodingFailed,
-                     "cannot create video encoder pipe");
-    const std::string size = std::to_string(video.dim(4)) + "x" +
-                             std::to_string(video.dim(3));
-    const std::string rate = std::to_string(fps);
-    const pid_t child = fork();
-    if (child < 0) {
-        close(pipe_fds[0]);
-        close(pipe_fds[1]);
-        product_fail(ModelPackageErrorCode::VideoEncodingFailed,
-                     "cannot start bundled video encoder");
-    }
-    if (child == 0) {
-        dup2(pipe_fds[0], STDIN_FILENO);
-        close(pipe_fds[0]);
-        close(pipe_fds[1]);
-        execl(encoder.c_str(), encoder.c_str(), "-hide_banner", "-loglevel", "error",
-              "-f", "rawvideo", "-pix_fmt", "rgb24", "-s:v", size.c_str(),
-              "-r", rate.c_str(), "-i", "pipe:0", "-an", "-c:v", "libx264",
-              "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-f", "mp4",
-              partial.c_str(), static_cast<char*>(nullptr));
-        _exit(127);
-    }
-    close(pipe_fds[0]);
-    const auto started = Clock::now();
-    EncodeResult result;
-    const int64_t frames = video.dim(2), height = video.dim(3), width = video.dim(4);
-    std::vector<uint8_t> frame(static_cast<size_t>(height * width * 3));
-    bool interrupted = false;
-    signal(SIGPIPE, SIG_IGN);
-    for (int64_t t = 0; t < frames; ++t) {
-        if (cancelled && cancelled()) { interrupted = true; break; }
-        size_t destination = 0;
-        for (int64_t y = 0; y < height; ++y) {
-            for (int64_t x = 0; x < width; ++x) {
-                for (int64_t c = 0; c < 3; ++c) {
-                    const int64_t source = c * frames * height * width +
-                                           t * height * width + y * width + x;
-                    frame[destination++] = video_u8(video, source, result.minimum,
-                        result.maximum, result.nan_count, result.inf_count,
-                        declared_minimum, declared_maximum);
-                }
-            }
-        }
-        if (!interrupted) write_all(pipe_fds[1], frame.data(), frame.size());
-    }
-    close(pipe_fds[1]);
-    int status = 0;
-    while (waitpid(child, &status, 0) < 0 && errno == EINTR) {}
-    if (interrupted) {
-        std::filesystem::remove(partial, remove_error);
-        product_fail(ModelPackageErrorCode::Cancelled, "run cancelled during video encoding");
-    }
-    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0 ||
-        result.nan_count != 0 || result.inf_count != 0 ||
-        result.minimum < declared_minimum - 1.0e-6f ||
-        result.maximum > declared_maximum + 1.0e-6f) {
-        std::filesystem::remove(partial, remove_error);
-        if (result.nan_count != 0 || result.inf_count != 0)
-            product_fail(ModelPackageErrorCode::RuntimeError,
-                         "video output contains NaN or Inf");
-        if (result.minimum < declared_minimum - 1.0e-6f ||
-            result.maximum > declared_maximum + 1.0e-6f)
-            product_fail(ModelPackageErrorCode::RuntimeError,
-                         "video output violates its declared range");
-        product_fail(ModelPackageErrorCode::VideoEncodingFailed,
-                     "bundled FFmpeg failed to encode MP4");
-    }
-    // POSIX rename replaces an existing regular file atomically. Do not unlink
-    // first: --overwrite must never create a window in which the old completed
-    // output is absent before the new completed output is published.
-    std::filesystem::rename(partial, output);
-    result.seconds = std::chrono::duration<double>(Clock::now() - started).count();
-    result.bytes = std::filesystem::file_size(output);
-    return result;
-}
 
 const ComponentDeclaration& package_component(const ResolvedRunnableModel& model,
                                               const std::string& id) {
@@ -761,12 +480,21 @@ RunResult run_runnable_model(const ResolvedRunnableModel& model,
     const ProductInputSchema* product_schema =
         model.manifest.product.input_schema
             ? &*model.manifest.product.input_schema : nullptr;
+#ifdef _WIN32
+    const std::filesystem::path output = windows_process::wide(resolve_product_output(
+        product_schema, windows_process::utf8(options.output)));
+#else
     const std::string output = resolve_product_output(
         product_schema, options.output.string());
+#endif
     preflight_output_destination(output, options.overwrite);
     std::filesystem::path encoder = options.encoder_path;
     if (encoder.empty()) {
+#ifdef _WIN32
+        if (const wchar_t* development_encoder = _wgetenv(L"VRHINO_FFMPEG"))
+#else
         if (const char* development_encoder = std::getenv("VRHINO_FFMPEG"))
+#endif
             encoder = development_encoder;
         else encoder = default_media_encoder_path();
     }
