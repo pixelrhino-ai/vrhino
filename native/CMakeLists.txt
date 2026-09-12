@@ -40,6 +40,7 @@ option(VRHINO_ENABLE_METAL "Build the Metal backend (Phase 12B and later)" OFF)
 option(VRHINO_ENABLE_TOKENIZERS "Build the Phase 13 native tokenizer layer" OFF)
 option(VRHINO_ENABLE_PRODUCT_CLI "Build the native registry and unified product CLI" ON)
 option(VRHINO_BUILD_WINDOWS_CACHE_TESTS "Build focused native Windows Product cache validation" OFF)
+option(VRHINO_BUILD_WINDOWS_CLI_TESTS "Build native Windows Product CLI integration smoke" OFF)
 option(VRHINO_BUILD_WINDOWS_ARCHIVE_TESTS "Build focused native Windows component archive validation" OFF)
 option(VRHINO_BUILD_WINDOWS_PROCESS_TESTS "Build focused native Windows process and media validation" OFF)
 set(CMAKE_CXX_STANDARD 20)
@@ -192,18 +193,33 @@ add_library(vrhino_native_common
     src/architectures/cogvideox.cpp
 )
 target_include_directories(vrhino_native_common PUBLIC include)
-target_compile_options(vrhino_native_common PRIVATE -Wall -Wextra -Werror)
+if(MSVC)
+    target_compile_options(vrhino_native_common PRIVATE /W4 /utf-8)
+    target_compile_definitions(vrhino_native_common PRIVATE _CRT_SECURE_NO_WARNINGS _USE_MATH_DEFINES)
+else()
+    target_compile_options(vrhino_native_common PRIVATE -Wall -Wextra -Werror)
+endif()
 
 # Internal bounded neural DAG facility.
 add_library(vrhino_neural_graph STATIC
     src/runtime/neural_graph_validation.cpp
     src/runtime/neural_graph_evaluator.cpp)
 target_link_libraries(vrhino_neural_graph PRIVATE vrhino_native_common)
-target_compile_options(vrhino_neural_graph PRIVATE -Wall -Wextra -Werror)
+if(MSVC)
+    target_compile_options(vrhino_neural_graph PRIVATE /W4 /utf-8)
+    target_compile_definitions(vrhino_neural_graph PRIVATE _CRT_SECURE_NO_WARNINGS)
+else()
+    target_compile_options(vrhino_neural_graph PRIVATE -Wall -Wextra -Werror)
+endif()
 # LTX production self-attention composition.
 add_library(vrhino_ltx_graph STATIC src/architectures/ltx_self_attention_graph.cpp)
 target_link_libraries(vrhino_ltx_graph PUBLIC vrhino_neural_graph vrhino_native_common)
-target_compile_options(vrhino_ltx_graph PRIVATE -Wall -Wextra -Werror)
+if(MSVC)
+    target_compile_options(vrhino_ltx_graph PRIVATE /W4 /utf-8)
+    target_compile_definitions(vrhino_ltx_graph PRIVATE _CRT_SECURE_NO_WARNINGS)
+else()
+    target_compile_options(vrhino_ltx_graph PRIVATE -Wall -Wextra -Werror)
+endif()
 # Static dependency cycle reflects the existing combined Tensor/architecture
 # library; CMake repeats these archives to resolve LTX Graph composition.
 target_link_libraries(vrhino_native_common PRIVATE vrhino_ltx_graph)
@@ -437,7 +453,12 @@ add_library(vrhino_product_run_session
 target_include_directories(vrhino_product_run_session PUBLIC include)
 target_link_libraries(vrhino_product_run_session PUBLIC
     vrhino_model_package Threads::Threads)
-target_compile_options(vrhino_product_run_session PRIVATE -Wall -Wextra -Werror)
+if(MSVC)
+    target_compile_options(vrhino_product_run_session PRIVATE /W4 /utf-8)
+    target_compile_definitions(vrhino_product_run_session PRIVATE _CRT_SECURE_NO_WARNINGS)
+else()
+    target_compile_options(vrhino_product_run_session PRIVATE -Wall -Wextra -Werror)
+endif()
 
 # Canonical ProductInputSchema-v1 request validation and RunOptions mapping.
 # This remains transport-neutral and contains no HTTP or job policy.
@@ -445,7 +466,12 @@ add_library(vrhino_product_run_request src/product/run_request.cpp)
 target_include_directories(vrhino_product_run_request PUBLIC include)
 target_link_libraries(vrhino_product_run_request PUBLIC
     vrhino_model_package vrhino_product_run_session)
-target_compile_options(vrhino_product_run_request PRIVATE -Wall -Wextra -Werror)
+if(MSVC)
+    target_compile_options(vrhino_product_run_request PRIVATE /W4 /utf-8)
+    target_compile_definitions(vrhino_product_run_request PRIVATE _CRT_SECURE_NO_WARNINGS)
+else()
+    target_compile_options(vrhino_product_run_request PRIVATE -Wall -Wextra -Werror)
+endif()
 
 # Bounded process-memory application jobs: one Product worker, a four-entry
 # FIFO, output reservations, and per-job RunSession ownership. Runtime and
@@ -454,7 +480,12 @@ add_library(vrhino_application_jobs src/application/job_manager.cpp)
 target_include_directories(vrhino_application_jobs PUBLIC include)
 target_link_libraries(vrhino_application_jobs PUBLIC
     vrhino_product_run_request vrhino_product_run_session Threads::Threads)
-target_compile_options(vrhino_application_jobs PRIVATE -Wall -Wextra -Werror)
+if(MSVC)
+    target_compile_options(vrhino_application_jobs PRIVATE /W4 /utf-8)
+    target_compile_definitions(vrhino_application_jobs PRIVATE _CRT_SECURE_NO_WARNINGS)
+else()
+    target_compile_options(vrhino_application_jobs PRIVATE -Wall -Wextra -Werror)
+endif()
 
 add_executable(vrhino-run-session-tests tests/run_session_tests.cpp)
 target_link_libraries(vrhino-run-session-tests PRIVATE
@@ -484,7 +515,12 @@ target_compile_options(vrhino-sha256-tests PRIVATE -Wall -Wextra -Werror)
 
 add_library(vrhino_product_progress src/product/progress.cpp)
 target_include_directories(vrhino_product_progress PUBLIC include)
-target_compile_options(vrhino_product_progress PRIVATE -Wall -Wextra -Werror)
+if(MSVC)
+    target_compile_options(vrhino_product_progress PRIVATE /W4 /utf-8)
+    target_compile_definitions(vrhino_product_progress PRIVATE _CRT_SECURE_NO_WARNINGS)
+else()
+    target_compile_options(vrhino_product_progress PRIVATE -Wall -Wextra -Werror)
+endif()
 
 add_executable(vrhino-native-progress-tests tests/native_progress_tests.cpp)
 target_link_libraries(vrhino-native-progress-tests PRIVATE vrhino_product_progress)
@@ -531,7 +567,15 @@ target_sources(vrhino_converter PRIVATE src/product/converter_musetalk_package.c
 target_sources(vrhino_converter PRIVATE src/product/converter_latentsync_package.cpp)
 target_include_directories(vrhino_converter PUBLIC include)
 target_link_libraries(vrhino_converter PUBLIC vrhino_model_package)
-target_compile_options(vrhino_converter PRIVATE -Wall -Wextra -Werror)
+if(WIN32)
+    target_link_libraries(vrhino_converter PRIVATE vrhino_windows_process)
+endif()
+if(MSVC)
+    target_compile_options(vrhino_converter PRIVATE /W4 /utf-8)
+    target_compile_definitions(vrhino_converter PRIVATE _CRT_SECURE_NO_WARNINGS)
+else()
+    target_compile_options(vrhino_converter PRIVATE -Wall -Wextra -Werror)
+endif()
 
 add_executable(vrhino-native-converter-tests tests/native_converter_tests.cpp)
 target_link_libraries(vrhino-native-converter-tests PRIVATE vrhino_converter)
@@ -654,7 +698,12 @@ if(VRHINO_ENABLE_PRODUCT_CLI)
     target_compile_definitions(vrhino_product_metadata PRIVATE
         VRHINO_PRODUCT_VERSION="${VRHINO_PRODUCT_VERSION}"
         VRHINO_GIT_HEAD="${VRHINO_BUILD_GIT_HEAD}")
-    target_compile_options(vrhino_product_metadata PRIVATE -Wall -Wextra -Werror)
+    if(MSVC)
+        target_compile_options(vrhino_product_metadata PRIVATE /W4 /utf-8)
+        target_compile_definitions(vrhino_product_metadata PRIVATE _CRT_SECURE_NO_WARNINGS)
+    else()
+        target_compile_options(vrhino_product_metadata PRIVATE -Wall -Wextra -Werror)
+    endif()
 
     add_executable(vrhino-release-version-tests
         tests/release_version_tests.cpp)
@@ -685,7 +734,12 @@ if(VRHINO_ENABLE_PRODUCT_CLI)
         CPPHTTPLIB_MAX_LINE_LENGTH=4096
         CPPHTTPLIB_PAYLOAD_MAX_LENGTH=65536
         CPPHTTPLIB_LISTEN_BACKLOG=16)
-    target_compile_options(vrhino_native_api PRIVATE -Wall -Wextra -Werror)
+    if(MSVC)
+        target_compile_options(vrhino_native_api PRIVATE /W4 /utf-8)
+        target_compile_definitions(vrhino_native_api PRIVATE _CRT_SECURE_NO_WARNINGS)
+    else()
+        target_compile_options(vrhino_native_api PRIVATE -Wall -Wextra -Werror)
+    endif()
 
     add_executable(vrhino-native-api-tests tests/native_api_tests.cpp)
     target_link_libraries(vrhino-native-api-tests PRIVATE
@@ -847,6 +901,41 @@ if(VRHINO_ENABLE_PRODUCT_CLI)
     target_link_libraries(vrhino PRIVATE vrhino_registry vrhino_converter
         vrhino_source_acquisition vrhino_pull_orchestration vrhino_product_progress
         vrhino_native_api vrhino_product_metadata)
+    if(WIN32 AND VRHINO_BUILD_WINDOWS_CLI_TESTS)
+        add_executable(vrhino-cli-helper-fixture tests/windows_cli_helper_fixture.cpp)
+        set_property(TARGET vrhino-cli-helper-fixture PROPERTY MSVC_RUNTIME_LIBRARY MultiThreaded)
+        target_compile_options(vrhino-cli-helper-fixture PRIVATE /W4 /WX /utf-8)
+        add_executable(vrhino-windows-product-cli-tests tests/windows_product_cli_tests.cpp)
+        target_include_directories(vrhino-windows-product-cli-tests PRIVATE include src/product)
+        target_compile_definitions(vrhino-windows-product-cli-tests PRIVATE _CRT_SECURE_NO_WARNINGS)
+        target_compile_options(vrhino-windows-product-cli-tests PRIVATE /W4 /WX /utf-8)
+        target_link_libraries(vrhino-windows-product-cli-tests PRIVATE
+            vrhino_model_package vrhino_windows_process ZLIB::ZLIB advapi32)
+        if(NOT TARGET vrhino-process-missing-dependency)
+            message(FATAL_ERROR "CLI smoke requires VRHINO_BUILD_WINDOWS_PROCESS_TESTS=ON for its missing-DLL fixture")
+        endif()
+        set(VRHINO_WINDOWS_CRT_DIRECTORY "$ENV{VCToolsRedistDir}/x64/Microsoft.VC143.CRT"
+            CACHE PATH "App-local MSVC runtime directory for the Windows smoke layout")
+        file(GLOB VRHINO_WINDOWS_SMOKE_CRT_DLLS "${VRHINO_WINDOWS_CRT_DIRECTORY}/*.dll")
+        if(NOT VRHINO_WINDOWS_SMOKE_CRT_DLLS)
+            message(FATAL_ERROR "Set VRHINO_WINDOWS_CRT_DIRECTORY to the MSVC x64 CRT redistributable directory")
+        endif()
+        set(VRHINO_WINDOWS_SMOKE_LAYOUT "${CMAKE_CURRENT_BINARY_DIR}/vrhino-windows-test")
+        add_custom_target(vrhino-windows-cli-smoke-layout
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${VRHINO_WINDOWS_SMOKE_LAYOUT}/components"
+                "${VRHINO_WINDOWS_SMOKE_LAYOUT}/licenses"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:vrhino>
+                ${VRHINO_WINDOWS_SMOKE_CRT_DLLS} "${VRHINO_WINDOWS_SMOKE_LAYOUT}"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "$<TARGET_FILE_DIR:vrhino>/share"
+                "${VRHINO_WINDOWS_SMOKE_LAYOUT}/share"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${VRHINO_RELEASE_VERSION_FILE}"
+                "${VRHINO_WINDOWS_SMOKE_LAYOUT}/VERSION"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
+                "${VRHINO_WINDOWS_SMOKE_LAYOUT}/licenses/VRhino-LICENSE.txt"
+            DEPENDS vrhino VERBATIM)
+        add_dependencies(vrhino-windows-product-cli-tests vrhino-windows-cli-smoke-layout
+            vrhino-cli-helper-fixture vrhino-process-missing-dependency)
+    endif()
     add_custom_command(TARGET vrhino POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_CURRENT_SOURCE_DIR}/specs"

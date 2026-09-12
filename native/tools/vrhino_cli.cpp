@@ -17,6 +17,7 @@
 #include <windows.h>
 #include <io.h>
 #include "vrhino/product/windows_process.h"
+#include "vrhino/product/windows_cache.h"
 #else
 #include <unistd.h>
 #endif
@@ -41,7 +42,11 @@ namespace product = vrhino::product;
 
 namespace {
 
-[[noreturn]] void usage() {
+[[noreturn]] void usage(
+#ifdef _WIN32
+    int exit_code = 2
+#endif
+) {
     std::cerr
         << "Usage:\n"
         << "  vrhino [OPTIONS] pull NAMESPACE/NAME:VERSION\n"
@@ -57,7 +62,11 @@ namespace {
         << "  vrhino --version\n"
         << "  vrhino device\n\n"
         << "Options:\n"
+#ifdef _WIN32
+        << "  --cache-root PATH   Override VRHINO_HOME/%LOCALAPPDATA%\\VRhino\n"
+#else
         << "  --cache-root PATH   Override VRHINO_HOME/~/.vrhino\n"
+#endif
         << "  --registry URL      Override VRHINO_REGISTRY\n"
         << "  --component-registry URL  Override VRHINO_COMPONENT_REGISTRY\n"
         << "  --converter-spec-root PATH  Override installed converter specifications\n"
@@ -75,7 +84,16 @@ namespace {
         << "  --overwrite         Replace an existing output\n"
         << "  --debug             Show product debug details\n";
 #endif
+#ifdef _WIN32
+    std::cerr << "\nWindows inspection commands:\n"
+              << "  vrhino cache info\n"
+              << "  vrhino component info [NAMESPACE/NAME:VERSION]\n"
+              << "  vrhino component check\n"
+              << "Windows default cache: %LOCALAPPDATA%\\VRhino\n";
+    std::exit(exit_code);
+#else
     std::exit(2);
+#endif
 }
 
 std::string format_bytes(const uint64_t bytes) {
@@ -335,7 +353,11 @@ void print_info(const product::ResolvedRunnableModel& model) {
     for (const product::ComponentDeclaration& component : manifest.components)
         std::cout << "Component: " << component.role << " ("
                   << component.kind << ")\n";
+#ifdef _WIN32
+    std::cout << "Manifest: " << product::windows_process::utf8(model.manifest_path) << '\n';
+#else
     std::cout << "Manifest: " << model.manifest_path.string() << '\n';
+#endif
 }
 
 }  // namespace
@@ -357,6 +379,12 @@ int main(int argc, char** argv) {
         CliOptions options = consume_options(arguments);
         if (arguments.empty()) usage();
         const std::string command = arguments.front();
+#ifdef _WIN32
+        if (command == "--help" || command == "help") {
+            if (arguments.size() != 1) usage();
+            usage(0);
+        }
+#endif
         if (command == "--version" || command == "version") {
             if (arguments.size() != 1) usage();
             std::cout << product::format_cli_version(
@@ -435,6 +463,45 @@ int main(int argc, char** argv) {
 #endif
         product::LocalModelCache cache(options.cache_root);
         product::LocalComponentCache component_cache(options.cache_root);
+
+#ifdef _WIN32
+        if (command == "cache" && arguments.size() == 2 && arguments[1] == "info") {
+            namespace wc = product::windows_cache;
+            auto existing = wc::native_path(cache.layout().root);
+            while (!std::filesystem::exists(existing)) {
+                const auto parent = existing.parent_path();
+                if (parent == existing || parent.empty())
+                    throw product::ModelPackageError(product::ModelPackageErrorCode::CacheError,
+                                                     "cache has no accessible parent directory");
+                existing = parent;
+            }
+            wc::Parents admitted(existing);
+            std::cout << "Cache root: " << product::windows_process::utf8(cache.layout().root) << '\n'
+                      << "Models: " << cache.list().size() << '\n'
+                      << "Components: " << product::windows_process::utf8(component_cache.components_root()) << '\n'
+                      << "Converter specifications: " << product::windows_process::utf8(
+                          options.converter_spec_root.empty() ? product::discover_converter_spec_root() : options.converter_spec_root) << '\n';
+            return 0;
+        }
+        if (command == "component" && arguments.size() >= 2 && arguments[1] == "info") {
+            if (arguments.size() > 3) usage();
+            const auto component = component_cache.resolve(arguments.size() == 3 ? arguments[2] : product::kMediaComponentReference);
+            std::cout << "Component: " << component.manifest.identity.reference() << '\n'
+                      << "Entrypoint: " << product::windows_process::utf8(component.entrypoint) << '\n';
+            return 0;
+        }
+        if (command == "component" && arguments.size() == 2 && arguments[1] == "check") {
+            std::filesystem::path helper;
+            try { helper = product::windows_process::discover_helper(); }
+            catch (const product::windows_process::Error& error) {
+                if (error.kind != product::windows_process::Failure::Missing) throw;
+                helper = component_cache.resolve(product::kMediaComponentReference).entrypoint;
+            }
+            product::windows_process::check_helper(helper);
+            std::cout << "Media helper ready: " << product::windows_process::utf8(helper) << '\n';
+            return 0;
+        }
+#endif
 
 #if VRHINO_PRODUCT_RUN_ENABLED
         if (command == "doctor") {
@@ -784,6 +851,11 @@ int main(int argc, char** argv) {
         std::cerr << error.what() << '\n';
         if (error.code() == product::ModelPackageErrorCode::Cancelled) return 130;
         return 1;
+#ifdef _WIN32
+    } catch (const product::windows_process::Error& error) {
+        std::cerr << "COMPONENT_INVALID: " << error.what() << '\n';
+        return 1;
+#endif
     } catch (const std::exception& error) {
         std::cerr << "CACHE_ERROR: " << error.what() << '\n';
         return 1;

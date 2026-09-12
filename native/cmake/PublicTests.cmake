@@ -16,6 +16,13 @@ if(BUILD_TESTING)
     vrhino_public_test(vrhino-stable-file-verification-tests host)
     vrhino_public_test(vrhino-windows-cache-publication-tests host)
     vrhino_public_test(vrhino-windows-process-tests host)
+    if(TARGET vrhino-windows-product-cli-tests)
+        vrhino_public_test(vrhino-windows-product-cli-tests host
+            "${CMAKE_CURRENT_BINARY_DIR}/vrhino-windows-test"
+            $<TARGET_FILE:vrhino-cli-helper-fixture>
+            $<TARGET_FILE:vrhino-process-missing-dependency>
+            "${CMAKE_CURRENT_BINARY_DIR}/cli-smoke-work")
+    endif()
     if(TARGET vrhino-windows-component-archive-tests)
         find_package(Python3 REQUIRED COMPONENTS Interpreter)
         add_test(NAME vrhino-windows-component-archive-tests

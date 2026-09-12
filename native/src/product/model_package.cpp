@@ -264,6 +264,18 @@ uint64_t ModelPackageManifest::logical_size() const {
 CacheLayout cache_layout(const fs::path& explicit_root) {
     fs::path root = explicit_root;
     if (root.empty()) {
+#ifdef _WIN32
+        if (const wchar_t* configured = _wgetenv(L"VRHINO_HOME"); configured && *configured) {
+            root = configured;
+        } else if (const wchar_t* local = _wgetenv(L"LOCALAPPDATA"); local && *local) {
+            root = fs::path(local) / L"VRhino";
+        } else if (const wchar_t* profile = _wgetenv(L"USERPROFILE"); profile && *profile) {
+            root = fs::path(profile) / L"AppData/Local/VRhino";
+        } else {
+            fail(ModelPackageErrorCode::CacheError,
+                 "set --cache-root or VRHINO_HOME; Windows LOCALAPPDATA/USERPROFILE is unavailable");
+        }
+#else
         if (const char* configured = std::getenv("VRHINO_HOME");
             configured != nullptr && *configured != '\0') {
             root = configured;
@@ -274,6 +286,7 @@ CacheLayout cache_layout(const fs::path& explicit_root) {
             fail(ModelPackageErrorCode::CacheError,
                  "neither an explicit cache root, VRHINO_HOME, nor HOME is available");
         }
+#endif
     }
     root = fs::absolute(root).lexically_normal();
     return CacheLayout{root, root / "models", root / "blobs", root / "tmp"};

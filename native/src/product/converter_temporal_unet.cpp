@@ -8,7 +8,11 @@
 #include <map>
 #include <set>
 #include <string>
+#ifdef _WIN32
+#include "windows_converter_io.h"
+#else
 #include <unistd.h>
+#endif
 
 #include "vrhino/product/pytorch_zip.h"
 

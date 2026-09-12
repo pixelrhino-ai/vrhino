@@ -11,7 +11,11 @@
 #include <sstream>
 #include <utility>
 #include <vector>
+#ifdef _WIN32
+#include "windows_converter_io.h"
+#else
 #include <unistd.h>
+#endif
 
 namespace vrhino::product {
 namespace {

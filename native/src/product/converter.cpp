@@ -11,11 +11,22 @@
 #include <limits>
 #include <sstream>
 #include <sys/stat.h>
+#ifdef _WIN32
+#include "windows_converter_io.h"
+#else
 #include <unistd.h>
+#endif
 
 #include "vrhino/error.h"
+#ifdef _WIN32
+#include "vrhino/product/windows_process.h"
+#endif
 
 namespace vrhino::product {
+#ifdef _WIN32
+using namespace windows_converter_io;
+static_assert(sizeof(off_t) == 8 && sizeof(ssize_t) == 8);
+#endif
 namespace {
 
 constexpr uint64_t kMaxSafeTensorHeader = 64ULL * 1024 * 1024;
@@ -828,12 +839,21 @@ SafeTensorWriteResult write_safetensors_streaming(
 
 std::filesystem::path discover_converter_spec_root(
         const std::filesystem::path& executable_path) {
+#ifdef _WIN32
+    if (const wchar_t* configured = _wgetenv(L"VRHINO_CONVERTER_SPEC_ROOT"); configured && *configured)
+        return configured;
+#else
     if (const char* configured = std::getenv("VRHINO_CONVERTER_SPEC_ROOT");
         configured != nullptr && *configured != '\0')
         return configured;
+#endif
     std::error_code error;
     std::filesystem::path executable = executable_path;
+#ifdef _WIN32
+    if (executable.empty()) executable = windows_process::executable_path();
+#else
     if (executable.empty()) executable = std::filesystem::read_symlink("/proc/self/exe", error);
+#endif
     if (error || executable.empty())
         package_error(ModelPackageErrorCode::CacheError,
                       "cannot discover converter specification root");
