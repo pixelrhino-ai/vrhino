@@ -72,6 +72,10 @@ public:
         float atol = 0.0f;
         float rtol = 0.0f;
     };
+    // Borrowed immutable weight identities must outlive the backend cache.
+    // In particular, MSVC can reuse a freed six-byte FP8 fixture allocation
+    // immediately for the next INT8 fixture.
+    std::vector<std::vector<uint8_t>> quantized_payloads;
     TestBackend backend;
     std::map<std::string, int> cases;
     std::map<std::string, int> dtype_cases;
@@ -316,7 +320,9 @@ void tensor_primitives(Tests& t) {
     const std::vector<float> quant_expected = {2, 3, 5, -1, 4, 3};
     auto check_quantized = [&](const std::string& name, std::vector<uint8_t> packed,
                                vrhino::QuantType kind, const std::string& layout) {
-        Tensor weight = Tensor::borrowed(packed.data(), packed.size(), {3, 2}, vrhino::DType::U8);
+        t.quantized_payloads.push_back(std::move(packed));
+        auto& payload = t.quantized_payloads.back();
+        Tensor weight = Tensor::borrowed(payload.data(), payload.size(), {3, 2}, vrhino::DType::U8);
         auto info = std::make_shared<vrhino::QuantizationInfo>();
         info->type = kind; info->logical_dtype = vrhino::DType::F32;
         info->compute_dtype = vrhino::DType::BF16; info->accumulation_dtype = vrhino::DType::F32;

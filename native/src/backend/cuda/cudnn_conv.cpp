@@ -11,6 +11,10 @@
 #include <unordered_map>
 #include <utility>
 
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
+
 namespace vrhino {
 namespace {
 namespace fe = cudnn_frontend;
@@ -52,7 +56,13 @@ bool tensor_descriptor_valid(const std::vector<int64_t>& dimensions,
     if (static_cast<int>(dimensions.size()) != expected_rank ||
         dimensions.size() != strides.size())
         return fail(reason, std::string(name) + " rank mismatch");
+#if defined(_MSC_VER)
+    const uint64_t limit = legacy ? INT_MAX : INT64_MAX;
+    uint64_t extent = 1;
+    bool extent_overflow = false;
+#else
     __int128 extent = 1;
+#endif
     for (int index = 0; index < expected_rank; ++index) {
         const int64_t dimension = dimensions[static_cast<size_t>(index)];
         const int64_t stride = strides[static_cast<size_t>(index)];
@@ -64,11 +74,26 @@ bool tensor_descriptor_valid(const std::vector<int64_t>& dimensions,
             return fail(reason, std::string(name) + " dimension exceeds legacy INT_MAX");
         if (legacy && stride > INT_MAX)
             return fail(reason, std::string(name) + " stride exceeds legacy INT_MAX");
+#if defined(_MSC_VER)
+        // Every term is nonnegative. Defer rejection until after the loop to
+        // retain the original dimension/stride diagnostic precedence.
+        if (!extent_overflow) {
+            const auto count = static_cast<uint64_t>(dimension - 1);
+            const auto step = static_cast<uint64_t>(stride);
+            extent_overflow = count > (limit - extent) / step;
+            if (!extent_overflow) extent += count * step;
+        }
+#else
         extent += static_cast<__int128>(dimension - 1) * stride;
+#endif
     }
+#if defined(_MSC_VER)
+    if (extent_overflow)
+#else
     const __int128 limit = legacy ? static_cast<__int128>(INT_MAX)
                                   : static_cast<__int128>(INT64_MAX);
     if (extent > limit)
+#endif
         return fail(reason, std::string(name) +
             (legacy ? " addressable extent exceeds legacy INT_MAX"
                     : " addressable extent exceeds INT64_MAX"));
@@ -105,6 +130,29 @@ bool common_semantic_valid(const CudnnConvDescriptor& descriptor,
         const int64_t dilation = descriptor.dilation[static_cast<size_t>(spatial)];
         if (pad < 0 || stride <= 0 || dilation <= 0)
             return fail(reason, "invalid padding, stride, or dilation");
+#if defined(_MSC_VER)
+        // MSVC x64 has no __int128. Retain the wide integer calculation with
+        // native carry/multiply/divide intrinsics; never narrow an extent.
+        uint64_t available_low = 0;
+        const uint64_t available_high = _addcarry_u64(
+            0, static_cast<uint64_t>(descriptor.x_dimensions[spatial + 2] - 1),
+            2 * static_cast<uint64_t>(pad), &available_low);
+        uint64_t kernel_high = 0;
+        const uint64_t kernel_low = _umul128(static_cast<uint64_t>(dilation),
+            static_cast<uint64_t>(descriptor.w_dimensions[spatial + 2] - 1),
+            &kernel_high);
+        if (kernel_high > available_high ||
+            (kernel_high == available_high && kernel_low > available_low))
+            return fail(reason, "convolution has non-positive output extent");
+        uint64_t numerator_low = 0;
+        const auto borrow = _subborrow_u64(0, available_low, kernel_low, &numerator_low);
+        const uint64_t numerator_high = available_high - kernel_high - borrow;
+        const auto divisor = static_cast<uint64_t>(stride);
+        uint64_t remainder = 0;
+        if (numerator_high >= divisor ||
+            _udiv128(numerator_high, numerator_low, divisor, &remainder) !=
+                static_cast<uint64_t>(descriptor.y_dimensions[spatial + 2] - 1))
+#else
         const __int128 numerator =
             static_cast<__int128>(descriptor.x_dimensions[spatial + 2]) + 2 * pad -
             static_cast<__int128>(dilation) *
@@ -113,6 +161,7 @@ bool common_semantic_valid(const CudnnConvDescriptor& descriptor,
             return fail(reason, "convolution has non-positive output extent");
         const __int128 expected = numerator / stride + 1;
         if (expected != descriptor.y_dimensions[spatial + 2])
+#endif
             return fail(reason, "output shape does not match convolution semantic");
     }
     return true;
