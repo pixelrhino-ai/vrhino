@@ -46,6 +46,15 @@ option(VRHINO_BUILD_WINDOWS_PROCESS_TESTS "Build focused native Windows process 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Warning switches for product dependencies that also build with native MSVC.
+# Keep the existing Unix warning policy; /W4 includes additional conversion
+# diagnostics, consistent with vrhino_native_common's Windows build.
+if(MSVC)
+    set(VRHINO_PRODUCT_CXX_WARNINGS /W4 /utf-8)
+else()
+    set(VRHINO_PRODUCT_CXX_WARNINGS -Wall -Wextra -Werror)
+endif()
+
 if(WIN32)
     add_library(vrhino_windows_process src/product/windows_process.cpp)
     target_include_directories(vrhino_windows_process PUBLIC include)
@@ -267,25 +276,25 @@ target_compile_options(vrhino-neural-graph-bf16-ltx-admission-tests PRIVATE -Wal
 add_library(vrhino_audio_conditioning src/workflow/audio_conditioning.cpp)
 target_include_directories(vrhino_audio_conditioning PUBLIC include)
 target_link_libraries(vrhino_audio_conditioning PUBLIC vrhino_native_common)
-target_compile_options(vrhino_audio_conditioning PRIVATE -Wall -Wextra -Werror)
+target_compile_options(vrhino_audio_conditioning PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
 
 # Bounded detector preprocessing/decode/NMS/ROI operations remain outside the
 # neural Runtime and Backend.
 add_library(vrhino_face_roi src/workflow/face_roi.cpp)
 target_include_directories(vrhino_face_roi PUBLIC include)
-target_compile_options(vrhino_face_roi PRIVATE -Wall -Wextra -Werror)
+target_compile_options(vrhino_face_roi PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
 
 # Bounded top-down affine, SimCC decode, and face-geometry policy. Neural pose
 # execution remains in the generic component/Backend layer.
 add_library(vrhino_pose_geometry src/workflow/pose_geometry.cpp)
 target_include_directories(vrhino_pose_geometry PUBLIC include)
 target_link_libraries(vrhino_pose_geometry PUBLIC vrhino_native_common vrhino_face_roi)
-target_compile_options(vrhino_pose_geometry PRIVATE -Wall -Wextra -Werror)
+target_compile_options(vrhino_pose_geometry PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
 
 add_library(vrhino_face_mask src/workflow/face_mask.cpp)
 target_include_directories(vrhino_face_mask PUBLIC include)
 target_link_libraries(vrhino_face_mask PUBLIC vrhino_native_common)
-target_compile_options(vrhino_face_mask PRIVATE -Wall -Wextra -Werror)
+target_compile_options(vrhino_face_mask PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
 
 # Narrow typed digital-human workflow operations. This is fixed orchestration
 # over known component contracts and media/image operations, not a DAG engine.
@@ -309,7 +318,7 @@ target_include_directories(vrhino_lip_sync_diffusion_workflow PUBLIC include)
 target_link_libraries(vrhino_lip_sync_diffusion_workflow PUBLIC
     vrhino_lip_sync_workflow vrhino_audio_conditioning vrhino_pose_geometry)
 target_compile_options(vrhino_lip_sync_diffusion_workflow PRIVATE
-    -Wall -Wextra -Werror)
+    ${VRHINO_PRODUCT_CXX_WARNINGS})
 
 if(VRHINO_ENABLE_TOKENIZERS)
     # The complete tokenizer build-source graph is repository-local and
@@ -332,20 +341,31 @@ if(VRHINO_ENABLE_TOKENIZERS)
         "${CMAKE_CURRENT_SOURCE_DIR}/cmake/tokenizer-cargo-config.toml.in"
         "${VRHINO_TOKENIZER_CARGO_HOME}/config.toml"
         @ONLY)
-    configure_file(
-        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/tokenizer-cargo-offline.sh.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/vrhino-tokenizer-cargo"
-        @ONLY)
-    file(CHMOD "${CMAKE_CURRENT_BINARY_DIR}/vrhino-tokenizer-cargo"
-        PERMISSIONS
-            OWNER_READ OWNER_WRITE OWNER_EXECUTE
-            GROUP_READ GROUP_EXECUTE
-            WORLD_READ WORLD_EXECUTE)
+    if(WIN32)
+        configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/tokenizer-cargo-offline.cmake.in"
+            "${CMAKE_CURRENT_BINARY_DIR}/vrhino-tokenizer-cargo.cmake" @ONLY)
+        set(CARGO_EXECUTABLE
+            "${CMAKE_COMMAND};-P;${CMAKE_CURRENT_BINARY_DIR}/vrhino-tokenizer-cargo.cmake"
+            CACHE STRING "Locked/offline Cargo launcher" FORCE)
+        set(TOKENIZERS_CPP_MSVC_RUNTIME_LIBRARY "MD" CACHE STRING "Tokenizer CRT" FORCE)
+        set(SPM_ENABLE_MSVC_MT_BUILD OFF CACHE BOOL "Use the product's dynamic CRT" FORCE)
+    else()
+        configure_file(
+            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/tokenizer-cargo-offline.sh.in"
+            "${CMAKE_CURRENT_BINARY_DIR}/vrhino-tokenizer-cargo"
+            @ONLY)
+        file(CHMOD "${CMAKE_CURRENT_BINARY_DIR}/vrhino-tokenizer-cargo"
+            PERMISSIONS
+                OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                GROUP_READ GROUP_EXECUTE
+                WORLD_READ WORLD_EXECUTE)
+        set(CARGO_EXECUTABLE
+            "${CMAKE_CURRENT_BINARY_DIR}/vrhino-tokenizer-cargo"
+            CACHE FILEPATH "Locked/offline Cargo wrapper" FORCE)
+    endif()
     set(CARGO_HOME "${VRHINO_TOKENIZER_CARGO_HOME}" CACHE PATH
         "Build-local Cargo home for the hermetic tokenizer build" FORCE)
-    set(CARGO_EXECUTABLE
-        "${CMAKE_CURRENT_BINARY_DIR}/vrhino-tokenizer-cargo"
-        CACHE FILEPATH "Locked/offline Cargo wrapper" FORCE)
 
     # SentencePiece's module provider performs an unconditional nested
     # FetchContent population. Add the exact local Abseil source at the parent
@@ -368,6 +388,18 @@ if(VRHINO_ENABLE_TOKENIZERS)
         "${CMAKE_CURRENT_BINARY_DIR}/tokenizers-cpp"
         EXCLUDE_FROM_ALL)
 
+    if(WIN32 AND NOT IS_SYMLINK
+            "${VRHINO_TOKENIZER_BUILD_SOURCES}/tokenizers-cpp/sentencepiece/third_party/absl")
+        # SentencePiece includes "third_party/absl/..." explicitly. Mirror
+        # verified headers in the build tree to supply that include spelling
+        # without editing pinned sources or requiring symlink privileges.
+        set(VRHINO_TOKENIZER_INCLUDE_ALIAS "${CMAKE_CURRENT_BINARY_DIR}/tokenizer-includes")
+        file(COPY "${VRHINO_TOKENIZER_BUILD_SOURCES}/abseil-cpp/absl"
+            DESTINATION "${VRHINO_TOKENIZER_INCLUDE_ALIAS}/third_party"
+            FILES_MATCHING PATTERN "*.h" PATTERN "*.inc")
+        target_include_directories(sentencepiece-static PUBLIC "${VRHINO_TOKENIZER_INCLUDE_ALIAS}")
+    endif()
+
     add_custom_target(vrhino-tokenizer-source-integrity
         COMMAND ${CMAKE_COMMAND}
             -DVRHINO_TOKENIZER_BUILD_SOURCES=${VRHINO_TOKENIZER_BUILD_SOURCES}
@@ -383,7 +415,7 @@ if(VRHINO_ENABLE_TOKENIZERS)
     add_library(vrhino_native_tokenizer src/input/tokenizer.cpp)
     target_include_directories(vrhino_native_tokenizer PUBLIC include)
     target_link_libraries(vrhino_native_tokenizer PUBLIC vrhino_native_common PRIVATE tokenizers_cpp)
-    target_compile_options(vrhino_native_tokenizer PRIVATE -Wall -Wextra -Werror)
+    target_compile_options(vrhino_native_tokenizer PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
 
     add_executable(vrhino-tokenizer-tests tests/tokenizer_tests.cpp)
     target_link_libraries(vrhino-tokenizer-tests PRIVATE vrhino_native_tokenizer)
@@ -1363,7 +1395,10 @@ if(VRHINO_ENABLE_CUDA)
             vrhino_audio_conditioning vrhino_face_roi vrhino_pose_geometry
             vrhino_face_mask vrhino_lip_sync_workflow
             vrhino_lip_sync_diffusion_workflow)
-        target_compile_options(vrhino_product_run PRIVATE -Wall -Wextra -Werror)
+        target_compile_options(vrhino_product_run PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+        if(MSVC)
+            target_compile_definitions(vrhino_product_run PRIVATE _CRT_SECURE_NO_WARNINGS)
+        endif()
         if(VRHINO_ENABLE_PRODUCT_CLI)
             target_link_libraries(vrhino PRIVATE vrhino_product_run)
             target_compile_definitions(vrhino PRIVATE VRHINO_PRODUCT_RUN_ENABLED=1)
@@ -1376,7 +1411,7 @@ if(VRHINO_ENABLE_CUDA)
                 add_custom_command(TARGET vrhino POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
                         "${VRHINO_FFMPEG_EXECUTABLE}"
-                        "$<TARGET_FILE_DIR:vrhino>/vrhino-ffmpeg"
+                        "$<TARGET_FILE_DIR:vrhino>/vrhino-ffmpeg${CMAKE_EXECUTABLE_SUFFIX}"
                     COMMENT "Staging bundled native MP4 encoder")
             else()
                 message(WARNING
@@ -1388,6 +1423,10 @@ if(VRHINO_ENABLE_CUDA)
             tests/product_run_preflight_tests.cpp)
         target_link_libraries(vrhino-product-run-preflight-tests PRIVATE vrhino_product_run)
 
+        add_executable(vrhino-safetensors-asset-tests tests/safetensors_asset_tests.cpp)
+        target_link_libraries(vrhino-safetensors-asset-tests PRIVATE vrhino_product_run)
+        target_compile_options(vrhino-safetensors-asset-tests PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+
         # Read-only, privacy-safe support report. This composes the existing
         # package, pull-plan, device-admission, and media readiness layers and
         # never enters Runtime execution or performs network access.
@@ -1396,7 +1435,7 @@ if(VRHINO_ENABLE_CUDA)
             target_include_directories(vrhino_product_doctor PUBLIC include)
             target_link_libraries(vrhino_product_doctor PUBLIC
                 vrhino_product_run vrhino_pull_orchestration)
-            target_compile_options(vrhino_product_doctor PRIVATE -Wall -Wextra -Werror)
+            target_compile_options(vrhino_product_doctor PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
             target_link_libraries(vrhino PRIVATE vrhino_product_doctor)
 
             add_executable(vrhino-product-doctor-tests
@@ -1437,3 +1476,13 @@ if(VRHINO_ENABLE_CUDA)
     target_compile_options(vrhino-wan-graph-synthetic-cuda-tests PRIVATE -Wall -Wextra -Werror -ffp-contract=off)
 endif()
 include(cmake/PublicTests.cmake)
+if(BUILD_TESTING)
+    vrhino_public_test(vrhino-safetensors-asset-tests host)
+    add_test(NAME vrhino-tokenizer-source-portability-tests
+        COMMAND "${CMAKE_COMMAND}"
+            "-DTEST_BINARY_ROOT=${CMAKE_CURRENT_BINARY_DIR}/tokenizer-source-portability-tests"
+            "-DVERIFIER=${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyTokenizerBuildSources.cmake"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/tokenizer_source_portability_tests.cmake")
+    set_tests_properties(vrhino-tokenizer-source-portability-tests PROPERTIES
+        LABELS "public;host" TIMEOUT 60)
+endif()

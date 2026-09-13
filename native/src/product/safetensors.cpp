@@ -4,9 +4,16 @@
 #include <fstream>
 #include <limits>
 #include <set>
+#ifdef _WIN32
+#define NOMINMAX
+#include <windows.h>
+#include <io.h>
+#include <utility>
+#else
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#endif
 
 #include "vrhino/error.h"
 #include "vrhino/json.h"
@@ -40,6 +47,16 @@ std::string read_text(const std::filesystem::path& path) {
 
 }  // namespace
 
+#ifdef _WIN32
+SafeTensorAsset::Mapping::~Mapping() {
+    if (data != nullptr) UnmapViewOfFile(data);
+    if (fd >= 0) _close(fd);
+}
+SafeTensorAsset::Mapping::Mapping(Mapping&& other) noexcept
+    : fd(std::exchange(other.fd, -1)), data(std::exchange(other.data, nullptr)),
+      bytes(std::exchange(other.bytes, 0)), path(std::move(other.path)) {}
+#endif
+
 SafeTensorAsset SafeTensorAsset::single(const std::filesystem::path& path) {
     SafeTensorAsset result;
     result.add_file(path, path.filename().string());
@@ -72,6 +89,28 @@ void SafeTensorAsset::add_file(
         const std::map<std::string, std::string>* owners) {
     Mapping mapping;
     mapping.path = path;
+#ifdef _WIN32
+    // Same read-only, stable-open mapped-file boundary as the native VRM loader.
+    HANDLE file = CreateFileW(path.c_str(), GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
+        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    require(file != INVALID_HANDLE_VALUE, "Cannot open safetensors: " + path.string());
+    mapping.fd = _open_osfhandle(reinterpret_cast<intptr_t>(file),
+        _O_RDONLY | _O_BINARY | _O_NOINHERIT);
+    if (mapping.fd < 0) CloseHandle(file);
+    require(mapping.fd >= 0, "Cannot own safetensors file handle");
+    LARGE_INTEGER size{};
+    require(GetFileSizeEx(file, &size) && size.QuadPart >= 8,
+            "Truncated safetensors: " + path.string());
+    require(static_cast<uint64_t>(size.QuadPart) <= std::numeric_limits<size_t>::max(),
+            "safetensors file is too large for this host");
+    mapping.bytes = static_cast<size_t>(size.QuadPart);
+    HANDLE section = CreateFileMappingW(file, nullptr, PAGE_READONLY, 0, 0, nullptr);
+    require(section != nullptr, "safetensors file mapping failed: " + path.string());
+    mapping.data = MapViewOfFile(section, FILE_MAP_READ, 0, 0, mapping.bytes);
+    CloseHandle(section);
+    require(mapping.data != nullptr, "safetensors mmap failed: " + path.string());
+#else
     mapping.fd = open(path.c_str(), O_RDONLY | O_CLOEXEC);
     require(mapping.fd >= 0, "Cannot open safetensors: " + path.string());
     struct stat info {};
@@ -83,6 +122,7 @@ void SafeTensorAsset::add_file(
     mapping.bytes = static_cast<size_t>(info.st_size);
     mapping.data = mmap(nullptr, mapping.bytes, PROT_READ, MAP_PRIVATE, mapping.fd, 0);
     require(mapping.data != MAP_FAILED, "safetensors mmap failed: " + path.string());
+#endif
     const auto* bytes = static_cast<const uint8_t*>(mapping.data);
     const uint64_t header_length_u64 = little_u64(bytes);
     require(header_length_u64 > 0 && header_length_u64 <= mapping.bytes - 8,
@@ -141,11 +181,13 @@ SafeTensorAsset& SafeTensorAsset::operator=(SafeTensorAsset&& other) noexcept {
 }
 void SafeTensorAsset::clear() {
     tensors_.clear();
+#ifndef _WIN32
     for (Mapping& mapping : mappings_) {
         if (mapping.data != nullptr && mapping.data != MAP_FAILED)
             munmap(mapping.data, mapping.bytes);
         if (mapping.fd >= 0) close(mapping.fd);
     }
+#endif
     mappings_.clear();
 }
 WeightMap SafeTensorAsset::weights() const {

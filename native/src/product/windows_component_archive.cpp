@@ -11,6 +11,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <string_view>
 
 namespace vrhino::product::windows_component_archive {
 namespace fs = std::filesystem;
@@ -154,9 +155,21 @@ struct Reader {
         }
     }
 };
-fs::path member(const char* text, bool directory = false) {
-    if (!text) invalid("missing UTF-8 member name");
-    std::string name(text);
+fs::path member(const wchar_t* text, bool directory = false) {
+    if (!text) invalid("missing Unicode member name");
+    // libarchive stores decoded Windows entry names as UTF-16. Its narrow
+    // getters can round-trip through the C locale and return null for valid
+    // Unicode. Convert directly, then retain the shared UTF-8 path validator.
+    const std::wstring_view value(text);
+    if (value.empty() || value.size() > INT_MAX) invalid("empty or oversized member name");
+    const int length = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS,
+        value.data(), static_cast<int>(value.size()), nullptr, 0, nullptr, nullptr);
+    if (!length) invalid("member name is not valid UTF-16");
+    std::string name(static_cast<size_t>(length), '\0');
+    if (WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS,
+            value.data(), static_cast<int>(value.size()), name.data(), length,
+            nullptr, nullptr) != length)
+        invalid("cannot encode member name");
     if (directory && !name.empty() && name.back() == '/') name.pop_back();
     const auto path = relative_path(name);
     if (*path.begin() != L"vrhino-media") invalid("unexpected top-level directory");
@@ -249,9 +262,9 @@ void extract(wc::LocalSource& source, const fs::path& staging,
         reader.check(next, object.get());
         const auto type = archive_entry_filetype(entry);
         const bool directory = type == AE_IFDIR;
-        const auto path = member(archive_entry_pathname_utf8(entry), directory);
-        const char* target = archive_entry_hardlink_utf8(entry);
-        if (archive_entry_symlink(entry) || (!directory && type != AE_IFREG && !target))
+        const auto path = member(archive_entry_pathname_w(entry), directory);
+        const wchar_t* target = archive_entry_hardlink_w(entry);
+        if (archive_entry_symlink_w(entry) || (!directory && type != AE_IFREG && !target))
             invalid("symlink or special archive member");
         if (directory && target) invalid("directory hardlink");
         if ((directory || target) && archive_entry_size(entry) != 0) invalid("payload on non-regular archive entry");

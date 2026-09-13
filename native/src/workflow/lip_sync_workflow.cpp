@@ -115,7 +115,18 @@ RgbFrame resize_lanczos(const RgbFrame& input, int output_width, int output_heig
 int64_t lip_sync_output_frame_count(int64_t samples, int32_t rate, int32_t fps) {
     if (samples < 0 || rate <= 0 || fps <= 0)
         fail(LipSyncStage::MediaInput, "invalid audio/frame-rate contract");
+#ifdef _MSC_VER
+    // Exact quotient/remainder decomposition of (samples * fps) / rate.
+    // The remainder product fits in 62 bits. Unsigned arithmetic preserves
+    // the low 64 bits of the existing wide quotient even on narrowing.
+    const uint64_t count = static_cast<uint64_t>(samples);
+    const uint64_t divisor = static_cast<uint64_t>(rate);
+    const uint64_t multiplier = static_cast<uint64_t>(fps);
+    return static_cast<int64_t>((count / divisor) * multiplier +
+        ((count % divisor) * multiplier) / divisor);
+#else
     return static_cast<int64_t>((static_cast<__int128>(samples) * fps) / rate);
+#endif
 }
 
 std::vector<int64_t> ping_pong_frame_cycle(int64_t source, int64_t output) {

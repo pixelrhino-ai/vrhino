@@ -11,11 +11,17 @@
 #include <string_view>
 #include <vector>
 
+#ifdef _WIN32
+#define NOMINMAX
+#include <windows.h>
+#include "vrhino/product/windows_process.h"
+#else
 #include <gnu/libc-version.h>
 #include <sys/stat.h>
 #include <sys/utsname.h>
 #include <sys/vfs.h>
 #include <unistd.h>
+#endif
 
 #include "vrhino/product/pull_orchestration.h"
 
@@ -88,7 +94,14 @@ bool path_is_within(const fs::path& child, const fs::path& parent) {
 std::string display_cache_root(const fs::path& input, const bool is_default) {
     const fs::path root = fs::absolute(input).lexically_normal();
     if (!is_default) return "<custom>";
+#ifdef _WIN32
+    if (const wchar_t* local = _wgetenv(L"LOCALAPPDATA"); local && *local) {
+        if (path_is_within(root, fs::path(local))) return "%LOCALAPPDATA%/VRhino";
+    }
+    const wchar_t* home_value = _wgetenv(L"USERPROFILE");
+#else
     const char* home_value = std::getenv("HOME");
+#endif
     if (home_value != nullptr && *home_value != '\0') {
         const fs::path home = fs::absolute(home_value).lexically_normal();
         if (path_is_within(root, home)) {
@@ -112,6 +125,7 @@ fs::path nearest_existing_path(fs::path path) {
     return {};
 }
 
+#ifndef _WIN32
 bool has_write_permission(const fs::file_status& status) {
     const fs::perms write = fs::perms::owner_write | fs::perms::group_write |
                             fs::perms::others_write;
@@ -130,6 +144,7 @@ std::string filesystem_name(const long type) {
         default: return "UNKNOWN";
     }
 }
+#endif
 
 CacheFacts inspect_cache(const fs::path& requested, const bool is_default) {
     CacheFacts result;
@@ -143,20 +158,44 @@ CacheFacts inspect_cache(const fs::path& requested, const bool is_default) {
     error.clear();
     const fs::file_status status = fs::status(existing, error);
     if (error || !fs::is_directory(status)) return result;
+#ifdef _WIN32
+    // Read-only ACL/access probe: request directory creation rights without
+    // creating a file or changing the cache. A read-only volume still fails.
+    HANDLE directory = CreateFileW(existing.c_str(),
+        FILE_ADD_FILE | FILE_ADD_SUBDIRECTORY | FILE_TRAVERSE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
+        OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+    result.writable = directory != INVALID_HANDLE_VALUE;
+    if (directory != INVALID_HANDLE_VALUE) CloseHandle(directory);
+#else
     result.writable = has_write_permission(status) &&
                       ::access(existing.c_str(), W_OK | X_OK) == 0;
+#endif
 
     const fs::space_info space = fs::space(existing, error);
     if (!error && space.available != std::numeric_limits<uintmax_t>::max())
         result.available_bytes = static_cast<uint64_t>(space.available);
 
+#ifdef _WIN32
+    wchar_t volume[MAX_PATH]{};
+    wchar_t filesystem[MAX_PATH]{};
+    DWORD flags = 0;
+    if (GetVolumePathNameW(existing.c_str(), volume, MAX_PATH) &&
+        GetVolumeInformationW(volume, nullptr, 0, nullptr, nullptr, &flags,
+                              filesystem, MAX_PATH)) {
+        result.filesystem = windows_process::utf8(fs::path(filesystem));
+        if (flags & FILE_READ_ONLY_VOLUME) result.writable = false;
+    }
+#else
     struct statfs filesystem {};
     if (::statfs(existing.c_str(), &filesystem) == 0)
         result.filesystem = filesystem_name(filesystem.f_type);
+#endif
     result.usable = result.available_bytes.has_value() && result.writable;
     return result;
 }
 
+#ifndef _WIN32
 std::string read_small_file(const fs::path& path, const size_t maximum = 64 * 1024) {
     std::error_code error;
     const uintmax_t size = fs::file_size(path, error);
@@ -200,9 +239,30 @@ std::string nvidia_driver_version() {
         if (dotted_version(token)) return token;
     return "UNKNOWN";
 }
+#endif
 
 SystemFacts inspect_system() {
     SystemFacts result;
+#ifdef _WIN32
+    result.operating_system = "Windows";
+    result.glibc = "not applicable (Windows)";
+    SYSTEM_INFO native{};
+    GetNativeSystemInfo(&native);
+    if (native.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+        result.architecture = "x86_64";
+    else if (native.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_ARM64)
+        result.architecture = "aarch64";
+    using VersionQuery = LONG (WINAPI*)(OSVERSIONINFOW*);
+    const auto query = reinterpret_cast<VersionQuery>(
+        GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetVersion"));
+    OSVERSIONINFOW version{};
+    version.dwOSVersionInfoSize = sizeof(version);
+    if (query && query(&version) == 0)
+        result.kernel = "Windows NT " + std::to_string(version.dwMajorVersion) + "." +
+            std::to_string(version.dwMinorVersion) + "." + std::to_string(version.dwBuildNumber);
+    // The CUDA driver API version is reported by the existing hardware query.
+    // Do not mislabel it as the NVIDIA display-driver package version.
+#else
     result.operating_system = os_release_name();
     struct utsname information {};
     if (::uname(&information) == 0) {
@@ -212,6 +272,7 @@ SystemFacts inspect_system() {
     if (const char* version = ::gnu_get_libc_version(); version != nullptr && *version != '\0')
         result.glibc = version;
     result.nvidia_driver = nvidia_driver_version();
+#endif
     return result;
 }
 
@@ -387,8 +448,18 @@ DoctorReport run_doctor(const DoctorOptions& options) {
     std::error_code encoder_error;
     const fs::file_status encoder_status = fs::status(options.encoder_path, encoder_error);
     const bool encoder_exists = !encoder_error && fs::is_regular_file(encoder_status);
+#ifdef _WIN32
+    bool encoder_executable = false;
+    if (encoder_exists) {
+        try {
+            windows_process::check_helper(options.encoder_path);
+            encoder_executable = true;
+        } catch (const windows_process::Error&) {}
+    }
+#else
     const bool encoder_executable = encoder_exists &&
                                     ::access(options.encoder_path.c_str(), X_OK) == 0;
+#endif
     if (options.encoder_resolution_error.has_value()) {
         encoder_problem = *options.encoder_resolution_error;
     } else {

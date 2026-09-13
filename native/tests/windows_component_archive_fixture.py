@@ -47,6 +47,8 @@ def main():
 
     make("valid", valid=True)
     make("Unicode 档案", [("vrhino-media/目录/媒体 文件.txt", b"unicode", tarfile.REGTYPE, "")], valid=True)
+    make("unicode-hardlink", [("vrhino-media/目录/\U0001f418.txt", b"unicode", tarfile.REGTYPE, ""),
+                              ("vrhino-media/链接.txt", b"", tarfile.LNKTYPE, "vrhino-media/目录/\U0001f418.txt")], valid=True)
     make("long", [("vrhino-media/" + "/".join(["segment" * 12] * 4) + "/file.txt", b"long", tarfile.REGTYPE, "")], valid=True)
     make("hardlink", [("vrhino-media/alias", b"", tarfile.LNKTYPE, "vrhino-media/bin/vrhino-ffmpeg.exe")], valid=True)
     make("forward-link", [("vrhino-media/alias", b"", tarfile.LNKTYPE, "vrhino-media/later"),
@@ -71,6 +73,7 @@ def main():
         make("unsafe-" + str(index), [(path, b"bad", tarfile.REGTYPE, "")])
     make("symlink", [("vrhino-media/link", b"", tarfile.SYMTYPE, "../../outside")])
     make("link-escape", [("vrhino-media/link", b"", tarfile.LNKTYPE, "../outside")])
+    make("unicode-link-escape", [("vrhino-media/链接.txt", b"", tarfile.LNKTYPE, "../目录/outside")])
     make("link-cycle", [("vrhino-media/link", b"", tarfile.LNKTYPE, "vrhino-media/link")])
     make("fifo", [("vrhino-media/fifo", b"", tarfile.FIFOTYPE, "")])
     make("type-collision", [("vrhino-media/bin", b"bad", tarfile.REGTYPE, "")])

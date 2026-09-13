@@ -2,6 +2,7 @@
 #include "vrhino/product/registry.h"
 #include "windows_component_archive.h"
 #include <atomic>
+#include <clocale>
 #include <fstream>
 #include <iostream>
 #include <thread>
@@ -49,6 +50,7 @@ void launch(Child& child, const fs::path& exe, const fs::path& archive, const fs
 }
 int wmain(int argc, wchar_t** argv) {
     try {
+        require(std::setlocale(LC_CTYPE, "C") != nullptr, "set C locale for Unicode regression");
         if (argc == 6 && std::wstring(argv[1]) == L"--child") {
             const std::wstring name(argv[4]);
             wc::Handle ready(OpenEventW(EVENT_MODIFY_STATE, FALSE, (name + L"-ready").c_str()));
@@ -88,6 +90,11 @@ int wmain(int argc, wchar_t** argv) {
                             "cleanup changed surviving alias attributes");
                 }
                 if (name == "Unicode 档案") require(fs::exists(wc::native_path(result.root / L"目录/媒体 文件.txt")), "Unicode member");
+                if (name == "unicode-hardlink") {
+                    require(wc::equivalent(result.root / L"链接.txt",
+                                          result.root / L"目录/\U0001f418.txt"),
+                            "Unicode hardlink target or UTF-16 surrogate pair changed");
+                }
                 if (name == "sparse") {
                     const auto bytes = wa::read_text(result.root / "sparse.bin");
                     require(bytes.size() == 1048576 && bytes.substr(0, 3) == "abc" && bytes.substr(bytes.size() - 3) == "xyz",
@@ -273,7 +280,9 @@ int wmain(int argc, wchar_t** argv) {
         require(after == before, "handle growth across extraction cycles");
         std::cout << "24 success/failure cycles handles " << before << " -> " << after << " PASS\n";
         clean(work);
-        std::cout << "WINDOWS_COMPONENT_ARCHIVE_TESTS=PASS fixtures=" << passed << '\n';
+        require(std::string(std::setlocale(LC_CTYPE, nullptr)) == "C",
+                "archive extraction changed the process locale");
+        std::cout << "WINDOWS_COMPONENT_ARCHIVE_TESTS=PASS fixtures=" << passed << " locale=C\n";
         return 0;
     } catch (const std::exception& error) {
         wc::test_hook = {}; wa::test_hook = {};

@@ -1,0 +1,14 @@
+# Native Windows build-only Cargo launcher. No shell or runtime dependency.
+set(ENV{CARGO_HOME} "@VRHINO_TOKENIZER_CARGO_HOME@")
+set(ENV{CARGO_NET_OFFLINE} "true")
+set(cargo_arguments)
+math(EXPR last_argument "${CMAKE_ARGC} - 1")
+foreach(index RANGE 3 ${last_argument})
+    list(APPEND cargo_arguments "${CMAKE_ARGV${index}}")
+endforeach()
+execute_process(
+    COMMAND "@VRHINO_REAL_CARGO_EXECUTABLE@" ${cargo_arguments} --locked --offline
+    RESULT_VARIABLE cargo_result)
+if(NOT cargo_result STREQUAL "0")
+    message(FATAL_ERROR "Locked/offline Cargo build failed: ${cargo_result}")
+endif()

@@ -31,6 +31,7 @@ core
 /banner.png
 /phase*-results/
 /phase*-golden/
+/windows-wan21-smoke/
 /experiments/
 /models/
 /checkpoints/

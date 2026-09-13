@@ -33,6 +33,13 @@ private:
         void* data = nullptr;
         size_t bytes = 0;
         std::filesystem::path path;
+#ifdef _WIN32
+        Mapping() = default;
+        ~Mapping();
+        Mapping(Mapping&& other) noexcept;
+        Mapping(const Mapping&) = delete;
+        Mapping& operator=(const Mapping&) = delete;
+#endif
     };
     SafeTensorAsset() = default;
     void add_file(const std::filesystem::path& path, const std::string& logical_name,

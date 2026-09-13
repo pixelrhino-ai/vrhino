@@ -54,6 +54,10 @@ function(_vrhino_verify_source_inventory root inventory expected_inventory_hash)
             list(APPEND actual_paths "${relative}")
         endif()
     endforeach()
+
+    # Only the exact, separately validated Git link placeholder may be an
+    # additional regular file in a Windows checkout (core.symlinks=false).
+    list(APPEND expected_paths ${ARGN})
     list(SORT expected_paths)
     list(SORT actual_paths)
     if(NOT expected_paths STREQUAL actual_paths)
@@ -62,11 +66,35 @@ function(_vrhino_verify_source_inventory root inventory expected_inventory_hash)
     endif()
 endfunction()
 
+function(_vrhino_tokenizer_absl_placeholder source_root result)
+    set(absl_relative "sentencepiece/third_party/absl")
+    set(absl_link "${source_root}/tokenizers-cpp/${absl_relative}")
+    set(absl_placeholder)
+    if(IS_SYMLINK "${absl_link}")
+        file(READ_SYMLINK "${absl_link}" absl_link_target)
+    elseif(WIN32 AND EXISTS "${absl_link}" AND NOT IS_DIRECTORY "${absl_link}")
+        # Git materializes a symlink as its exact target bytes on Windows.
+        # Abseil headers are supplied by the verified absl:: targets, so no
+        # privileged symlink creation or vendored-source rewrite is needed.
+        file(READ "${absl_link}" absl_link_target)
+        set(absl_placeholder "${absl_relative}")
+    else()
+        message(FATAL_ERROR "Pinned SentencePiece Abseil include link is missing")
+    endif()
+    if(NOT absl_link_target STREQUAL "../../../abseil-cpp/absl")
+        message(FATAL_ERROR "Pinned SentencePiece Abseil include link changed")
+    endif()
+    set(${result} "${absl_placeholder}" PARENT_SCOPE)
+endfunction()
+
 function(vrhino_verify_tokenizer_build_sources source_root)
+    _vrhino_tokenizer_absl_placeholder("${source_root}" absl_placeholder)
+
     _vrhino_verify_source_inventory(
         "${source_root}/tokenizers-cpp"
         "${source_root}/inventories/tokenizers-cpp-expanded.sha256"
-        "63c37881d795895fc65322f648552c5cfeaa2db8438cb0c59fa9537d2ddbc04e")
+        "63c37881d795895fc65322f648552c5cfeaa2db8438cb0c59fa9537d2ddbc04e"
+        ${absl_placeholder})
     _vrhino_verify_source_inventory(
         "${source_root}/abseil-cpp"
         "${source_root}/inventories/abseil-cpp.sha256"
@@ -75,16 +103,6 @@ function(vrhino_verify_tokenizer_build_sources source_root)
         "${source_root}/cargo-vendor"
         "${source_root}/inventories/cargo-vendor.sha256"
         "ebb8d6b25210908e1c45b0a585819c8fff177240d356bc5c76600628db1a76dd")
-
-    set(absl_link
-        "${source_root}/tokenizers-cpp/sentencepiece/third_party/absl")
-    if(NOT IS_SYMLINK "${absl_link}")
-        message(FATAL_ERROR "Pinned SentencePiece Abseil include link is missing")
-    endif()
-    file(READ_SYMLINK "${absl_link}" absl_link_target)
-    if(NOT absl_link_target STREQUAL "../../../abseil-cpp/absl")
-        message(FATAL_ERROR "Pinned SentencePiece Abseil include link changed")
-    endif()
 
     file(SHA256 "${source_root}/tokenizers-cpp/rust/Cargo.lock" cargo_lock_hash)
     if(NOT cargo_lock_hash STREQUAL
