@@ -102,6 +102,43 @@ Apache-2.0 source builds.
 
 ## Assembly and validation
 
+MSVC Release, RelWithDebInfo and MinSizeRel builds apply
+`/experimental:deterministic` and `/pathmap` to project and dependency targets.
+The former is required by MSVC 19.38; `/pathmap` alone is ignored. Source names
+remain useful logical paths under `vrhino/`, `build/` and `toolchain/`, with line
+numbers and diagnostic messages preserved. CUDA host compilation receives the
+same flags through NVCC. Offline Cargo uses `--remap-path-prefix` and passes the
+MSVC mappings to its native dependencies, preserving existing CRT flags. No
+vendor source, runtime code or linked binary is rewritten. Debug configuration
+keeps normal local source locations.
+
+CMake records the physical roots in the build-only
+`windows-build-privacy-roots.txt`. The assembler requires that file and scans
+every actual EXE/DLL byte stream for those roots plus the repository, build,
+dependency input and current user profile. UTF-8 and UTF-16LE, slash variants,
+ASCII case variants and read-boundary splits are checked. Add
+`--private-root <absolute-root>` for other independently built dependency/SDK
+locations; record all such inputs rather than assuming a renamed or relocated
+dependency is clean. The roots file is not distributed. This check rejects
+known physical roots; it is not a proof that arbitrary third-party strings
+contain no confidential data.
+
+Unmodified publisher-supplied redistributables can contain their publisher's
+build metadata. In the reviewed 39-DLL closure, OpenSSL, LZ4, XZ and the three
+MSVC CRT DLLs retain publisher source/PDB paths. These are an explicitly
+documented vendor-metadata exception, not permission for VRhino checkout,
+build, developer profile or SDK-installation paths. Keep the vendor bytes,
+hashes and provenance unchanged; do not strip or patch signed redistributables.
+Record the exact vendor occurrences with each candidate's scan evidence.
+
+The PE's optional PDB reference uses only the PDB filename. Source records are
+remapped, but local PDBs can still contain compiler/linker command lines and
+must remain outside the package. `tools/test_windows_build_privacy.py -v` runs
+a real MSVC/CMake probe for project, third-party header, generated header and
+wide source strings, including retained error locations. Run it in an x64
+developer environment with CMake and Ninja on PATH. Windows CI runs this probe
+and the byte-level package rejection tests; the existing Linux CI is unchanged.
+
 ```powershell
 python tools/package_windows_build.py `
   --build-dir <fresh-build> --dependency-root <audited-input> `

@@ -1,6 +1,26 @@
 # Native Windows build-only Cargo launcher. No shell or runtime dependency.
 set(ENV{CARGO_HOME} "@VRHINO_TOKENIZER_CARGO_HOME@")
 set(ENV{CARGO_NET_OFFLINE} "true")
+if(NOT "@CMAKE_BUILD_TYPE@" STREQUAL "Debug")
+    include("@CMAKE_CURRENT_BINARY_DIR@/windows-build-privacy.cmake")
+    # Preserve upstream CRT flags and caller flags; encoded Cargo flags safely
+    # carry mappings containing spaces without a shell or vendor-source edits.
+    string(ASCII 31 separator)
+    if(DEFINED ENV{CARGO_ENCODED_RUSTFLAGS})
+        string(REPLACE "${separator}" ";" rust_flags "$ENV{CARGO_ENCODED_RUSTFLAGS}")
+    else()
+        separate_arguments(rust_flags WINDOWS_COMMAND "$ENV{RUSTFLAGS}")
+    endif()
+    list(APPEND rust_flags ${VRHINO_PRIVACY_RUST_FLAGS})
+    string(JOIN "${separator}" encoded ${rust_flags})
+    set(ENV{CARGO_ENCODED_RUSTFLAGS} "${encoded}")
+    # cc-rs native dependencies are compiled outside CMake's target graph.
+    set(cl_flags "$ENV{CL}")
+    foreach(flag IN LISTS VRHINO_PRIVACY_MSVC_FLAGS)
+        string(APPEND cl_flags " \"${flag}\"")
+    endforeach()
+    set(ENV{CL} "${cl_flags}")
+endif()
 set(cargo_arguments)
 math(EXPR last_argument "${CMAKE_ARGC} - 1")
 foreach(index RANGE 3 ${last_argument})

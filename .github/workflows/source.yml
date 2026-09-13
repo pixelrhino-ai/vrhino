@@ -10,6 +10,19 @@ concurrency:
   group: source-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  windows-build-privacy:
+    name: Windows compiler path privacy
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Verify native compiler mapping and package rejection
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          python tools/test_windows_build_privacy.py -v
+          if errorlevel 1 exit /b 1
+          python tools/test_package_windows_build.py -v
+          if errorlevel 1 exit /b 1
   host:
     name: Linux host and offline tokenizer build
     runs-on: ubuntu-22.04
