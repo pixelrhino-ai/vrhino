@@ -10,9 +10,13 @@
 #include <sstream>
 #include <system_error>
 
+#ifdef _WIN32
+#include "vrhino/product/windows_cache.h"
+#else
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#endif
 
 #include "vrhino/error.h"
 #include "vrhino/json.h"
@@ -23,7 +27,9 @@ namespace fs = std::filesystem;
 namespace {
 
 constexpr uint64_t kMaximumManifestBytes = 8U * 1024U * 1024U;
+#ifndef _WIN32
 std::atomic<uint64_t> g_staging_sequence = 0;
+#endif
 
 [[noreturn]] void fail(ModelPackageErrorCode code, const std::string& message) {
     throw ModelPackageError(code, message);
@@ -150,6 +156,7 @@ fs::path cache_blob_path(const CacheLayout& layout, const std::string& sha256) {
     return layout.blobs / "sha256" / sha256.substr(0, 2) / sha256;
 }
 
+#ifndef _WIN32
 fs::path unique_staging_path(const fs::path& parent, const std::string& prefix) {
     const auto clock = std::chrono::steady_clock::now().time_since_epoch().count();
     const uint64_t sequence = g_staging_sequence.fetch_add(1);
@@ -177,6 +184,9 @@ void sync_directory(const fs::path& path) {
                           "cannot sync directory: " + path.string());
 }
 
+#endif
+
+#ifndef _WIN32
 void create_cache_directories(const fs::path& path) {
     std::error_code error;
     fs::create_directories(path, error);
@@ -195,6 +205,8 @@ void write_manifest(const fs::path& path, const std::string& text) {
     output.close();
     sync_file(path);
 }
+
+#endif
 
 void ensure_reference_exists(const std::set<std::string>& artifact_ids,
                              const std::string& artifact_id,
@@ -234,56 +246,6 @@ void validate_compatibility(const ModelPackageManifest& manifest) {
 
 }  // namespace
 
-const char* model_package_error_code_name(const ModelPackageErrorCode code) {
-    switch (code) {
-        case ModelPackageErrorCode::ModelNotFound: return "MODEL_NOT_FOUND";
-        case ModelPackageErrorCode::PackageInvalid: return "PACKAGE_INVALID";
-        case ModelPackageErrorCode::PackageVersionUnsupported:
-            return "PACKAGE_VERSION_UNSUPPORTED";
-        case ModelPackageErrorCode::ArtifactMissing: return "ARTIFACT_MISSING";
-        case ModelPackageErrorCode::ChecksumMismatch: return "CHECKSUM_MISMATCH";
-        case ModelPackageErrorCode::InstallFailed: return "INSTALL_FAILED";
-        case ModelPackageErrorCode::CacheError: return "CACHE_ERROR";
-        case ModelPackageErrorCode::RegistryUnavailable: return "REGISTRY_UNAVAILABLE";
-        case ModelPackageErrorCode::DownloadFailed: return "DOWNLOAD_FAILED";
-        case ModelPackageErrorCode::DownloadResumeFailed: return "DOWNLOAD_RESUME_FAILED";
-        case ModelPackageErrorCode::NetworkError: return "NETWORK_ERROR";
-        case ModelPackageErrorCode::InsufficientDiskSpace: return "INSUFFICIENT_DISK_SPACE";
-        case ModelPackageErrorCode::UnsupportedGpu: return "UNSUPPORTED_GPU";
-        case ModelPackageErrorCode::InsufficientVram: return "INSUFFICIENT_VRAM";
-        case ModelPackageErrorCode::DriverIncompatible: return "DRIVER_INCOMPATIBLE";
-        case ModelPackageErrorCode::InvalidInput: return "INVALID_INPUT";
-        case ModelPackageErrorCode::RuntimeError: return "RUNTIME_ERROR";
-        case ModelPackageErrorCode::OutOfMemory: return "OUT_OF_MEMORY";
-        case ModelPackageErrorCode::OutputExists: return "OUTPUT_EXISTS";
-        case ModelPackageErrorCode::OutputInvalid: return "OUTPUT_INVALID";
-        case ModelPackageErrorCode::VideoEncodingFailed: return "VIDEO_ENCODING_FAILED";
-        case ModelPackageErrorCode::Cancelled: return "CANCELLED";
-        case ModelPackageErrorCode::ComponentNotFound: return "COMPONENT_NOT_FOUND";
-        case ModelPackageErrorCode::ComponentInvalid: return "COMPONENT_INVALID";
-        case ModelPackageErrorCode::ComponentVersionUnsupported:
-            return "COMPONENT_VERSION_UNSUPPORTED";
-        case ModelPackageErrorCode::SourceInvalid: return "SOURCE_INVALID";
-        case ModelPackageErrorCode::SourceRevisionRequired:
-            return "SOURCE_REVISION_REQUIRED";
-        case ModelPackageErrorCode::SourceNotFound: return "SOURCE_NOT_FOUND";
-        case ModelPackageErrorCode::SourceDownloadFailed:
-            return "SOURCE_DOWNLOAD_FAILED";
-        case ModelPackageErrorCode::SourceDownloadResumeFailed:
-            return "SOURCE_DOWNLOAD_RESUME_FAILED";
-        case ModelPackageErrorCode::SourceIntegrityFailed:
-            return "SOURCE_INTEGRITY_FAILED";
-        case ModelPackageErrorCode::SourceDiskFull: return "SOURCE_DISK_FULL";
-        case ModelPackageErrorCode::PullPlanNotFound: return "PULL_PLAN_NOT_FOUND";
-    }
-    return "CACHE_ERROR";
-}
-
-ModelPackageError::ModelPackageError(const ModelPackageErrorCode code,
-                                     const std::string& message)
-    : std::runtime_error(std::string(model_package_error_code_name(code)) + ": " + message),
-      code_(code) {}
-
 std::string PackageIdentity::reference() const {
     return name_space + "/" + name + ":" + version;
 }
@@ -302,6 +264,18 @@ uint64_t ModelPackageManifest::logical_size() const {
 CacheLayout cache_layout(const fs::path& explicit_root) {
     fs::path root = explicit_root;
     if (root.empty()) {
+#ifdef _WIN32
+        if (const wchar_t* configured = _wgetenv(L"VRHINO_HOME"); configured && *configured) {
+            root = configured;
+        } else if (const wchar_t* local = _wgetenv(L"LOCALAPPDATA"); local && *local) {
+            root = fs::path(local) / L"VRhino";
+        } else if (const wchar_t* profile = _wgetenv(L"USERPROFILE"); profile && *profile) {
+            root = fs::path(profile) / L"AppData/Local/VRhino";
+        } else {
+            fail(ModelPackageErrorCode::CacheError,
+                 "set --cache-root or VRHINO_HOME; Windows LOCALAPPDATA/USERPROFILE is unavailable");
+        }
+#else
         if (const char* configured = std::getenv("VRHINO_HOME");
             configured != nullptr && *configured != '\0') {
             root = configured;
@@ -312,6 +286,7 @@ CacheLayout cache_layout(const fs::path& explicit_root) {
             fail(ModelPackageErrorCode::CacheError,
                  "neither an explicit cache root, VRHINO_HOME, nor HOME is available");
         }
+#endif
     }
     root = fs::absolute(root).lexically_normal();
     return CacheLayout{root, root / "models", root / "blobs", root / "tmp"};
@@ -657,7 +632,11 @@ ModelPackageManifest load_model_package_manifest(const fs::path& path) {
     return manifest;
 }
 
-LocalModelCache::LocalModelCache(fs::path root) : layout_(cache_layout(root)) {}
+LocalModelCache::LocalModelCache(fs::path root) : layout_(cache_layout(root)) {
+#ifdef _WIN32
+    windows_cache::ensure_directory(layout_.root);
+#endif
+}
 
 fs::path LocalModelCache::artifact_path(const std::string& sha256) const {
     if (!valid_sha256(sha256)) {
@@ -679,6 +658,7 @@ bool LocalModelCache::contains_blob(const ArtifactDeclaration& artifact,
     return !verify_hash || sha256_file(path, progress) == artifact.sha256;
 }
 
+#ifndef _WIN32
 BlobAdmissionResult LocalModelCache::admit_downloaded_blob(
     const fs::path& completed_download,
     const ArtifactDeclaration& artifact,
@@ -957,6 +937,10 @@ InstallResult LocalModelCache::install(const fs::path& package_directory) {
     return result;
 }
 
+#else
+#include "model_package_windows.inc"
+#endif
+
 ResolvedRunnableModel LocalModelCache::resolve(const std::string& reference,
                                                const bool verify_hashes) const {
     const PackageIdentity requested = parse_package_reference(reference);
@@ -1019,7 +1003,11 @@ void LocalModelCache::discard_installed_package_for_repair(
                  "refusing to repair package directory containing unexpected data");
     }
     std::error_code error;
+#ifdef _WIN32
+    windows_cache::retire_tree(version_directory, layout_.temporary);
+#else
     fs::remove_all(version_directory, error);
+#endif
     if (error)
         fail(ModelPackageErrorCode::CacheError,
              "cannot discard invalid installed package: " + error.message());
@@ -1034,7 +1022,11 @@ void LocalModelCache::discard_invalid_blob(const ArtifactDeclaration& artifact) 
         !fs::is_regular_file(path, error))
         fail(ModelPackageErrorCode::CacheError,
              "refusing to discard non-regular CAS path: " + artifact.sha256);
+#ifdef _WIN32
+    windows_cache::remove(path);
+#else
     fs::remove(path, error);
+#endif
     if (error)
         fail(ModelPackageErrorCode::CacheError,
              "cannot discard invalid CAS blob: " + error.message());
@@ -1090,6 +1082,9 @@ void LocalModelCache::remove(const std::string& reference) {
     }
     if (entries != 1) fail(ModelPackageErrorCode::CacheError,
                            "installed package directory is malformed");
+#ifdef _WIN32
+    windows_cache::retire_tree(version_directory, layout_.temporary);
+#else
     std::error_code error;
     fs::remove(manifest_path, error);
     if (error || !fs::remove(version_directory, error)) {
@@ -1099,6 +1094,7 @@ void LocalModelCache::remove(const std::string& reference) {
     fs::remove(version_directory.parent_path(), error);
     fs::remove(version_directory.parent_path().parent_path(), error);
     sync_directory(layout_.models);
+#endif
 }
 
 }  // namespace vrhino::product

@@ -8,9 +8,13 @@
 #include <limits>
 #include <optional>
 #include <set>
+#ifdef _WIN32
+#include "vrhino/product/windows_cache.h"
+#else
 #include <fcntl.h>
 #include <sys/file.h>
 #include <unistd.h>
+#endif
 
 #include "vrhino/error.h"
 #include "vrhino/json.h"
@@ -112,6 +116,9 @@ PullDistributionPlan parse_pull_plan(const fs::path& path) {
     }
 }
 
+#ifdef _WIN32
+using FileLock = windows_cache::Lock;
+#else
 class FileLock {
 public:
     explicit FileLock(const fs::path& path) {
@@ -138,6 +145,7 @@ public:
 private:
     int descriptor_ = -1;
 };
+#endif
 
 std::string lock_identity(const PackageIdentity& identity) {
     return identity.name_space + "-" + identity.name + "-" + identity.version;

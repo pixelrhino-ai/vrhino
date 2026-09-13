@@ -131,7 +131,11 @@ AudioInput decode_audio_mono_f32_16khz(
     const std::filesystem::path& helper, const std::filesystem::path& input,
     int64_t max_samples, const std::function<bool()>& cancelled = {});
 MediaProbe probe_media_bounded(const std::filesystem::path& helper,
-                               const std::filesystem::path& input);
+                               const std::filesystem::path& input
+#ifdef _WIN32
+                               , const std::function<bool()>& cancelled = {}
+#endif
+                               );
 MediaEncodeResult encode_mux_mp4_atomic(
     const std::filesystem::path& helper, const std::vector<RgbFrame>& frames,
     int32_t fps, const std::filesystem::path& driving_audio,

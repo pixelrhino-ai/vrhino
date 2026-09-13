@@ -7,9 +7,17 @@
 #include <fcntl.h>
 #include <limits>
 #include <set>
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <io.h>
+#else
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#endif
 
 #include "vrhino/error.h"
 #include "vrhino/quantization/reference.h"
@@ -73,11 +81,44 @@ void require_exact_keys(const Json& object, const std::set<std::string>& expecte
     }
 }
 
+#ifdef _WIN32
+int open_vrm(const std::wstring& path) {
+    require(path.find(L'\0') == std::wstring::npos, "Invalid VRM path");
+    const HANDLE file = CreateFileW(path.c_str(), GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (file == INVALID_HANDLE_VALUE) throw Error("Cannot open VRM");
+    // Retain the existing stable-open descriptor boundary. Only _close may
+    // close the file HANDLE after a successful ownership transfer.
+    const int descriptor = _open_osfhandle(reinterpret_cast<intptr_t>(file),
+        _O_RDONLY | _O_BINARY | _O_NOINHERIT);
+    if (descriptor < 0) {
+        CloseHandle(file);
+        throw Error("Cannot own VRM file handle");
+    }
+    return descriptor;
+}
+
+int open_vrm(const std::string& path) {
+    require(!path.empty() && path.find('\0') == std::string::npos &&
+                path.size() <= static_cast<size_t>(std::numeric_limits<int>::max()),
+            "Invalid VRM UTF-8 path");
+    const int length = static_cast<int>(path.size());
+    const int wide_length = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
+        path.data(), length, nullptr, 0);
+    require(wide_length > 0, "Invalid VRM UTF-8 path");
+    std::wstring wide(static_cast<size_t>(wide_length), L'\0');
+    require(MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path.data(), length,
+                wide.data(), wide_length) == wide_length, "Invalid VRM UTF-8 path");
+    return open_vrm(wide);
+}
+#else
 int open_vrm(const std::string& path) {
     const int descriptor = open(path.c_str(), O_RDONLY | O_CLOEXEC);
     require(descriptor >= 0, "Cannot open VRM: " + path);
     return descriptor;
 }
+#endif
 
 constexpr std::array<uint64_t, 8> kIv = {
     0x6a09e667f3bcc908ULL, 0xbb67ae8584caa73bULL, 0x3c6ef372fe94f82bULL,
@@ -155,11 +196,44 @@ std::vector<int64_t> shape_from_json(const Json& value) {
 VrmModel::VrmModel(const std::string& path, bool verify_checksum)
     : VrmModel(open_vrm(path), verify_checksum) {}
 
-VrmModel::VrmModel(const int owned_descriptor, bool verify_checksum) {
+#ifdef _WIN32
+VrmModel::OwnedDescriptor::~OwnedDescriptor() {
+    if (value >= 0) _close(value);
+}
+
+VrmModel::VrmModel(const std::wstring& path, bool verify_checksum)
+    : VrmModel(open_vrm(path), verify_checksum) {}
+#endif
+
+VrmModel::VrmModel(const int owned_descriptor, bool verify_checksum)
+#ifdef _WIN32
+    : fd_{owned_descriptor}
+#endif
+{
     const auto started = std::chrono::steady_clock::now();
     require(owned_descriptor >= 0, "Invalid VRM file descriptor");
+#ifndef _WIN32
     fd_ = owned_descriptor;
+#endif
     try {
+#ifdef _WIN32
+        const HANDLE file = reinterpret_cast<HANDLE>(_get_osfhandle(fd_.value));
+        LARGE_INTEGER size{};
+        require(GetFileSizeEx(file, &size) != 0 &&
+                    size.QuadPart >= static_cast<LONGLONG>(kHeaderSize),
+                "Truncated VRM file");
+        require(static_cast<uint64_t>(size.QuadPart) <=
+                    std::numeric_limits<size_t>::max(),
+                "VRM file is too large for this host");
+        mapping_size_ = static_cast<size_t>(size.QuadPart);
+        const HANDLE section = CreateFileMappingW(file, nullptr, PAGE_READONLY, 0, 0, nullptr);
+        if (section == nullptr) throw Error("VRM file mapping failed");
+        mapping_ = MapViewOfFile(section, FILE_MAP_READ, 0, 0, mapping_size_);
+        // The mapped view retains the section independently of this handle.
+        // Close it on both success and failure; release_storage owns the view.
+        CloseHandle(section);
+        require(mapping_ != nullptr, "VRM mmap failed");
+#else
         struct stat info{};
         require(fstat(fd_, &info) == 0 && info.st_size >= static_cast<off_t>(kHeaderSize), "Truncated VRM file");
         require(static_cast<uintmax_t>(info.st_size) <=
@@ -168,6 +242,7 @@ VrmModel::VrmModel(const int owned_descriptor, bool verify_checksum) {
         mapping_size_ = static_cast<size_t>(info.st_size);
         mapping_ = mmap(nullptr, mapping_size_, PROT_READ, MAP_PRIVATE, fd_, 0);
         require(mapping_ != MAP_FAILED, "VRM mmap failed");
+#endif
     mmap_setup_seconds_ = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
     const auto* bytes = static_cast<const uint8_t*>(mapping_);
     require(std::equal(kMagic.begin(), kMagic.end(), bytes), "Bad VRM magic");
@@ -400,11 +475,19 @@ VrmModel::~VrmModel() {
 
 void VrmModel::release_storage() noexcept {
     tensors_.clear();
+#ifdef _WIN32
+    if (mapping_ != nullptr) UnmapViewOfFile(mapping_);
+    // The descriptor member closes the file after view cleanup, including
+    // constructor unwinding before this function can ever be entered.
+#else
     if (mapping_ != nullptr && mapping_ != MAP_FAILED) munmap(mapping_, mapping_size_);
     if (fd_ >= 0) close(fd_);
+#endif
     mapping_ = nullptr;
     mapping_size_ = 0;
+#ifndef _WIN32
     fd_ = -1;
+#endif
 }
 
 const Tensor& VrmModel::tensor(const std::string& canonical_name) const {

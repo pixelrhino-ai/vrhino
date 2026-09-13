@@ -1,4 +1,4 @@
-#include "vrhino/product/registry.h"
+#include "registry_transport.h"
 
 #include <algorithm>
 #include <cctype>
@@ -12,11 +12,15 @@
 #include <system_error>
 #include <thread>
 
-#include <curl/curl.h>
+#ifdef _WIN32
+#include "vrhino/product/windows_cache.h"
+#else
 #include <fcntl.h>
 #include <sys/file.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#endif
+#include <curl/curl.h>
 
 #include "vrhino/error.h"
 #include "vrhino/json.h"
@@ -24,7 +28,7 @@
 namespace vrhino::product {
 namespace fs = std::filesystem;
 
-namespace {
+namespace registry_detail {
 
 constexpr uint64_t kMaximumRegistryDocumentBytes = 8U * 1024U * 1024U;
 
@@ -100,34 +104,7 @@ int64_t integer_field(const Json& value, const std::string& key) {
     return result->integer();
 }
 
-class FileLock {
-public:
-    explicit FileLock(const fs::path& path) {
-        std::error_code error;
-        fs::create_directories(path.parent_path(), error);
-        if (error) fail(ModelPackageErrorCode::CacheError,
-                        "cannot create lock directory: " + error.message());
-        descriptor_ = ::open(path.c_str(), O_CREAT | O_RDWR, 0600);
-        if (descriptor_ < 0 || ::flock(descriptor_, LOCK_EX) != 0) {
-            if (descriptor_ >= 0) ::close(descriptor_);
-            fail(ModelPackageErrorCode::CacheError,
-                 "cannot acquire cache lock: " + path.string());
-        }
-    }
 
-    ~FileLock() {
-        if (descriptor_ >= 0) {
-            ::flock(descriptor_, LOCK_UN);
-            ::close(descriptor_);
-        }
-    }
-
-    FileLock(const FileLock&) = delete;
-    FileLock& operator=(const FileLock&) = delete;
-
-private:
-    int descriptor_ = -1;
-};
 
 struct CurlHandle {
     CURL* value = curl_easy_init();
@@ -334,7 +311,12 @@ int transfer_progress(void* user_data,
 }
 
 struct DownloadWriteState {
+#ifdef _WIN32
+    windows_cache::StagedFile* output = nullptr;
+    std::exception_ptr write_error;
+#else
     FILE* output = nullptr;
+#endif
     CURL* handle = nullptr;
     uint64_t requested_offset = 0;
     uint64_t expected_size = 0;
@@ -388,7 +370,12 @@ size_t write_download(char* data, const size_t size, const size_t count,
     auto* state = static_cast<DownloadWriteState*>(user_data);
     if (state->range_ignored || state->range_invalid) return 0;
     const size_t bytes = size * count;
+#ifdef _WIN32
+    try { state->output->write(data, bytes); return bytes; }
+    catch (...) { state->write_error = std::current_exception(); return 0; }
+#else
     return std::fwrite(data, 1, bytes, state->output);
+#endif
 }
 
 NativeDownloadResult download_file(const std::string& url,
@@ -399,9 +386,20 @@ NativeDownloadResult download_file(const std::string& url,
                              const uint64_t aggregate_total,
                              const RegistryOptions& options,
                              std::ostream* progress_output,
-                             const std::string& bearer_token = {}) {
+                             const std::string& bearer_token) {
     (void)curl_global_state();
     std::error_code error;
+#ifdef _WIN32
+    windows_cache::ensure_directory(partial.parent_path());
+    bool existing = fs::exists(partial);
+    auto sink = std::make_shared<windows_cache::StagedFile>(partial, existing, true);
+    uint64_t offset = sink->size();
+    if (offset > expected_size) { sink->truncate(0); offset = 0; }
+    const uint64_t original_offset = offset;
+    NativeDownloadResult result;
+    result.staging = sink;
+    if (offset == expected_size) { result.resumed_bytes = offset; return result; }
+#else
     fs::create_directories(partial.parent_path(), error);
     if (error) fail(ModelPackageErrorCode::CacheError,
                     "cannot create download directory: " + error.message());
@@ -419,21 +417,29 @@ NativeDownloadResult download_file(const std::string& url,
     if (offset == expected_size) return NativeDownloadResult{0, offset};
 
     NativeDownloadResult result;
+#endif
     int failures = 0;
     bool restarted_for_no_range = false;
     while (failures <= options.retry_count) {
         if (options.cancellation_requested && options.cancellation_requested())
             fail(ModelPackageErrorCode::Cancelled,
                  "Download interrupted. Partial download preserved for resume.");
+#ifdef _WIN32
+        const uint64_t attempt_offset = sink->size();
+        auto* output = sink.get();
+#else
         const uint64_t attempt_offset = fs::exists(partial) ? fs::file_size(partial, error) : 0;
         if (error) fail(ModelPackageErrorCode::CacheError,
                         "cannot inspect partial download: " + error.message());
         FILE* output = std::fopen(partial.c_str(), attempt_offset == 0 ? "wb" : "ab");
         if (output == nullptr) fail(ModelPackageErrorCode::CacheError,
                                     "cannot open partial download: " + partial.string());
+#endif
         CurlHandle handle;
         if (handle.value == nullptr) {
+#ifndef _WIN32
             std::fclose(output);
+#endif
             fail(ModelPackageErrorCode::NetworkError, "cannot allocate libcurl handle");
         }
         char error_buffer[CURL_ERROR_SIZE] = {};
@@ -449,8 +455,14 @@ NativeDownloadResult download_file(const std::string& url,
                              bearer_token.c_str());
         }
         curl_easy_setopt(handle.value, CURLOPT_HTTPHEADER, headers.value);
+#ifdef _WIN32
+        DownloadWriteState write_state;
+        write_state.output = output; write_state.handle = handle.value;
+        write_state.requested_offset = attempt_offset; write_state.expected_size = expected_size;
+#else
         DownloadWriteState write_state{
             output, handle.value, attempt_offset, expected_size};
+#endif
         curl_easy_setopt(handle.value, CURLOPT_HEADERFUNCTION, download_header);
         curl_easy_setopt(handle.value, CURLOPT_HEADERDATA, &write_state);
         curl_easy_setopt(handle.value, CURLOPT_WRITEFUNCTION, write_download);
@@ -467,8 +479,13 @@ NativeDownloadResult download_file(const std::string& url,
             curl_easy_setopt(handle.value, CURLOPT_RANGE, range.c_str());
         }
         const CURLcode code = curl_easy_perform(handle.value);
+#ifdef _WIN32
+        if (write_state.write_error) std::rethrow_exception(write_state.write_error);
+        sink->flush();
+#else
         std::fflush(output);
         std::fclose(output);
+#endif
         curl_off_t transferred = 0;
         curl_easy_getinfo(handle.value, CURLINFO_SIZE_DOWNLOAD_T, &transferred);
         if (transferred > 0) result.network_bytes += static_cast<uint64_t>(transferred);
@@ -486,7 +503,11 @@ NativeDownloadResult download_file(const std::string& url,
         if (attempt_offset > 0 &&
             (write_state.range_ignored || response == 200 || code == CURLE_RANGE_ERROR) &&
             !restarted_for_no_range) {
+#ifdef _WIN32
+            sink->truncate(0);
+#else
             fs::resize_file(partial, 0, error);
+#endif
             if (error) fail(ModelPackageErrorCode::CacheError,
                             "cannot restart non-range download: " + error.message());
             restarted_for_no_range = true;
@@ -499,7 +520,11 @@ NativeDownloadResult download_file(const std::string& url,
                 result.network_bytes,
                 "server returned a mismatched Content-Range for " + label);
 
+#ifdef _WIN32
+        const uint64_t actual_size = sink->size();
+#else
         const uint64_t actual_size = fs::file_size(partial, error);
+#endif
         if (error) fail(ModelPackageErrorCode::CacheError,
                         "cannot inspect completed download: " + error.message());
         if (code == CURLE_OK && response >= 200 && response < 300 &&
@@ -508,7 +533,11 @@ NativeDownloadResult download_file(const std::string& url,
             return result;
         }
         if (actual_size > expected_size) {
+#ifdef _WIN32
+            sink->discard();
+#else
             fs::remove(partial, error);
+#endif
             fail(ModelPackageErrorCode::DownloadFailed,
                  "download exceeds declared artifact size: " + label);
         }
@@ -538,6 +567,9 @@ NativeDownloadResult download_file(const std::string& url,
 }
 
 void write_text_file(const fs::path& path, const std::string& text) {
+#ifdef _WIN32
+    windows_cache::write_text(path, text, false, true);
+#else
     std::error_code error;
     fs::create_directories(path.parent_path(), error);
     if (error) fail(ModelPackageErrorCode::CacheError,
@@ -549,6 +581,7 @@ void write_text_file(const fs::path& path, const std::string& text) {
     output.close();
     if (!output) fail(ModelPackageErrorCode::CacheError,
                       "cannot write downloaded manifest: " + path.string());
+#endif
 }
 
 struct RegistryDescriptor {
@@ -559,12 +592,7 @@ struct RegistryDescriptor {
     std::map<std::string, std::string> artifact_urls;
 };
 
-struct ComponentRegistryDescriptor {
-    std::string identity;
-    std::string package_url;
-    uint64_t package_size = 0;
-    std::string package_sha256;
-};
+
 
 ComponentRegistryDescriptor parse_component_registry_descriptor(
     const std::string& text, const RegistryOptions& options) {
@@ -639,7 +667,9 @@ std::string lock_safe_identity(const PackageIdentity& identity) {
     return identity.name_space + "-" + identity.name + "-" + identity.version;
 }
 
-}  // namespace
+}  // namespace registry_detail
+
+using namespace registry_detail;
 
 NativeDownloadResult download_native_artifact(
         const std::string& url,
@@ -724,13 +754,23 @@ PullResult RegistryClient::pull(const std::string& exact_reference,
     const fs::path manifest_download = cache_.layout().temporary / "manifests" /
                                        (descriptor.manifest_sha256 + ".json");
     write_text_file(manifest_download, manifest_text);
+#ifdef _WIN32
+    windows_cache::LocalSource manifest_source(manifest_download);
+    const bool manifest_hash_matches = manifest_source.digest() == descriptor.manifest_sha256;
+    if (!manifest_hash_matches) {
+#else
     if (sha256_file(manifest_download) != descriptor.manifest_sha256) {
+#endif
         std::error_code error;
         fs::remove(manifest_download, error);
         fail(ModelPackageErrorCode::ChecksumMismatch,
              "downloaded package manifest SHA256 mismatch");
     }
     const ModelPackageManifest manifest = load_model_package_manifest(manifest_download);
+#ifdef _WIN32
+    manifest_source.verify();
+    manifest_source.finish();
+#endif
     if (manifest.identity.reference() != exact_reference) {
         fail(ModelPackageErrorCode::PackageInvalid,
              "package manifest identity does not match registry descriptor");
@@ -785,7 +825,11 @@ PullResult RegistryClient::pull(const std::string& exact_reference,
             bytes_to_acquire, options_, progress_output);
         result.downloaded_bytes += download.network_bytes;
         result.resumed_bytes += download.resumed_bytes;
+#ifdef _WIN32
+        const BlobAdmissionResult admission = cache_.admit_downloaded_blob(*download.staging, artifact);
+#else
         const BlobAdmissionResult admission = cache_.admit_downloaded_blob(partial, artifact);
+#endif
         if (admission.created) {
             ++result.artifacts_downloaded;
         } else {
@@ -796,103 +840,15 @@ PullResult RegistryClient::pull(const std::string& exact_reference,
         if (options_.progress)
             options_.progress(aggregate_complete, bytes_to_acquire);
     }
+#ifdef _WIN32
+    const InstallResult installed = cache_.publish_manifest(manifest_download, descriptor.manifest_sha256);
+#else
     const InstallResult installed = cache_.publish_manifest(manifest_download);
+#endif
     result.manifest_path = installed.manifest_path;
     if (progress_output != nullptr) {
         *progress_output << "Installed " << result.identity.reference() << '\n';
     }
-    return result;
-}
-
-ComponentRegistryClient::ComponentRegistryClient(LocalModelCache& blob_cache,
-                                                 LocalComponentCache& component_cache,
-                                                 RegistryOptions options)
-    : blob_cache_(blob_cache), component_cache_(component_cache), options_(std::move(options)) {
-    if (options_.base_url.empty()) {
-        fail(ModelPackageErrorCode::RegistryUnavailable,
-             "no component registry configured; use --component-registry, --registry, "
-             "VRHINO_COMPONENT_REGISTRY, or VRHINO_REGISTRY");
-    }
-    options_.base_url = trim_trailing_slashes(options_.base_url);
-    validate_remote_url(options_.base_url, options_);
-}
-
-ComponentPullResult ComponentRegistryClient::pull(const std::string& exact_reference,
-                                                  std::ostream* progress_output) {
-    const PackageIdentity requested = parse_package_reference(exact_reference);
-    try {
-        const ResolvedComponent installed = component_cache_.resolve(exact_reference, true);
-        return ComponentPullResult{installed.manifest.identity, installed.root, 0, 0, 0, true};
-    } catch (const ModelPackageError& error) {
-        if (error.code() != ModelPackageErrorCode::ComponentNotFound) throw;
-    }
-    const fs::path lock_root = blob_cache_.layout().temporary / "locks";
-    FileLock package_lock(lock_root / ("component-" + lock_safe_identity(requested) + ".lock"));
-    try {
-        const ResolvedComponent installed = component_cache_.resolve(exact_reference, true);
-        return ComponentPullResult{installed.manifest.identity, installed.root, 0, 0, 0, true};
-    } catch (const ModelPackageError& error) {
-        if (error.code() != ModelPackageErrorCode::ComponentNotFound) throw;
-    }
-
-    const std::string descriptor_url = options_.base_url + "/v1/components/" +
-        requested.name_space + "/" + requested.name + "/" + requested.version +
-        "/index.json";
-    const ComponentRegistryDescriptor descriptor = parse_component_registry_descriptor(
-        http_get_text(descriptor_url, options_, ModelPackageErrorCode::RegistryUnavailable),
-        options_);
-    if (descriptor.identity != exact_reference) {
-        fail(ModelPackageErrorCode::ComponentInvalid,
-             "component registry identity does not match requested exact version");
-    }
-    ArtifactDeclaration archive_artifact;
-    archive_artifact.id = "component-archive";
-    archive_artifact.role = "component_archive";
-    archive_artifact.relative_path = "component.tar.gz";
-    archive_artifact.size = descriptor.package_size;
-    archive_artifact.sha256 = descriptor.package_sha256;
-    archive_artifact.required = true;
-
-    ComponentPullResult result;
-    FileLock artifact_lock(lock_root / ("artifact-" + archive_artifact.sha256 + ".lock"));
-    fs::path archive;
-    if (blob_cache_.contains_blob(archive_artifact, true)) {
-        archive = blob_cache_.artifact_path(archive_artifact.sha256);
-        result.reused_bytes = archive_artifact.size;
-    } else {
-        const fs::path partial = blob_cache_.layout().temporary / "downloads" /
-                                 (archive_artifact.sha256 + ".partial");
-        std::error_code error;
-        const uint64_t partial_size = fs::exists(partial) ? fs::file_size(partial, error) : 0;
-        if (error) fail(ModelPackageErrorCode::CacheError,
-                        "cannot inspect partial component archive: " + error.message());
-        fs::create_directories(blob_cache_.layout().root, error);
-        if (error) fail(ModelPackageErrorCode::CacheError,
-                        "cannot create component cache root: " + error.message());
-        const fs::space_info space = fs::space(blob_cache_.layout().root, error);
-        const uint64_t remaining = partial_size <= archive_artifact.size
-                                       ? archive_artifact.size - partial_size
-                                       : archive_artifact.size;
-        if (error) fail(ModelPackageErrorCode::CacheError,
-                        "cannot inspect component cache free space: " + error.message());
-        if (space.available < remaining) {
-            fail(ModelPackageErrorCode::InsufficientDiskSpace,
-                 "media component needs " + std::to_string(remaining) +
-                     " more bytes but cache filesystem has " + std::to_string(space.available));
-        }
-        const NativeDownloadResult download = download_file(
-            descriptor.package_url, partial, archive_artifact.size, "media component",
-            0, archive_artifact.size, options_, progress_output);
-        result.downloaded_bytes = download.network_bytes;
-        result.resumed_bytes = download.resumed_bytes;
-        archive = blob_cache_.admit_downloaded_blob(partial, archive_artifact).path;
-        if (options_.progress)
-            options_.progress(archive_artifact.size, archive_artifact.size);
-    }
-    const ComponentInstallResult installed = component_cache_.install_archive(archive);
-    result.identity = installed.identity;
-    result.root = installed.root;
-    result.already_installed = installed.already_installed;
     return result;
 }
 

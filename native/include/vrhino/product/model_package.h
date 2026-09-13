@@ -12,6 +12,9 @@
 #include "vrhino/product/input_schema.h"
 
 namespace vrhino::product {
+#ifdef _WIN32
+namespace windows_cache { class StagedFile; }
+#endif
 
 using WorkProgressCallback = std::function<void(uint64_t)>;
 
@@ -198,6 +201,14 @@ public:
         const std::filesystem::path& verified_local_file,
         const ArtifactDeclaration& artifact,
         const WorkProgressCallback& progress = {});
+#ifdef _WIN32
+    InstallResult publish_manifest(const std::filesystem::path& manifest_path,
+                                   const std::string& expected_sha256);
+    BlobAdmissionResult admit_downloaded_blob(
+        windows_cache::StagedFile& staging,
+        const ArtifactDeclaration& artifact,
+        const WorkProgressCallback& progress = {});
+#endif
     void discard_installed_package_for_repair(const std::string& reference);
     void discard_invalid_blob(const ArtifactDeclaration& artifact);
     ResolvedRunnableModel resolve(const std::string& reference,

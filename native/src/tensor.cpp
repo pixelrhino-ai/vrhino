@@ -5,6 +5,10 @@
 #include <limits>
 #include <numeric>
 
+#ifdef _MSC_VER
+#include <malloc.h>
+#endif
+
 #include "vrhino/error.h"
 
 namespace vrhino {
@@ -107,7 +111,15 @@ Tensor Tensor::host(std::vector<int64_t> shape, DType dtype) {
     storage->bytes = checked_dense_bytes(shape, dtype);
     require(storage->bytes <= std::numeric_limits<size_t>::max() - 63,
             "Host tensor allocation size overflow");
+#ifdef _MSC_VER
+    // The MSVC allocator rejects zero bytes. Keep empty tensors logically
+    // empty while providing a minimal aligned allocation for their storage.
+    storage->data = _aligned_malloc(
+        storage->bytes == 0 ? 64 : (storage->bytes + 63) / 64 * 64, 64);
+    storage->deleter = _aligned_free;
+#else
     storage->data = std::aligned_alloc(64, (storage->bytes + 63) / 64 * 64);
+#endif
     require(storage->data != nullptr || storage->bytes == 0, "Host allocation failed");
     storage->device = DeviceId::host(); storage->domain = MemoryDomain::HostPageable;
     storage->owner = true;

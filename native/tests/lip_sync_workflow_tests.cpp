@@ -129,6 +129,14 @@ int main(int argc, char** argv) {
         check(vrhino::lip_sync_output_frame_count(639, 16000, 25) == 0 &&
               vrhino::lip_sync_output_frame_count(640, 16000, 25) == 1,
               "fractional frame boundary mismatch");
+        // Wide intermediate arithmetic must stay exact on compilers without
+        // __int128, including the existing low-64-bit narrowing behavior.
+        const int64_t maximum = std::numeric_limits<int64_t>::max();
+        check(vrhino::lip_sync_output_frame_count(maximum, 3, 2) == 6148914691236517204LL &&
+              vrhino::lip_sync_output_frame_count(int64_t{1} << 62, 2, 3) == 6917529027641081856LL &&
+              vrhino::lip_sync_output_frame_count(maximum, 2147483647, 2147483647) == maximum &&
+              vrhino::lip_sync_output_frame_count(maximum, 1, 2) == -2,
+              "wide frame-count arithmetic or narrowing drift");
         check(vrhino::ping_pong_frame_cycle(1, 5) ==
                   std::vector<int64_t>({0, 0, 0, 0, 0}),
               "one-frame cycle mismatch");

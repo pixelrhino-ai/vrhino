@@ -7,11 +7,19 @@
 #include <fcntl.h>
 #include <limits>
 #include <sys/stat.h>
+#ifdef _WIN32
+#include "windows_converter_io.h"
+#else
 #include <unistd.h>
+#endif
 
 #include "vrhino/error.h"
 
 namespace vrhino::product {
+#ifdef _WIN32
+using namespace windows_converter_io;
+static_assert(sizeof(off_t) == 8 && sizeof(ssize_t) == 8);
+#endif
 namespace {
 
 constexpr uint32_t kLocalHeader = 0x04034b50U;
@@ -94,7 +102,11 @@ PytorchZipArchive::PytorchZipArchive(const std::filesystem::path& path,
             "PyTorch ZIP entry bound is invalid");
     fd_ = open(path.c_str(), O_RDONLY | O_CLOEXEC);
     require(fd_ >= 0, "cannot open PyTorch ZIP checkpoint");
+#ifdef _WIN32
+    struct _stat64 status{};
+#else
     struct stat status{};
+#endif
     require(fstat(fd_, &status) == 0 && status.st_size >= 98,
             "truncated PyTorch ZIP checkpoint");
     file_size_ = static_cast<uint64_t>(status.st_size);

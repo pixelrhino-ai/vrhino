@@ -4,6 +4,9 @@
 #include <filesystem>
 #include <functional>
 #include <iosfwd>
+#ifdef _WIN32
+#include <memory>
+#endif
 #include <string>
 
 #include "vrhino/product/model_package.h"
@@ -30,6 +33,9 @@ struct RegistryOptions {
 struct NativeDownloadResult {
     uint64_t network_bytes = 0;
     uint64_t resumed_bytes = 0;
+#ifdef _WIN32
+    std::shared_ptr<windows_cache::StagedFile> staging;
+#endif
 };
 
 // Structured transport evidence lets provider-specific acquisition policy
