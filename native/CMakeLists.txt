@@ -46,6 +46,10 @@ option(VRHINO_BUILD_WINDOWS_PROCESS_TESTS "Build focused native Windows process 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(MSVC)
+    include(cmake/windows_build_privacy.cmake)
+endif()
+
 # Warning switches for product dependencies that also build with native MSVC.
 # Keep the existing Unix warning policy; /W4 includes additional conversion
 # diagnostics, consistent with vrhino_native_common's Windows build.

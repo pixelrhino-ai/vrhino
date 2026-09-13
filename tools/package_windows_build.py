@@ -117,6 +117,45 @@ def write_json(path, value):
     path.write_text(json.dumps(value, sort_keys=True, indent=2, ensure_ascii=False) + '\n', encoding='utf-8', newline='\n')
 
 
+def binary_private_paths(path, roots):
+    """Inspect actual PE bytes for configured physical roots, never mutate them.
+
+    Literal roots avoid URL false positives. Include native/CMake separators,
+    ASCII case variants and UTF-8/UTF-16LE strings, even across read boundaries.
+    """
+    patterns = set()
+    for root in roots:
+        root = str(root).rstrip('/\\')
+        require(re.match(r'^[A-Za-z]:[/\\]|^[/\\]{2}|^/', root), 'absolute private root required')
+        require(len(root) > 3, 'private root must be more specific than a drive')
+        for spelling in (root.replace('\\', '/'), root.replace('/', '\\')):
+            for encoding in ('utf-8', 'utf-16le'):
+                patterns.add(spelling.encode(encoding).lower())
+    require(patterns, 'private path roots required')
+    overlap = max(map(len, patterns)) - 1
+    hits, carry, position = set(), b'', 0
+    with open(path, 'rb') as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b''):
+            data = (carry + block).lower()
+            for pattern in patterns:
+                start = 0
+                while True:
+                    offset = data.find(pattern, start)
+                    if offset < 0:
+                        break
+                    hits.add(position - len(carry) + offset)
+                    start = offset + 1
+            carry = data[-overlap:] if overlap else b''
+            position += len(block)
+    return sorted(hits)
+
+
+def audit_binary_privacy(files, roots):
+    for name, path in files.items():
+        hits = binary_private_paths(path, roots)
+        require(not hits, f'private build path in {name}: {len(hits)} occurrence(s), first byte {hits[0] if hits else 0}')
+
+
 def safe_relative(name):
     require(isinstance(name, str) and name and '\\' not in name, 'invalid relative path')
     p = PurePosixPath(name)
@@ -278,6 +317,8 @@ def main(argv=None):
     for name in ('build-dir', 'dependency-root', 'build-info', 'output', 'zip'):
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--source-commit', required=True)
+    parser.add_argument('--private-root', action='append', default=[],
+                        help='additional absolute SDK/dependency root forbidden in PE bytes')
     parser.add_argument('--check', action='store_true')
     args = parser.parse_args(argv)
     source = Path(__file__).resolve().parents[1]
@@ -298,6 +339,12 @@ def main(argv=None):
     binaries = {r['path']: paths[r['path']] for r in runtime}
     binaries['vrhino.exe'] = exe
     imports = audit_pe(binaries)
+    privacy_roots_file = regular_file(build, 'windows-build-privacy-roots.txt')
+    privacy_roots = [str(source.resolve()), str(build), str(deps), *args.private_root,
+                     *privacy_roots_file.read_text(encoding='utf-8').splitlines()]
+    if os.environ.get('USERPROFILE'):
+        privacy_roots.append(os.environ['USERPROFILE'])
+    audit_binary_privacy(binaries, privacy_roots)
     source_resources = canonical_resources(source, args.source_commit)
     if args.check:
         print('Windows packaging inputs: PASS; runtime execution qualification remains separate')

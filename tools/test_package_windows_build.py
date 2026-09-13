@@ -84,6 +84,27 @@ class PackageTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'missing file'):
             p.regular_file(self.root, 'missing.dll')
 
+    def test_binary_private_roots(self):
+        roots = ['Q:/checkout/source', 'R:/output/build', 'S:/SDK headers', 'T:/Users/person']
+        for root in roots:
+            for spelling in (root.lower(), root.upper().replace('/', '\\')):
+                for encoding in ('utf-8', 'utf-16le'):
+                    data = bytes(fixture()) + spelling.encode(encoding) + b'\0'
+                    path = self.binary(data)
+                    self.assertEqual(p.binary_private_paths(path, roots), [2048])
+                    with self.assertRaisesRegex(ValueError, 'private build path'):
+                        p.audit_binary_privacy({'product.exe': path}, roots)
+        path = self.binary(bytes(fixture()) + b'https://example.com/source/header.h\0vrhino/native/header.h\0')
+        self.assertEqual(p.binary_private_paths(path, roots), [])
+        for invalid in ([], ['relative/path'], ['C:/']):
+            with self.assertRaises(ValueError):
+                p.binary_private_paths(path, invalid)
+
+    def test_binary_private_root_read_boundary(self):
+        root = 'Z:/private/build'
+        path = self.binary(b'\0' * (1024 * 1024 - 4) + root.encode() + b'/source.cpp')
+        self.assertEqual(p.binary_private_paths(path, [root, 'Z:/private']), [1024 * 1024 - 4])
+
     def test_allowlist_and_compiler_pair(self):
         self.assertEqual(len(p.DLLS), 39)
         self.assertEqual(len({x.lower() for x in p.DLLS}), 39)
