@@ -30,6 +30,7 @@ jobs:
         run: |
           "$RUNNER_TEMP/vrhino-validation/bin/python" tools/validate_source_hygiene.py
           "$RUNNER_TEMP/vrhino-validation/bin/python" tools/validate_public_contract.py
+          "$RUNNER_TEMP/vrhino-validation/bin/python" tools/test_package_windows_build.py -v
       - name: Configure without network
         run: |
           sudo --preserve-env=PATH,RUSTUP_HOME unshare --net -- \
