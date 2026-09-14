@@ -1,6 +1,11 @@
 # Public Alpha Limitations
 
-The Public Alpha has the following qualified scope:
+v0.8.0-alpha is an unreleased Windows-supporting line. Its new rc7 build and
+exact-candidate qualification remain pending. Published v0.7.0-alpha is an
+immutable Linux-scoped historical release; this source update does not change
+its promises or add Windows assets to it.
+
+The historical Linux Alpha has the following qualified scope:
 
 - Linux x86_64 only;
 - glibc 2.35 or newer;
@@ -18,6 +23,33 @@ The Public Alpha has the following qualified scope:
   substantial temporary disk space; and
 - Alpha interfaces, package behavior, and compatibility may change without a
   stability guarantee.
+
+## Windows v0.8 qualification boundary
+
+The preserved Windows baseline is Windows 10 Pro 22H2 / build 19045,
+NVIDIA GeForce RTX 3090 24 GiB, driver 610.47. Frozen rc6 completed the full
+clean-host Wan and LTX product paths; those exact bytes and their evidence
+remain historical. They do not qualify a not-yet-built v0.8 binary.
+
+Before publication, exact post-merge rc7 bytes must pass native conversion,
+installation, doctor, real execution, full media decode, dependency isolation
+and cleanup for Wan 1.0.1, LTX 1.1.1, MuseTalk 1.0.1 and LatentSync 1.0.1.
+Mochi is not fully qualified on this 24 GiB host because of its unchanged
+80 GiB available-device-memory admission; this is not a model failure.
+See the [exact identities and release gates](release/v0.8.0-alpha.md).
+
+The Windows product bundles its CUDA/cuDNN/NVRTC and media runtime. It requires
+no separately installed Toolkit, cuDNN, Visual Studio/Build Tools, CMake,
+Ninja, Python, PyTorch, Diffusers, Transformers, Conda, system FFmpeg,
+MSYS2/MinGW or WSL. Developer tooling belongs on a separate build host.
+
+MuseTalk/LatentSync technical execution and full video/audio validation are
+distinct from manual visual sanity and objective lip-sync quality. Historical
+developer-host manual sanity passed; rc7 outputs require their own recorded
+review. No calibrated objective quality threshold has been frozen. That
+research gate is deferred, not an objective PASS and not a Windows-only
+technical release blocker. Do not hide a subjective quality threshold in
+automated technical checks.
 
 ## Native API v1 alpha boundary
 
@@ -48,7 +80,8 @@ This Alpha does not claim:
 - universal Linux distribution compatibility;
 - an exact minimum NVIDIA Driver version;
 - support for every NVIDIA GPU;
-- Windows or macOS support;
+- universal Windows compatibility or macOS support;
+- completed v0.8 rc7 qualification before its exact-candidate gates pass;
 - production/stable readiness;
 - support for every Wan checkpoint or generation;
 - support for every video-model architecture; or

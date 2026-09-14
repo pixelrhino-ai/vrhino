@@ -34,22 +34,28 @@ comparable to llama.cpp today.
 
 ## Release status
 
-The current published release is **v0.6.0-alpha**.
+The source version is **v0.8.0-alpha, unreleased**: the first Windows-supporting
+release line. The latest published release remains
+[v0.7.0-alpha](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.7.0-alpha),
+an immutable Linux x86_64 CUDA release; its assets and support scope do not change.
 
-- Platform: Linux x86_64
-- Backend: NVIDIA CUDA
-- Qualified public model paths:
-  - `vrhino/ltx-video-v0.9.1:1.1.1`
-  - `vrhino/wan2.1-t2v-1.3b:1.0.1`
-  - `vrhino/mochi-1-preview:1.0.1`
-  - `vrhino/musetalk-v1.5:1.0.1` (`lip_sync`)
-  - `vrhino/latentsync-1.6:1.0.1` (`lip_sync`)
-- Qualified on Ubuntu 22.04 with glibc 2.35
-- Self-contained above the compatible NVIDIA Driver boundary
+The Windows qualification baseline is Windows 10 Pro 22H2 / build 19045,
+RTX 3090 24 GiB and NVIDIA driver 610.47. Frozen rc6 completed clean-host Wan
+and LTX qualification; it retains its v0.7 build identity as historical
+evidence and is not a v0.8 download. A fresh post-merge rc7 must qualify Wan,
+LTX, MuseTalk and LatentSync before Windows release publication.
 
-You need a compatible NVIDIA GPU and NVIDIA Driver, enough VRAM, and enough
-disk space. You do **not** install Python, PyTorch, Diffusers, Conda, a CUDA
-Toolkit, cuDNN, or system FFmpeg.
+Mochi retains its historical Linux scope. Its frozen admission requires at
+least 80 GiB available device memory, so it is not part of the 24 GiB Windows
+qualification; this is not a failed model test. No universal Windows/GPU or
+macOS support is claimed. See the exact
+[v0.8 support matrix and pending gates](docs/release/v0.8.0-alpha.md).
+
+The self-contained product requires a compatible NVIDIA GPU and driver,
+sufficient memory/disk space, and network access for uncached model sources.
+End users do **not** install CUDA Toolkit, standalone cuDNN, Visual Studio,
+Build Tools, CMake, Ninja, Python, PyTorch, Diffusers, Transformers, Conda,
+system FFmpeg, MSYS2/MinGW or WSL. Developer build requirements are separate.
 
 The **v0.6.0-alpha** release adds machine-readable Product contracts and a
 local Native API for desktop, native, local-daemon, CLI-adjacent, and other
@@ -65,39 +71,20 @@ The exact v0.6.0-alpha Public model set is:
 
 ## Install
 
-Download both the
-[release archive](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.6.0-alpha/vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz)
-and its
-[checksum file](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.6.0-alpha/vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz.sha256)
-from [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.6.0-alpha).
-With both files in `~/Downloads`, run:
+Use the [installation guide](docs/install.md) for the existing v0.7 Linux
+download and the planned Windows ZIP layout. **No v0.8 rc7 download has been
+published by this preparation change.** Never rename rc6 to v0.8 or add it to
+the historical v0.7 release.
 
-```bash
-cd "$HOME/Downloads"
-sha256sum -c vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz.sha256
-mkdir -p "$HOME/.local/share"
-tar -xzf vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz -C "$HOME/.local/share"
-printf '\nexport PATH="$HOME/.local/share/vrhino/bin:$PATH"\n' >> "$HOME/.profile"
-export PATH="$HOME/.local/share/vrhino/bin:$PATH"
-```
+Keep the entire package directory intact. Windows packages place `vrhino.exe`,
+the bundled media helper and 39 runtime DLLs together; no system FFmpeg or
+manual CUDA library search path is needed. Verify the downloaded archive's
+published SHA256 and run `--version`, `device` and `doctor` from that package.
 
-Keep the extracted `vrhino` directory intact: it contains the runtime, bundled
-libraries, and media encoder. Verify the installation from any
-directory:
+## CLI examples
 
-```bash
-vrhino --version
-vrhino device
-vrhino doctor
-```
-
-No `sudo` or repository clone is required. See the
-[installation guide](docs/install.md) if your browser saves downloads
-somewhere other than `~/Downloads`.
-
-## v0.6.0-alpha Quick Start
-
-The v0.6.0-alpha Public model set is:
+The model package identities introduced in v0.6.0-alpha remain unchanged.
+Platform qualification is tracked separately in the v0.8 support matrix:
 
 - `vrhino/ltx-video-v0.9.1:1.1.1`
 - `vrhino/wan2.1-t2v-1.3b:1.0.1`
@@ -105,6 +92,8 @@ The v0.6.0-alpha Public model set is:
 - `vrhino/musetalk-v1.5:1.0.1`
 - `vrhino/latentsync-1.6:1.0.1`
 
+The following examples use a Linux shell and an installed qualified package.
+For Windows PowerShell command syntax, see [installation](docs/install.md).
 Pull one exact model package, for example:
 
 ```bash
@@ -178,7 +167,7 @@ same contract without parsing CLI text:
 vrhino info vrhino/ltx-video-v0.9.1:1.1.1 --json
 ```
 
-The v0.6.0-alpha executable also serves the local Native API:
+The primary executable also serves the local Native API introduced in v0.6.0-alpha:
 
 ```bash
 vrhino serve
@@ -197,6 +186,7 @@ contract and local absolute-path media rules.
 ## Documentation
 
 - [Installation and system requirements](docs/install.md)
+- [v0.8 release preparation and qualification scope](docs/release/v0.8.0-alpha.md)
 - [Model commands](docs/cli/model-cli-v0.md)
 - [ProductInputSchema v1](docs/product/product-input-schema-v1.md)
 - [Model-info JSON v1](docs/product/model-info-json-v1.md)
@@ -215,11 +205,16 @@ contract and local absolute-path media rules.
 
 ## Alpha limitations
 
-This alpha release supports Linux x86_64, the NVIDIA CUDA backend, and
-the five exact v0.6.0-alpha successor paths listed above. It does not claim
-support for every NVIDIA GPU, Linux distribution, model checkpoint, or
-video-model architecture. Interfaces and compatibility may change during
-Alpha.
+Historical Linux qualification and the pending v0.8 Windows qualification
+are distinct. Four Windows product paths must pass on exact rc7 bytes before
+publication. Interfaces and compatibility may change during Alpha; no claim
+covers every NVIDIA GPU, Windows/Linux version, model checkpoint or architecture.
+macOS support is not claimed.
+
+For MuseTalk and LatentSync, technical execution and complete media validation
+are separate from manual visual sanity and objective lip-sync quality. A
+calibrated objective quality gate remains deferred; no objective quality PASS
+is claimed and its deferral is not a Windows-only technical blocker.
 
 See [Alpha limitations](docs/alpha-limitations.md) for details.
 

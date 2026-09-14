@@ -33,22 +33,25 @@ VRhino 转换
 
 ## 发布状态
 
-当前已发布版本是 **v0.6.0-alpha**。
+当前源码版本为 **v0.8.0-alpha，尚未发布**，这是首个支持原生 Windows 的发布线。
+最新已发布版本仍为
+[v0.7.0-alpha](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.7.0-alpha)，
+其 Linux x86_64 CUDA 范围、标签和发布资产保持不可变。
 
-- 平台：Linux x86_64
-- 后端：NVIDIA CUDA
-- 已验证的公开模型路径：
-  - `vrhino/ltx-video-v0.9.1:1.1.1`
-  - `vrhino/wan2.1-t2v-1.3b:1.0.1`
-  - `vrhino/mochi-1-preview:1.0.1`
-  - `vrhino/musetalk-v1.5:1.0.1`（`lip_sync`）
-  - `vrhino/latentsync-1.6:1.0.1`（`lip_sync`）
-- 已在 Ubuntu 22.04、glibc 2.35 环境验证
-- 除兼容的 NVIDIA 驱动外，所需用户态运行库均随 VRhino 提供
+Windows 资格验证基线为 Windows 10 Pro 22H2 / build 19045、RTX 3090 24 GiB、
+NVIDIA 驱动 610.47。冻结 rc6 已通过干净主机上的 Wan 和 LTX 完整验证，但它
+保留 v0.7 构建身份，只作为历史证据，不是 v0.8 下载包。版本 PR 合并后必须
+新建 rc7，并完成 Wan、LTX、MuseTalk、LatentSync 四条路径的资格验证后才能发布。
 
-你需要兼容的 NVIDIA GPU 和 NVIDIA 驱动，以及足够的显存和磁盘空间。你不
-需要安装 Python、PyTorch、Diffusers、Conda、CUDA Toolkit、cuDNN 或系统
-FFmpeg。
+Mochi 保留历史 Linux 支持范围。其冻结准入要求至少 80 GiB 可用设备显存，
+因此不属于这台 24 GiB Windows 主机的验证范围；这不代表模型测试失败。
+不宣称覆盖所有 Windows/GPU，也不宣称支持 macOS。详见
+[v0.8 支持矩阵和待完成门禁](docs/release/v0.8.0-alpha.md)。
+
+最终用户需要兼容的 NVIDIA GPU/驱动、足够的内存和磁盘空间，以及获取未缓存
+模型源文件所需的网络。不需要安装 CUDA Toolkit、独立 cuDNN、Visual Studio、
+Build Tools、CMake、Ninja、Python、PyTorch、Diffusers、Transformers、Conda、
+系统 FFmpeg、MSYS2/MinGW 或 WSL。开发者构建环境另有要求。
 
 **v0.6.0-alpha** 加入机器可读
 Product 合同，以及供桌面客户端、原生客户端、本地守护进程工具、CLI 辅助工具和
@@ -64,37 +67,17 @@ v0.6.0-alpha 确定的五个 Public 模型路径为：
 
 ## 安装
 
-从 [GitHub Releases](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.6.0-alpha)
-下载
-[发布包](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.6.0-alpha/vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz)
-和对应的
-[校验文件](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.6.0-alpha/vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz.sha256)。
-假设两个文件都在 `~/Downloads`，运行：
+现有 v0.7 Linux 下载方式及计划中的 Windows ZIP 布局见[安装说明](docs/install.md)。
+**此次版本准备没有发布任何 v0.8 rc7 下载包。** 不得把 rc6 改名为 v0.8，
+也不得把它追加到历史 v0.7 发布。
 
-```bash
-cd "$HOME/Downloads"
-sha256sum -c vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz.sha256
-mkdir -p "$HOME/.local/share"
-tar -xzf vrhino-linux-x86_64-cuda-v0.6.0-alpha.tar.gz -C "$HOME/.local/share"
-printf '\nexport PATH="$HOME/.local/share/vrhino/bin:$PATH"\n' >> "$HOME/.profile"
-export PATH="$HOME/.local/share/vrhino/bin:$PATH"
-```
+请保持完整包目录。Windows 包将 `vrhino.exe`、媒体助手和 39 个运行库 DLL
+放在一起，不依赖系统 FFmpeg 或手动配置 CUDA 库路径。核对发布的 ZIP SHA256
+后，从该包运行 `--version`、`device` 和 `doctor`。
 
-请保持解压后的 `vrhino` 目录完整，因为其中包含运行时、随包动态库和媒体编码
-组件。安装后可在任意目录验证：
+## CLI 示例
 
-```bash
-vrhino --version
-vrhino device
-vrhino doctor
-```
-
-安装不需要 `sudo`，也不需要克隆仓库。如果浏览器没有把文件保存到
-`~/Downloads`，请参阅[安装说明](docs/install.md)。
-
-## v0.6.0-alpha 快速开始
-
-v0.6.0-alpha 支持以下五个已验证的公开模型路径：
+v0.6.0-alpha 引入的模型包身份保持不变，各平台资格状态由 v0.8 支持矩阵单独记录：
 
 - `vrhino/ltx-video-v0.9.1:1.1.1`
 - `vrhino/wan2.1-t2v-1.3b:1.0.1`
@@ -102,7 +85,8 @@ v0.6.0-alpha 支持以下五个已验证的公开模型路径：
 - `vrhino/musetalk-v1.5:1.0.1`
 - `vrhino/latentsync-1.6:1.0.1`
 
-拉取一个确定的模型包，例如：
+以下示例使用 Linux shell 和已验证的安装包。Windows PowerShell 写法见
+[安装说明](docs/install.md)。拉取一个确定的模型包，例如：
 
 ```bash
 vrhino pull vrhino/ltx-video-v0.9.1:1.1.1
@@ -169,7 +153,7 @@ successor 模型包通过
 vrhino info vrhino/ltx-video-v0.9.1:1.1.1 --json
 ```
 
-v0.6.0-alpha 的同一个可执行文件还可以启动本地 Native API：
+主可执行文件还可启动 v0.6.0-alpha 引入的本地 Native API：
 
 ```bash
 vrhino serve
@@ -186,6 +170,7 @@ Internet。显式绑定非回环地址时会输出警告。完整七路由合同
 ## 文档
 
 - [安装与系统要求](docs/install.md)
+- [v0.8 发布准备和资格验证范围](docs/release/v0.8.0-alpha.md)
 - [模型命令](docs/cli/model-cli-v0.md)
 - [ProductInputSchema v1](docs/product/product-input-schema-v1.md)
 - [模型信息 JSON v1](docs/product/model-info-json-v1.md)
@@ -204,9 +189,13 @@ Internet。显式绑定非回环地址时会输出警告。完整七路由合同
 
 ## Alpha 限制
 
-当前 Alpha 版本支持 Linux x86_64、NVIDIA CUDA 后端，以及上面列出的五个
-v0.6.0-alpha successor 路径。它不声称支持所有 NVIDIA GPU、所有 Linux 发行版、
-所有模型检查点或所有视频模型架构。Alpha 期间接口和兼容性可能发生变化。
+历史 Linux 资格与待完成的 v0.8 Windows 资格分开记录。发布前必须在精确 rc7
+字节上通过四条 Windows 产品路径。Alpha 期间接口和兼容性可能变化；不宣称
+覆盖所有 NVIDIA GPU、Windows/Linux 版本、模型检查点或架构，也不宣称支持 macOS。
+
+MuseTalk 和 LatentSync 的技术执行、完整媒体校验、人工视觉合理性检查与客观
+口型同步质量是不同结论。经校准的客观质量门禁仍独立延后；不宣称客观质量 PASS，
+也不把该研究门禁的延后视为 Windows 专属技术阻塞。
 
 详情见 [Alpha 限制](docs/alpha-limitations.md)。
 
