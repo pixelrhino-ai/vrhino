@@ -1,9 +1,27 @@
 # Windows CUDA source-build candidate
 
+The current source identity is **v0.8.0-alpha, unreleased**. Build a fresh rc7
+only after the version PR is merged, from that exact main commit, on a
+separate Windows developer environment. Preserve the clean RTX 3090 host for
+qualification; do not reinstall build tools there. Do not reuse rc6 stages
+or binaries. See the [release preparation and four-path qualification
+handoff](release/v0.8.0-alpha.md).
+
+The expected name is
+`vrhino-windows-x86_64-cuda-v0.8.0-alpha-<commit7>-rc7.zip`.
+Historical v0.7 tags/assets and the qualified Windows rc6 remain unchanged.
+No v0.8 asset is published by this version preparation.
+
 `tools/package_windows_build.py` is a Python 3.10+ standard-library **build tool**.
 Python is not part of the Windows product or its runtime requirements. The Linux
 assembler remains separate and unchanged. This tool produces an unpublished ZIP
 candidate; it does not establish clean-machine or real-model qualification.
+
+`VERSION`, CLI/API output and SOURCE-BUILD provenance must agree with the
+new source version and exact build commit. Build-time qualification fields
+remain `NOT_RUN`; subsequent PASS evidence is recorded externally against the
+frozen ZIP hash, never written back into a qualified package. A different
+release-page title or archive filename does not change a binary's version.
 
 The Windows layout has `vrhino.exe`, `vrhino-ffmpeg.exe` and the explicit 39-DLL
 allowlist at its root. All 83 converter/spec resources are read as canonical Git

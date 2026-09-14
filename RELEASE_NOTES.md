@@ -1,3 +1,78 @@
+# VRhino v0.8.0-alpha — unreleased
+
+This prepares the first native Windows CUDA release line. It updates release
+identity, documentation and strict version-test expectations only. A fresh
+post-merge rc7 must be built on a separate Windows developer host and qualified
+before any tag or release publication. No rc7 download or hash exists yet.
+
+## Windows product and distribution
+
+- Native MSVC x64 CUDA product CLI with a shared Runtime/backend, native
+  tokenizer support, file mapping, stable verification, cache publication,
+  process execution and secure Unicode component-archive handling.
+- Self-contained Windows package with 39 application-local runtime DLLs,
+  CUDA 12.8-family/cuDNN 9.8 dependencies, local NVRTC and nvrtc-builtins,
+  bundled `vrhino-ffmpeg.exe`, 83 converter/spec resources, licenses/notices,
+  source provenance and SHA256 inventory.
+- Native Windows pull/source verification/conversion/install, including the
+  converter file-size fix using shared `_stat64`/`_fstat64` metadata instead
+  of `_fstat64i32`; regressions cover files beyond 2 GiB and 4 GiB. POSIX
+  behavior is unchanged by that fix.
+- Build-path privacy checks reject local developer paths while documenting
+  publisher metadata in unchanged third-party DLLs. Relocation, Unicode paths,
+  unrelated working directories and sanitized dependency discovery are
+  existing candidate gates, not reasons to borrow system runtimes.
+
+End users need Windows, a compatible NVIDIA GPU/driver, enough memory and
+disk space, and network access for uncached model sources. No CUDA Toolkit,
+standalone cuDNN, Visual Studio/Build Tools, CMake, Ninja, Python, PyTorch,
+Diffusers, Transformers, Conda, system FFmpeg, MSYS2/MinGW or WSL is required.
+
+## Qualification status and scope
+
+The preserved clean fixture is Windows 10 Pro 22H2 / build 19045, RTX 3090
+24 GiB, NVIDIA driver 610.47. This baseline does not establish a minimum
+driver or universal Windows/GPU support. macOS support is not claimed.
+
+Frozen rc6 has clean-machine Wan 2.1 `1.0.1` and LTX `1.1.1` qualification
+PASS, including native pull/convert/install, real inference, complete MP4
+decode, local cuDNN/NVRTC loads and cleanup. This evidence stays bound to its
+original v0.7-labelled ZIP hash; it is not reused as v0.8 binary qualification.
+
+The new rc7 must qualify these exact Windows product paths before release:
+
+- `vrhino/wan2.1-t2v-1.3b:1.0.1` — rc7 pending.
+- `vrhino/ltx-video-v0.9.1:1.1.1` — rc7 pending.
+- `vrhino/musetalk-v1.5:1.0.1` — rc7 clean-host technical execution and full
+  video/audio validation pending.
+- `vrhino/latentsync-1.6:1.0.1` — rc7 clean-host technical execution and full
+  video/audio validation pending.
+
+MuseTalk and LatentSync have historical developer-host manual visual sanity
+evidence. Technical execution, complete media validation, human visual review
+and objective lip-sync quality are separate claims. No calibrated objective
+quality threshold is frozen; that gate remains deferred, not an objective
+PASS and not a Windows-only technical blocker.
+
+Mochi retains its historical Linux scope. It is not fully qualified on this
+24 GiB host because its frozen admission requires at least 80 GiB available
+device memory. This exclusion is not a model failure and does not reduce
+admission. No new Linux runtime qualification is claimed here.
+
+## Version and historical guarantees
+
+Canonical VERSION, CLI/API version data, CMake numeric version, package
+metadata and strict test expectations move to v0.8.0-alpha / 0.8.0. Model
+package identities, VRM/API contracts, architecture, Runtime, backend, CUDA
+kernels, precision policies, specifications and presets do not change.
+
+The published v0.7.0-alpha release remains immutable and Linux-scoped. Do not
+move its tag, change its release or assets, or add Windows downloads. Do not
+rename, modify or republish the qualified rc6 as v0.8. See the
+[v0.8 release preparation and handoff](docs/release/v0.8.0-alpha.md) for the
+version-reference audit and required rc7 gates. Publication requires a separate
+explicit decision after qualification; this preparation does not authorize it.
+
 # VRhino v0.6.0-alpha
 
 This feature Alpha adds machine-readable Product contracts and a built-in
