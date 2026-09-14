@@ -26,6 +26,8 @@ namespace vrhino::product {
 #ifdef _WIN32
 using namespace windows_converter_io;
 static_assert(sizeof(off_t) == 8 && sizeof(ssize_t) == 8);
+#else
+using FileStatus = struct ::stat;
 #endif
 namespace {
 
@@ -378,7 +380,7 @@ SafeTensorReader::SafeTensorReader(const std::filesystem::path& path) : path_(pa
         package_error(ModelPackageErrorCode::ArtifactMissing,
                       "cannot open safetensors source: " + path.string());
     try {
-        struct stat information {};
+        FileStatus information {};
         if (fstat(fd_, &information) != 0 || information.st_size < 8)
             package_error(ModelPackageErrorCode::PackageInvalid,
                           "truncated safetensors file: " + path.string());
@@ -499,7 +501,7 @@ FrozenTensorSource::FrozenTensorSource(
                 package_error(ModelPackageErrorCode::ArtifactMissing,
                               "cannot open frozen tensor source: " + path.string());
             descriptors_.push_back(descriptor);
-            struct stat information {};
+            FileStatus information {};
             if (fstat(descriptor, &information) != 0 || information.st_size < 0)
                 package_error(ModelPackageErrorCode::PackageInvalid,
                               "cannot inspect frozen tensor source: " + path.string());

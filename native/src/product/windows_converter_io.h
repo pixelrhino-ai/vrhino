@@ -17,6 +17,10 @@
 namespace vrhino::product::windows_converter_io {
 using ssize_t = int64_t;
 using off_t = int64_t;
+// UCRT's legacy struct stat has a 32-bit st_size even on x64. Keep the
+// structure and overload paired so callers cannot select _fstat64i32.
+using FileStatus = struct ::_stat64;
+static_assert(sizeof(decltype(FileStatus::st_size)) == 8);
 inline constexpr int O_CLOEXEC = _O_NOINHERIT;
 inline std::mutex position_mutex;
 inline int open(const wchar_t* path, int flags, int = 0) {
@@ -32,7 +36,7 @@ inline int open(const wchar_t* path, int flags, int = 0) {
     return result;
 }
 inline int close(int fd) { return _close(fd); }
-inline int fstat(int fd, struct _stat64* state) { return _fstat64(fd, state); }
+inline int fstat(int fd, FileStatus* state) { return _fstat64(fd, state); }
 inline ssize_t write(int fd, const void* bytes, size_t count) {
     std::lock_guard lock(position_mutex);
     return _write(fd, bytes, static_cast<unsigned int>(std::min<size_t>(count, INT_MAX)));

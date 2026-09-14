@@ -3,9 +3,19 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <string>
 #include <vector>
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <winioctl.h>
+#include <process.h>
+#else
 #include <unistd.h>
+#endif
 
 #include "vrhino/error.h"
 #include "vrhino/loader.h"
@@ -54,15 +64,122 @@ vrhino::Json object(std::initializer_list<std::pair<const std::string, vrhino::J
     return vrhino::Json(vrhino::Json::Value(std::move(result)));
 }
 
+#ifdef _WIN32
+// Exercise both production readers, not a direct CRT stat probe. Only the
+// header and final two bytes occupy disk space, including the >4 GiB case.
+void large_sparse_source(const fs::path& root, const uint64_t payload_bytes) {
+    const fs::path path = root / (std::to_string(payload_bytes) + ".safetensors");
+    std::string header = "{\"x\":{\"data_offsets\":[0," + std::to_string(payload_bytes) +
+        "],\"dtype\":\"U8\",\"shape\":[" + std::to_string(payload_bytes) + "]}}";
+    while (header.size() % 8 != 0) header.push_back(' ');
+    const uint64_t file_bytes = 8 + header.size() + payload_bytes;
+    HANDLE handle = CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE, 0,
+        nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
+    require_test(handle != INVALID_HANDLE_VALUE, "create sparse fixture");
+    DWORD returned = 0;
+    LARGE_INTEGER end{};
+    end.QuadPart = static_cast<LONGLONG>(file_bytes);
+    const bool sparse = DeviceIoControl(handle, FSCTL_SET_SPARSE, nullptr, 0,
+        nullptr, 0, &returned, nullptr) &&
+        SetFilePointerEx(handle, end, nullptr, FILE_BEGIN) && SetEndOfFile(handle);
+    CloseHandle(handle);
+    require_test(sparse, "fixture filesystem must support sparse files");
+    {
+        std::fstream output(path, std::ios::binary | std::ios::in | std::ios::out);
+        put_u64(output, header.size());
+        output.write(header.data(), static_cast<std::streamsize>(header.size()));
+        output.seekp(static_cast<std::streamoff>(file_bytes - 2));
+        output.write("\x34\x12", 2);
+        output.flush();
+        require_test(output.good(), "write sparse fixture sentinels");
+    }
+    handle = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr,
+        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    require_test(handle != INVALID_HANDLE_VALUE, "open sparse fixture for flush");
+    const bool flushed = FlushFileBuffers(handle) != 0;
+    CloseHandle(handle);
+    require_test(flushed, "flush sparse allocation before measuring");
+    DWORD high = 0;
+    SetLastError(NO_ERROR);
+    const DWORD low = GetCompressedFileSizeW(path.c_str(), &high);
+    require_test(low != INVALID_FILE_SIZE || GetLastError() == NO_ERROR,
+                 "measure sparse allocation");
+    const uint64_t allocation = (static_cast<uint64_t>(high) << 32) | low;
+    require_test(allocation < 1024 * 1024, "sparse fixture allocated excessive data");
+    product::SafeTensorReader reader(path);
+    require_test(reader.file_size() == file_bytes, "exact 64-bit reader file size");
+    const auto& tensor = reader.tensors().at("x");
+    require_test(tensor.byte_length == payload_bytes, "64-bit tensor byte length");
+    std::array<uint8_t, 3> bytes{};
+    reader.read_tensor(tensor, payload_bytes - 3, bytes.data(), bytes.size());
+    require_test(bytes == std::array<uint8_t, 3>{0, 0x34, 0x12},
+                 "reader positional read beyond boundary");
+    expect_code(product::ModelPackageErrorCode::PackageInvalid, [&] {
+        reader.read_tensor(tensor, std::numeric_limits<uint64_t>::max(), bytes.data(), 1);
+    }, "safetensors relative offset overflow");
+    expect_code(product::ModelPackageErrorCode::PackageInvalid, [&] {
+        reader.read_tensor(tensor, payload_bytes - 1, bytes.data(), 2);
+    }, "safetensors end-of-file range");
+
+    const product::SourceTensorDescriptor tail{
+        "tail", vrhino::DType::BF16, "BF16", {1}, 0, file_bytes - 2, 2};
+    product::FrozenTensorSource frozen({path}, {{"tail", tail}});
+    frozen.read_tensor(frozen.tensors().at("tail"), 0, bytes.data(), 2);
+    require_test(bytes[0] == 0x34 && bytes[1] == 0x12, "frozen positional read");
+    expect_code(product::ModelPackageErrorCode::PackageInvalid, [&] {
+        frozen.read_tensor(tail, std::numeric_limits<uint64_t>::max(), bytes.data(), 1);
+    }, "frozen relative offset overflow");
+    for (const uint64_t offset : {file_bytes - 1, std::numeric_limits<uint64_t>::max()}) {
+        auto invalid = tail;
+        invalid.data_offset = offset;
+        expect_code(product::ModelPackageErrorCode::PackageInvalid, [&] {
+            product::FrozenTensorSource rejected({path}, {{"tail", invalid}});
+        }, "frozen source range overflow");
+    }
+    auto invalid = tail;
+    invalid.shape = {std::numeric_limits<int64_t>::max(), 3};
+    expect_code(product::ModelPackageErrorCode::PackageInvalid, [&] {
+        product::FrozenTensorSource rejected({path}, {{"tail", invalid}});
+    }, "frozen shape multiplication overflow");
+
+    const fs::path converted = root / (std::to_string(payload_bytes) + "-converted.safetensors");
+    const product::TensorMapping mapping{"tail", vrhino::DType::BF16, {1},
+        "identity_bytes", "x", vrhino::DType::BF16, {1}, "conditioning", "weight"};
+    product::write_safetensors_streaming(converted, frozen, {mapping}, {{"format", "pt"}});
+    product::SafeTensorReader converted_reader(converted);
+    converted_reader.read_tensor(converted_reader.tensors().at("x"), 0, bytes.data(), 2);
+    require_test(bytes[0] == 0x34 && bytes[1] == 0x12, "large source conversion bytes");
+    std::cout << "sparse source bytes=" << file_bytes << " allocation=" << allocation
+              << " both readers/ranges/conversion: PASS\n";
+}
+#endif
+
 }  // namespace
 
 int main() {
     const fs::path root = fs::temp_directory_path() /
+#ifdef _WIN32
+        ("vrhino-native-converter-tests-" + std::to_string(_getpid()));
+#else
         ("vrhino-native-converter-tests-" + std::to_string(getpid()));
+#endif
     std::error_code error;
     fs::remove_all(root, error);
     fs::create_directories(root);
     try {
+#ifdef _WIN32
+        bool large_sources_passed = true;
+        for (const uint64_t boundary : {uint64_t{1} << 31, uint64_t{1} << 32}) {
+            try {
+                large_sparse_source(root, boundary + 17);
+            } catch (const std::exception& exception) {
+                large_sources_passed = false;
+                std::cerr << "sparse boundary=" << boundary << ": FAIL: "
+                          << exception.what() << '\n';
+            }
+        }
+        require_test(large_sources_passed, "large sparse source regressions");
+#endif
         const fs::path valid = root / "valid.safetensors";
         write_safe(valid,
             "{\"__metadata__\":{\"config\":\"{}\"},\"x\":{\"data_offsets\":[0,2],"
