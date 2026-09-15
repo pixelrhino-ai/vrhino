@@ -881,9 +881,15 @@ if(VRHINO_ENABLE_PRODUCT_CLI)
     target_link_libraries(
         vrhino-product-schema-successor-orchestration-tests PRIVATE
         vrhino_pull_orchestration)
-    target_compile_options(
-        vrhino-product-schema-successor-orchestration-tests PRIVATE
-        -Wall -Wextra -Werror)
+    if(MSVC)
+        target_compile_options(
+            vrhino-product-schema-successor-orchestration-tests PRIVATE
+            /W4 /WX /utf-8)
+    else()
+        target_compile_options(
+            vrhino-product-schema-successor-orchestration-tests PRIVATE
+            -Wall -Wextra -Werror)
+    endif()
     target_compile_definitions(
         vrhino-product-schema-successor-orchestration-tests PRIVATE
         VRHINO_TEST_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")

@@ -1,4 +1,5 @@
 #include "vrhino/product/converter.h"
+#include "converter_package_resources.h"
 
 #include <algorithm>
 #include <atomic>
@@ -89,6 +90,9 @@ ImportResult import_private_musetalk_v15_impl(
         manifest.product.status != expected_status)
         fail(ModelPackageErrorCode::PackageInvalid,
              "MuseTalk package descriptor identity/status drift");
+
+    const fs::path execution_profile =
+        converter_detail::manifest_execution_profile(package_spec, manifest_path);
 
     uint64_t total_output = 0;
     for (const ComponentDeclaration& component : manifest.components) {
@@ -229,7 +233,7 @@ ImportResult import_private_musetalk_v15_impl(
             {"workflow-config", spec_root /
                 (successor ? "musetalk_v15_workflow_v2/workflow.json"
                            : "musetalk_v15_workflow/workflow.json")},
-            {"execution-profile", package_spec / "execution.json"},
+            {"execution-profile", execution_profile},
         };
         if (public_package) {
             static_artifacts.insert(static_artifacts.end(), {
