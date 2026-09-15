@@ -1,4 +1,5 @@
 #include "vrhino/product/converter.h"
+#include "converter_package_resources.h"
 
 #include <algorithm>
 #include <atomic>
@@ -84,6 +85,9 @@ ImportResult import_latentsync_16_package(
         manifest.product.workflow_identity != "lip_sync_diffusion_workflow_v1")
         fail(ModelPackageErrorCode::PackageInvalid,
              "LatentSync package descriptor identity/status drift");
+
+    const fs::path execution_profile =
+        converter_detail::manifest_execution_profile(package_spec, manifest_path);
 
     uint64_t total_output = 0;
     uint64_t missing_output = 0;
@@ -199,7 +203,7 @@ ImportResult import_latentsync_16_package(
             {"scheduler-config", source_directory / "temporal_unet/scheduler_config.json"},
             {"fixed-mask", source_directory / "workflow/mask.png"},
             {"workflow-config", spec_root / "latentsync_16_workflow/workflow.json"},
-            {"execution-profile", package_spec / "execution.json"},
+            {"execution-profile", execution_profile},
             {"precision-policy", package_spec /
                 "policy/bf16-heavy-consumer-fp32-state-v1.json"},
         };
