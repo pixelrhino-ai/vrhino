@@ -15,10 +15,15 @@ std::string read_file(const std::string& path) {
                        std::istreambuf_iterator<char>());
 }
 
-std::string one_line(const std::string& path) {
-    std::istringstream input(read_file(path));
+std::string parse_one_line(const std::string& contents) {
+    std::istringstream input(contents);
     std::string value;
     std::getline(input, value);
+    // Only a CR immediately before the consumed LF belongs to the line ending.
+    // A bare CR at EOF and all other whitespace remain part of the value.
+    if (!input.eof() && !value.empty() && value.back() == '\r') {
+        value.pop_back();
+    }
     std::string extra;
     if (value.empty() || std::getline(input, extra)) {
         throw std::runtime_error("release identity file is not exactly one line");
@@ -26,14 +31,52 @@ std::string one_line(const std::string& path) {
     return value;
 }
 
+std::string one_line(const std::string& path) {
+    return parse_one_line(read_file(path));
+}
+
 void require(const bool condition, const char* message) {
     if (!condition) throw std::runtime_error(message);
+}
+
+void test_one_line_parser() {
+    const std::string expected = "v0.8.0-alpha";
+    for (const char* ending : {"\n", "\r\n", ""}) {
+        require(parse_one_line(expected + ending) == expected,
+                "logical release line differs across supported line endings");
+    }
+    for (const char* invalid : {"", "\n", "\r\n", "v0.8.0-alpha\nextra",
+                                "v0.8.0-alpha\r\nextra", "v0.8.0-alpha\n\n",
+                                "v0.8.0-alpha\r\n\r\n"}) {
+        bool rejected = false;
+        try {
+            (void)parse_one_line(invalid);
+        } catch (const std::runtime_error&) {
+            rejected = true;
+        }
+        require(rejected, "empty or multiline release metadata was accepted");
+    }
+    for (const char* significant : {" v0.8.0-alpha", "v0.8.0-alpha ",
+                                    "\tv0.8.0-alpha", "v0.8.0-alpha\t"}) {
+        for (const char* ending : {"\n", "\r\n", ""}) {
+            const std::string value = significant;
+            const std::string parsed = parse_one_line(value + ending);
+            require(parsed == value && parsed != expected,
+                    "significant release metadata whitespace was trimmed");
+        }
+    }
+    require(parse_one_line(expected + "\r") == expected + "\r",
+            "bare CR at EOF was removed");
+    require(parse_one_line(expected + "\r\r\n") == expected + "\r",
+            "more than one CR removed from the line ending");
+    std::cout << "release-line-parser: PASS\n";
 }
 
 }  // namespace
 
 int main() {
     try {
+        test_one_line_parser();
         const std::string canonical = one_line(VRHINO_TEST_CANONICAL_VERSION_FILE);
         const std::string package_version = one_line(VRHINO_TEST_PACKAGE_VERSION_FILE);
         const std::string archive_name = one_line(VRHINO_TEST_ARCHIVE_NAME_FILE);

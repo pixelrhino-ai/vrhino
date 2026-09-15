@@ -750,8 +750,11 @@ if(VRHINO_ENABLE_PRODUCT_CLI)
         VRHINO_TEST_PACKAGE_VERSION_FILE="${VRHINO_RELEASE_METADATA_DIR}/VERSION"
         VRHINO_TEST_ARCHIVE_NAME_FILE="${VRHINO_RELEASE_METADATA_DIR}/archive-name.txt"
         VRHINO_TEST_PROJECT_VERSION="${PROJECT_VERSION}")
-    target_compile_options(vrhino-release-version-tests PRIVATE
-        -Wall -Wextra -Werror)
+    if(MSVC)
+        target_compile_options(vrhino-release-version-tests PRIVATE /W4 /WX /utf-8)
+    else()
+        target_compile_options(vrhino-release-version-tests PRIVATE -Wall -Wextra -Werror)
+    endif()
 
     # Bounded HTTP/1.1 metadata transport. cpp-httplib is vendored and linked
     # header-only with TLS and compression support disabled. These bounds are
