@@ -4,6 +4,7 @@
 #include <string>
 #include <chrono>
 #include <sstream>
+#include <utility>
 
 #include "vrhino/product/pull_orchestration.h"
 
@@ -167,6 +168,18 @@ int main(int argc, char** argv) {
                 (void)product::load_pull_source_artifact_plan(invalid);
             }, "unsafe declared path");
         }
+        auto nul_path = *plan;
+        nul_path.source_plan = std::string("source-plan.json") + '\0' + "ignored";
+        expect_code(product::ModelPackageErrorCode::PackageInvalid, [&] {
+            (void)product::load_pull_source_artifact_plan(nul_path);
+        }, "embedded NUL declared path");
+        auto alternate = *plan;
+        alternate.source_plan = "resources/declared-model.json";
+        write_text(specs / "fixture" / alternate.source_plan, exact.raw_json);
+        require_test(fs::equivalent(
+            product::load_pull_source_artifact_plan(alternate).document_path,
+            specs / "fixture" / alternate.source_plan),
+            "loader ignored explicit non-default resource name");
         // Symlink rejection where supported; Windows CI also covers portable
         // traversal/drive paths without requiring developer-mode symlinks.
         write_text(root / "outside.json", exact.raw_json);

@@ -55,6 +55,7 @@ std::string string_field(const Json& object, const std::string& name) {
 void validate_relative_path(const fs::path& path) {
     const std::string portable = path.generic_string();
     if (path.empty() || path.is_absolute() || path.has_root_name() ||
+        portable.find('\0') != std::string::npos ||
         portable.find_first_of("\\:\r\n\t") != std::string::npos)
         fail(ModelPackageErrorCode::PackageInvalid,
              "pull plan source_plan must be a relative path");
@@ -395,7 +396,6 @@ UnifiedPullResult pull_runnable_model(
         for (const ArtifactDeclaration& artifact : descriptor.artifacts)
             cache.discard_invalid_blob(artifact);
     }
-
 
     LocalSourceCache source_cache(cache.layout().root / "sources",
                                   cache.layout().temporary);

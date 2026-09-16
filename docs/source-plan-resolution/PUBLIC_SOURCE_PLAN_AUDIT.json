@@ -10,7 +10,7 @@
       "resolved_source_plan": "ltx_v0_9_1/successors/1.1.1/source-plan.json",
       "component_plans_below_packaged_converter_root": 10,
       "component_plans_below_pull_plan_directory": 0,
-      "prefixed_root_discovery_collision": true
+      "pre_fix_root_discovery_collision": true
     },
     {
       "model_reference": "vrhino/wan2.1-t2v-1.3b:1.0.1",
@@ -19,7 +19,7 @@
       "resolved_source_plan": "wan2_1_t2v_1_3b/successors/1.0.1/source-plan.json",
       "component_plans_below_packaged_converter_root": 10,
       "component_plans_below_pull_plan_directory": 0,
-      "prefixed_root_discovery_collision": true
+      "pre_fix_root_discovery_collision": true
     },
     {
       "model_reference": "vrhino/mochi-1-preview:1.0.1",
@@ -28,7 +28,7 @@
       "resolved_source_plan": "mochi_1_preview/successors/1.0.1/source-plan.json",
       "component_plans_below_packaged_converter_root": 10,
       "component_plans_below_pull_plan_directory": 0,
-      "prefixed_root_discovery_collision": true
+      "pre_fix_root_discovery_collision": true
     },
     {
       "model_reference": "vrhino/musetalk-v1.5:1.0.1",
@@ -37,7 +37,7 @@
       "resolved_source_plan": "public_musetalk_v15/successors/1.0.1/source-plan.json",
       "component_plans_below_packaged_converter_root": 10,
       "component_plans_below_pull_plan_directory": 0,
-      "prefixed_root_discovery_collision": true
+      "pre_fix_root_discovery_collision": true
     },
     {
       "model_reference": "vrhino/latentsync-1.6:1.0.1",
@@ -46,7 +46,7 @@
       "resolved_source_plan": "public_latentsync_16/successors/1.0.1/source-plan.json",
       "component_plans_below_packaged_converter_root": 10,
       "component_plans_below_pull_plan_directory": 0,
-      "prefixed_root_discovery_collision": true
+      "pre_fix_root_discovery_collision": true
     }
   ],
   "component_documents": [
