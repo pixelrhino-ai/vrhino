@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install Product host dependencies
         shell: pwsh
-        run: vcpkg install curl:x64-windows libarchive:x64-windows zlib:x64-windows
+        run: vcpkg install "curl[core,schannel]:x64-windows" "libarchive[core]:x64-windows" zlib:x64-windows
       - name: Configure shared Product host tests
         shell: pwsh
         run: >-
