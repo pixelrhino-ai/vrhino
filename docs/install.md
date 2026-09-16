@@ -2,27 +2,26 @@
 
 ## Release status
 
-The current source version is **v0.8.0-alpha, unreleased**. It prepares native
-Windows CUDA support, pending a fresh rc7 and four-path clean-host qualification.
-The latest downloadable release is still
-[v0.7.0-alpha](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.7.0-alpha),
-which remains Linux-scoped and immutable. Do not rename a historical Windows
-rc6 archive as v0.8 or attach it to that release.
-See the [v0.8 preparation status](release/v0.8.0-alpha.md).
+The current release is **v0.8.0-alpha**, the first release line with a
+qualified native Windows x64 CUDA package. See the exact
+[v0.8 qualification record](release/v0.8.0-alpha.md). Published v0.7.0-alpha
+remains immutable and Linux-scoped.
 
 ## Requirements
 
-- Published Linux package: x86_64, glibc 2.35 or newer
-- Planned Windows package: native Windows x64 CUDA; qualification baseline
+- Linux package: x86_64, glibc 2.35 or newer
+- Windows package: native Windows x64 CUDA; qualification baseline
   Windows 10 Pro 22H2 / build 19045, RTX 3090 24 GiB, NVIDIA driver 610.47
 - compatible NVIDIA GPU and NVIDIA Driver
 - sufficient GPU VRAM and disk space
 - network access for the initial model pull
 
-Historical Linux packages were qualified on Ubuntu 22.04. Frozen Windows rc6
-passed Wan and LTX on the stated Windows baseline. Exact v0.8 rc7 qualification
-for Wan, LTX, MuseTalk and LatentSync remains pending. The baseline driver is
-not a qualified minimum; universal Windows/GPU coverage and macOS are not claimed.
+Linux release readiness and Windows rc9 clean-host qualification passed. Wan,
+LTX, MuseTalk, and LatentSync passed on the Windows baseline. Mochi remote
+import, installation, doctor, and admission passed, while full inference was
+not run on the 24 GiB host because its unchanged admission requires
+85,899,345,920 bytes of available device memory. The baseline driver is not a
+qualified minimum; universal Windows/GPU coverage and macOS are not claimed.
 
 You do not install a CUDA Toolkit, standalone cuDNN, Python, PyTorch, Diffusers,
 Transformers, Conda, system FFmpeg/x264, system curl, Visual Studio/Build Tools,
@@ -30,21 +29,21 @@ CMake, Ninja, MSYS2/MinGW or WSL for the Windows product. VRhino
 bundles the required user-space runtime and media components. The host NVIDIA
 Driver remains required.
 
-## Published Linux download
+## Linux download
 
 Download these two files from the
-[v0.7.0-alpha release](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.7.0-alpha):
+[v0.8.0-alpha release](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.8.0-alpha):
 
-- `vrhino-linux-x86_64-cuda-v0.7.0-alpha-final-candidate-5a07d09.tar.gz`
-- `vrhino-linux-x86_64-cuda-v0.7.0-alpha-final-candidate-5a07d09.tar.gz.sha256`
+- `vrhino-linux-x86_64-cuda-v0.8.0-alpha-final-candidate-d460de0.tar.gz`
+- `vrhino-linux-x86_64-cuda-v0.8.0-alpha-final-candidate-d460de0.tar.gz.sha256`
 
 If both files are in `~/Downloads`, run:
 
 ```bash
 cd "$HOME/Downloads"
-sha256sum -c vrhino-linux-x86_64-cuda-v0.7.0-alpha-final-candidate-5a07d09.tar.gz.sha256
+sha256sum -c vrhino-linux-x86_64-cuda-v0.8.0-alpha-final-candidate-d460de0.tar.gz.sha256
 mkdir -p "$HOME/.local/share"
-tar -xzf vrhino-linux-x86_64-cuda-v0.7.0-alpha-final-candidate-5a07d09.tar.gz -C "$HOME/.local/share"
+tar -xzf vrhino-linux-x86_64-cuda-v0.8.0-alpha-final-candidate-d460de0.tar.gz -C "$HOME/.local/share"
 printf '\nexport PATH="$HOME/.local/share/vrhino/bin:$PATH"\n' >> "$HOME/.profile"
 export PATH="$HOME/.local/share/vrhino/bin:$PATH"
 ```
@@ -67,13 +66,12 @@ vrhino doctor
 No `sudo`, repository clone, environment activation, or manual
 `LD_LIBRARY_PATH` configuration is required.
 
-## Planned Windows ZIP installation
+## Windows ZIP installation
 
-There is no published v0.8 rc7 download yet. After qualification and a separate
-release decision, use the exact Windows ZIP and checksum identified by that
-release. The planned candidate name is
-`vrhino-windows-x86_64-cuda-v0.8.0-alpha-<commit7>-rc7.zip`; `<commit7>` is a
-placeholder for the post-version-merge source commit, not an available asset.
+Download these two files from the v0.8.0-alpha release:
+
+- `vrhino-windows-x86_64-cuda-v0.8.0-alpha-d460de0-rc9.zip`
+- `vrhino-windows-x86_64-cuda-v0.8.0-alpha-d460de0-rc9.zip.sha256`
 
 Compare `Get-FileHash -LiteralPath <downloaded-ZIP> -Algorithm SHA256` with
 the published checksum before extracting it into a fresh directory. Keep
@@ -89,7 +87,7 @@ From PowerShell in the extracted package directory, the startup commands are:
 .\vrhino.exe doctor
 ```
 
-The new package must report `v0.8.0-alpha`. These examples also use native
+The package reports `v0.8.0-alpha`. These examples use native
 PowerShell syntax (replace media paths with your own files):
 
 ```powershell
@@ -135,9 +133,9 @@ The exact successor package identities introduced in v0.6.0-alpha remain:
 - `vrhino/musetalk-v1.5:1.0.1`
 - `vrhino/latentsync-1.6:1.0.1`
 
-This list is not a claim that all five models were qualified on Windows.
-The [platform matrix](release/v0.8.0-alpha.md) separates four pending rc7 paths
-from Mochi's retained historical Linux scope and 80 GiB admission requirement.
+The [platform matrix](release/v0.8.0-alpha.md) records the exact qualification
+scope for these five paths. No model weights or converted VRMs are in either
+release archive.
 
 If installation, pull, or run readiness is unclear, use `vrhino doctor` for a
 privacy-safe local report, or `vrhino doctor MODEL` to include installed

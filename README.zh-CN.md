@@ -33,20 +33,19 @@ VRhino 转换
 
 ## 发布状态
 
-当前源码版本为 **v0.8.0-alpha，尚未发布**，这是首个支持原生 Windows 的发布线。
-最新已发布版本仍为
-[v0.7.0-alpha](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.7.0-alpha)，
-其 Linux x86_64 CUDA 范围、标签和发布资产保持不可变。
+当前版本为 **v0.8.0-alpha**，这是首个包含经过资格验证的原生 Windows x64
+CUDA 包的发布线。Linux 与 Windows 资产均基于
+`d460de0a152c9ff92553b17ca37e4b5554c8c766` 构建。已发布的 v0.7.0-alpha
+仍为不可变的 Linux 范围历史发布。
 
-Windows 资格验证基线为 Windows 10 Pro 22H2 / build 19045、RTX 3090 24 GiB、
-NVIDIA 驱动 610.47。冻结 rc6 已通过干净主机上的 Wan 和 LTX 完整验证，但它
-保留 v0.7 构建身份，只作为历史证据，不是 v0.8 下载包。版本 PR 合并后必须
-新建 rc7，并完成 Wan、LTX、MuseTalk、LatentSync 四条路径的资格验证后才能发布。
+冻结的 Windows rc9 已在 Windows 10 Pro 22H2 / build 19045、RTX 3090 24 GiB、
+NVIDIA 驱动 610.47 的干净主机上通过资格验证。Wan、LTX、MuseTalk 和
+LatentSync 的原生产品路径均通过，五个公开模型的打包远程导入均通过。
 
-Mochi 保留历史 Linux 支持范围。其冻结准入要求至少 80 GiB 可用设备显存，
-因此不属于这台 24 GiB Windows 主机的验证范围；这不代表模型测试失败。
-不宣称覆盖所有 Windows/GPU，也不宣称支持 macOS。详见
-[v0.8 支持矩阵和待完成门禁](docs/release/v0.8.0-alpha.md)。
+Mochi 在 Windows 上的远程导入、安装、doctor 和准入验证均通过；由于其未变的
+准入要求为 85,899,345,920 字节可用设备显存，未在 24 GiB 主机上运行完整推理。
+历史 Linux Mochi 资格继续保留。不宣称覆盖所有 Windows/GPU，也不宣称支持
+macOS。详见 [v0.8 发布记录](docs/release/v0.8.0-alpha.md)。
 
 最终用户需要兼容的 NVIDIA GPU/驱动、足够的内存和磁盘空间，以及获取未缓存
 模型源文件所需的网络。不需要安装 CUDA Toolkit、独立 cuDNN、Visual Studio、
@@ -67,9 +66,9 @@ v0.6.0-alpha 确定的五个 Public 模型路径为：
 
 ## 安装
 
-现有 v0.7 Linux 下载方式及计划中的 Windows ZIP 布局见[安装说明](docs/install.md)。
-**此次版本准备没有发布任何 v0.8 rc7 下载包。** 不得把 rc6 改名为 v0.8，
-也不得把它追加到历史 v0.7 发布。
+v0.8 Linux 归档与 Windows rc9 ZIP 的下载、校验和安装方式见
+[安装说明](docs/install.md)。发布包不包含模型权重或转换后的 VRM；历史 v0.7
+发布及其资产保持不变。
 
 请保持完整包目录。Windows 包将 `vrhino.exe`、媒体助手和 39 个运行库 DLL
 放在一起，不依赖系统 FFmpeg 或手动配置 CUDA 库路径。核对发布的 ZIP SHA256
@@ -170,7 +169,7 @@ Internet。显式绑定非回环地址时会输出警告。完整七路由合同
 ## 文档
 
 - [安装与系统要求](docs/install.md)
-- [v0.8 发布准备和资格验证范围](docs/release/v0.8.0-alpha.md)
+- [v0.8 发布记录和资格验证范围](docs/release/v0.8.0-alpha.md)
 - [模型命令](docs/cli/model-cli-v0.md)
 - [ProductInputSchema v1](docs/product/product-input-schema-v1.md)
 - [模型信息 JSON v1](docs/product/model-info-json-v1.md)
@@ -189,9 +188,9 @@ Internet。显式绑定非回环地址时会输出警告。完整七路由合同
 
 ## Alpha 限制
 
-历史 Linux 资格与待完成的 v0.8 Windows 资格分开记录。发布前必须在精确 rc7
-字节上通过四条 Windows 产品路径。Alpha 期间接口和兼容性可能变化；不宣称
-覆盖所有 NVIDIA GPU、Windows/Linux 版本、模型检查点或架构，也不宣称支持 macOS。
+v0.8 Linux 与 Windows 资产分别绑定各自的精确候选资格记录。Alpha 期间接口和
+兼容性可能变化；不宣称覆盖所有 NVIDIA GPU、Windows/Linux 版本、模型检查点
+或架构，也不宣称支持 macOS。
 
 MuseTalk 和 LatentSync 的技术执行、完整媒体校验、人工视觉合理性检查与客观
 口型同步质量是不同结论。经校准的客观质量门禁仍独立延后；不宣称客观质量 PASS，

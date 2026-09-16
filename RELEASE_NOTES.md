@@ -1,9 +1,9 @@
-# VRhino v0.8.0-alpha — unreleased
+# VRhino v0.8.0-alpha
 
-This prepares the first native Windows CUDA release line. It updates release
-identity, documentation and strict version-test expectations only. A fresh
-post-merge rc7 must be built on a separate Windows developer host and qualified
-before any tag or release publication. No rc7 download or hash exists yet.
+This is the first VRhino Alpha release with a qualified native Windows x64 CUDA
+package. The Linux and Windows binaries were built from
+`d460de0a152c9ff92553b17ca37e4b5554c8c766`; the release tag may point to a
+later documentation-only commit. No model weights or converted VRMs are shipped.
 
 ## Windows product and distribution
 
@@ -28,50 +28,48 @@ disk space, and network access for uncached model sources. No CUDA Toolkit,
 standalone cuDNN, Visual Studio/Build Tools, CMake, Ninja, Python, PyTorch,
 Diffusers, Transformers, Conda, system FFmpeg, MSYS2/MinGW or WSL is required.
 
-## Qualification status and scope
+## Qualified release assets
 
-The preserved clean fixture is Windows 10 Pro 22H2 / build 19045, RTX 3090
-24 GiB, NVIDIA driver 610.47. This baseline does not establish a minimum
-driver or universal Windows/GPU support. macOS support is not claimed.
+The frozen Windows final candidate is
+`vrhino-windows-x86_64-cuda-v0.8.0-alpha-d460de0-rc9.zip` (1,356,742,549
+bytes), SHA256
+`19f0a09e54512452235401ebaa4342367d967d5cf014e7779579f7bbb3d0c7bc`.
+It passed clean-host qualification on Windows 10 Pro 22H2 / build 19045 with
+an NVIDIA RTX 3090 24 GiB and driver 610.47. Wan 2.1 `1.0.1`, LTX `1.1.1`,
+MuseTalk `1.0.1`, and LatentSync `1.0.1` passed their native product paths.
+Packaged remote import passed for all five public models.
 
-Frozen rc6 has clean-machine Wan 2.1 `1.0.1` and LTX `1.1.1` qualification
-PASS, including native pull/convert/install, real inference, complete MP4
-decode, local cuDNN/NVRTC loads and cleanup. This evidence stays bound to its
-original v0.7-labelled ZIP hash; it is not reused as v0.8 binary qualification.
+Mochi `1.0.1` passed remote import, installation, doctor, and admission
+validation. Full Mochi inference was not run on the 24 GiB Windows host because
+the frozen minimum available device-memory admission remains 85,899,345,920
+bytes. This is not a failed model test and the admission was not reduced.
 
-The new rc7 must qualify these exact Windows product paths before release:
+MuseTalk and LatentSync technical execution and complete media validation
+passed. Their independent objective lip-sync quality gates remain deferred;
+no calibrated objective quality PASS is claimed.
 
-- `vrhino/wan2.1-t2v-1.3b:1.0.1` — rc7 pending.
-- `vrhino/ltx-video-v0.9.1:1.1.1` — rc7 pending.
-- `vrhino/musetalk-v1.5:1.0.1` — rc7 clean-host technical execution and full
-  video/audio validation pending.
-- `vrhino/latentsync-1.6:1.0.1` — rc7 clean-host technical execution and full
-  video/audio validation pending.
+The frozen Linux archive is
+`vrhino-linux-x86_64-cuda-v0.8.0-alpha-final-candidate-d460de0.tar.gz`
+(1,407,461,962 bytes), SHA256
+`cd4345d6fcdea7115453b2c65682b0d4a632425cefcec33de0108018ee3a898e`.
+Linux release readiness and packaged remote import for all five public models
+passed. Wan, LTX, MuseTalk, and LatentSync passed. Mochi full inference was not
+rerun on the 24 GiB qualification host; its historical Linux qualification is
+preserved and its admission is unchanged.
 
-MuseTalk and LatentSync have historical developer-host manual visual sanity
-evidence. Technical execution, complete media validation, human visual review
-and objective lip-sync quality are separate claims. No calibrated objective
-quality threshold is frozen; that gate remains deferred, not an objective
-PASS and not a Windows-only technical blocker.
+These tested baselines do not establish a minimum driver or universal
+Windows, Linux, or GPU compatibility. macOS support is not claimed.
 
-Mochi retains its historical Linux scope. It is not fully qualified on this
-24 GiB host because its frozen admission requires at least 80 GiB available
-device memory. This exclusion is not a model failure and does not reduce
-admission. No new Linux runtime qualification is claimed here.
+## Semantics and historical guarantees
 
-## Version and historical guarantees
+This release includes the shared source-plan resolution fix. Source acquisition
+resolution changed; architecture, Runtime, backend, CUDA, kernels, precision,
+model specifications, and preset semantics did not change.
 
-Canonical VERSION, CLI/API version data, CMake numeric version, package
-metadata and strict test expectations move to v0.8.0-alpha / 0.8.0. Model
-package identities, VRM/API contracts, architecture, Runtime, backend, CUDA
-kernels, precision policies, specifications and presets do not change.
-
-The published v0.7.0-alpha release remains immutable and Linux-scoped. Do not
-move its tag, change its release or assets, or add Windows downloads. Do not
-rename, modify or republish the qualified rc6 as v0.8. See the
-[v0.8 release preparation and handoff](docs/release/v0.8.0-alpha.md) for the
-version-reference audit and required rc7 gates. Publication requires a separate
-explicit decision after qualification; this preparation does not authorize it.
+The published v0.7.0-alpha release remains immutable and Linux-scoped. Its tag,
+description, and assets are unchanged. See the
+[v0.8 release record](docs/release/v0.8.0-alpha.md) for the exact qualification
+scope and checksums.
 
 # VRhino v0.6.0-alpha
 
