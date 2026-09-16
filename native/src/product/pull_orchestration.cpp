@@ -53,7 +53,9 @@ std::string string_field(const Json& object, const std::string& name) {
 }
 
 void validate_relative_path(const fs::path& path) {
-    if (path.empty() || path.is_absolute())
+    const std::string portable = path.generic_string();
+    if (path.empty() || path.is_absolute() || path.has_root_name() ||
+        portable.find_first_of("\\:\r\n\t") != std::string::npos)
         fail(ModelPackageErrorCode::PackageInvalid,
              "pull plan source_plan must be a relative path");
     for (const fs::path& component : path) {
@@ -301,6 +303,32 @@ std::optional<PullDistributionPlan> find_pull_distribution_plan(
     return match;
 }
 
+SourceArtifactPlanDocument load_pull_source_artifact_plan(
+        const PullDistributionPlan& plan) {
+    validate_relative_path(plan.source_plan);
+    std::error_code error;
+    const fs::path directory = fs::canonical(plan.document_path.parent_path(), error);
+    if (error)
+        fail(ModelPackageErrorCode::SourceInvalid,
+             "declared source plan directory is missing");
+    const fs::path declared = fs::canonical(directory / plan.source_plan, error);
+    if (error)
+        fail(ModelPackageErrorCode::SourceInvalid,
+             "declared source plan is missing or inaccessible");
+    const fs::path relative = declared.lexically_relative(directory);
+    if (relative.empty() || relative.is_absolute() || *relative.begin() == "..")
+        fail(ModelPackageErrorCode::SourceInvalid,
+             "declared source plan escapes its pull plan directory");
+    const SourceArtifactPlanDocument source_plan =
+        load_source_artifact_plan_file(declared, plan.model_reference);
+    if (source_plan.requested_source.provider != plan.source.provider ||
+        source_plan.requested_source.repository != plan.source.repository ||
+        source_plan.requested_source.revision != plan.source.revision)
+        fail(ModelPackageErrorCode::PackageInvalid,
+             "pull plan source does not match source artifact plan");
+    return source_plan;
+}
+
 UnifiedPullResult pull_runnable_model(
         const std::string& exact_reference, LocalModelCache& cache,
         const UnifiedPullOptions& options, std::ostream* progress_output) {
@@ -348,6 +376,9 @@ UnifiedPullResult pull_runnable_model(
         return result;
     }
 
+    const SourceArtifactPlanDocument source_plan =
+        load_pull_source_artifact_plan(*plan);
+
     if (installed_invalid) {
         if (plan->kind != PullDistributionKind::MultiComponentSourceBacked &&
             plan->kind != PullDistributionKind::PrivateMultiComponentSourceBacked)
@@ -365,18 +396,6 @@ UnifiedPullResult pull_runnable_model(
             cache.discard_invalid_blob(artifact);
     }
 
-    const fs::path declared_source_plan = fs::weakly_canonical(
-        plan->document_path.parent_path() / plan->source_plan);
-    const SourceArtifactPlanDocument source_plan = load_source_artifact_plan(
-        exact_reference, plan->document_path.parent_path());
-    if (fs::weakly_canonical(source_plan.document_path) != declared_source_plan)
-        fail(ModelPackageErrorCode::PackageInvalid,
-             "pull plan did not resolve its declared source plan");
-    if (source_plan.requested_source.provider != plan->source.provider ||
-        source_plan.requested_source.repository != plan->source.repository ||
-        source_plan.requested_source.revision != plan->source.revision)
-        fail(ModelPackageErrorCode::PackageInvalid,
-             "pull plan source does not match source artifact plan");
 
     LocalSourceCache source_cache(cache.layout().root / "sources",
                                   cache.layout().temporary);

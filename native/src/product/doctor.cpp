@@ -344,16 +344,11 @@ std::optional<ModelPackageManifest> descriptor_manifest(
         std::optional<PullDistributionPlan>& pull_plan,
         std::optional<SourceArtifactPlanDocument>& source_plan) {
     if (specification_root.empty()) return std::nullopt;
-    try {
-        pull_plan = find_pull_distribution_plan(reference, specification_root);
-        if (!pull_plan.has_value()) return std::nullopt;
-        source_plan = load_source_artifact_plan(
-            reference, pull_plan->document_path.parent_path());
-        return load_model_package_manifest(
-            pull_plan->document_path.parent_path() / kModelManifestName);
-    } catch (const ModelPackageError&) {
-        return std::nullopt;
-    }
+    pull_plan = find_pull_distribution_plan(reference, specification_root);
+    if (!pull_plan.has_value()) return std::nullopt;
+    source_plan = load_pull_source_artifact_plan(*pull_plan);
+    return load_model_package_manifest(
+        pull_plan->document_path.parent_path() / kModelManifestName);
 }
 
 uint64_t source_logical_bytes(const SourceArtifactPlanDocument& plan) {

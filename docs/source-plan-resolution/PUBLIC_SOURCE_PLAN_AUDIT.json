@@ -1,0 +1,182 @@
+{
+  "status": "PASS",
+  "base_commit": "606bffc177344919b2324bb0e2c8f5767c7796eb",
+  "path_base": "native/specs in source; share/vrhino/converters in package",
+  "models": [
+    {
+      "model_reference": "vrhino/ltx-video-v0.9.1:1.1.1",
+      "pull_plan": "ltx_v0_9_1/successors/1.1.1/pull-plan.json",
+      "declared_source_plan": "source-plan.json",
+      "resolved_source_plan": "ltx_v0_9_1/successors/1.1.1/source-plan.json",
+      "component_plans_below_packaged_converter_root": 10,
+      "component_plans_below_pull_plan_directory": 0,
+      "prefixed_root_discovery_collision": true
+    },
+    {
+      "model_reference": "vrhino/wan2.1-t2v-1.3b:1.0.1",
+      "pull_plan": "wan2_1_t2v_1_3b/successors/1.0.1/pull-plan.json",
+      "declared_source_plan": "source-plan.json",
+      "resolved_source_plan": "wan2_1_t2v_1_3b/successors/1.0.1/source-plan.json",
+      "component_plans_below_packaged_converter_root": 10,
+      "component_plans_below_pull_plan_directory": 0,
+      "prefixed_root_discovery_collision": true
+    },
+    {
+      "model_reference": "vrhino/mochi-1-preview:1.0.1",
+      "pull_plan": "mochi_1_preview/successors/1.0.1/pull-plan.json",
+      "declared_source_plan": "source-plan.json",
+      "resolved_source_plan": "mochi_1_preview/successors/1.0.1/source-plan.json",
+      "component_plans_below_packaged_converter_root": 10,
+      "component_plans_below_pull_plan_directory": 0,
+      "prefixed_root_discovery_collision": true
+    },
+    {
+      "model_reference": "vrhino/musetalk-v1.5:1.0.1",
+      "pull_plan": "public_musetalk_v15/successors/1.0.1/pull-plan.json",
+      "declared_source_plan": "source-plan.json",
+      "resolved_source_plan": "public_musetalk_v15/successors/1.0.1/source-plan.json",
+      "component_plans_below_packaged_converter_root": 10,
+      "component_plans_below_pull_plan_directory": 0,
+      "prefixed_root_discovery_collision": true
+    },
+    {
+      "model_reference": "vrhino/latentsync-1.6:1.0.1",
+      "pull_plan": "public_latentsync_16/successors/1.0.1/pull-plan.json",
+      "declared_source_plan": "source-plan.json",
+      "resolved_source_plan": "public_latentsync_16/successors/1.0.1/source-plan.json",
+      "component_plans_below_packaged_converter_root": 10,
+      "component_plans_below_pull_plan_directory": 0,
+      "prefixed_root_discovery_collision": true
+    }
+  ],
+  "component_documents": [
+    {
+      "path": "bisenet_face_parser/source-plan.json",
+      "schema_version": 1,
+      "role": "semantic_segmenter_2d",
+      "fields": [
+        "schema_version",
+        "component",
+        "graph_identity",
+        "reference",
+        "sources",
+        "excluded_sources",
+        "production_python_dependency"
+      ]
+    },
+    {
+      "path": "blazeface_short_range/source-plan.json",
+      "schema_version": 1,
+      "role": "vision_detector_dense",
+      "fields": [
+        "schema_version",
+        "component",
+        "source",
+        "model_card",
+        "license",
+        "conversion_notice"
+      ]
+    },
+    {
+      "path": "dwpose_keypoint/source-plan.json",
+      "schema_version": 1,
+      "role": "pose_estimator_2d",
+      "fields": [
+        "schema_version",
+        "component",
+        "source",
+        "artifacts",
+        "tensor_map"
+      ]
+    },
+    {
+      "path": "latentsync_16_temporal_unet/source-plan.json",
+      "schema_version": 1,
+      "role": "temporal_conditional_unet_2d",
+      "fields": [
+        "schema_version",
+        "component",
+        "graph_identity",
+        "code",
+        "sources",
+        "checkpoint",
+        "license"
+      ]
+    },
+    {
+      "path": "latentsync_16_whisper/source-plan.json",
+      "schema_version": 1,
+      "role": "audio_encoder_transformer",
+      "fields": [
+        "schema_version",
+        "component",
+        "graph_identity",
+        "code",
+        "sources",
+        "checkpoint",
+        "license"
+      ]
+    },
+    {
+      "path": "musetalk_v15_unet/source-plan.json",
+      "schema_version": 1,
+      "role": "conditional_unet_2d",
+      "fields": [
+        "schema_version",
+        "component",
+        "source_repository",
+        "source_revision",
+        "tensor_map_sha256",
+        "artifacts"
+      ]
+    },
+    {
+      "path": "s3fd_face_detector/source-plan.json",
+      "schema_version": 1,
+      "role": "vision_detector_multiscale",
+      "fields": [
+        "schema_version",
+        "component",
+        "source",
+        "artifacts",
+        "tensor_map"
+      ]
+    },
+    {
+      "path": "sd_vae_ft_mse/source-plan.json",
+      "schema_version": 1,
+      "role": "autoencoder_kl",
+      "fields": [
+        "schema_version",
+        "component_kind",
+        "source",
+        "artifacts",
+        "conversion"
+      ]
+    },
+    {
+      "path": "selfie_multiclass_256x256/source-plan.json",
+      "schema_version": 1,
+      "role": "semantic_segmenter_2d",
+      "fields": [
+        "schema_version",
+        "component",
+        "graph_identity",
+        "source_format",
+        "artifacts"
+      ]
+    },
+    {
+      "path": "whisper_tiny_encoder/source-plan.json",
+      "schema_version": 1,
+      "role": "audio_encoder",
+      "fields": [
+        "schema_version",
+        "component_kind",
+        "source",
+        "artifacts",
+        "conversion"
+      ]
+    }
+  ]
+}

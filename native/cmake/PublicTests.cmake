@@ -65,6 +65,15 @@ if(BUILD_TESTING)
     vrhino_public_test(vrhino-tokenizer-build-source-tests host)
     vrhino_public_test(vrhino-native-source-acquisition-tests host)
     vrhino_public_test(vrhino-native-pull-orchestration-tests host)
+    if(TARGET vrhino-native-pull-orchestration-tests)
+        find_package(Python3 REQUIRED COMPONENTS Interpreter)
+        add_test(NAME vrhino-source-plan-remote-fixture
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_plan_remote_fixture.py"
+                $<TARGET_FILE:vrhino-native-pull-orchestration-tests>)
+        set_tests_properties(vrhino-source-plan-remote-fixture PROPERTIES
+            LABELS "public;host" TIMEOUT 150 RUN_SERIAL TRUE)
+    endif()
     vrhino_public_test(vrhino-product-schema-successor-orchestration-tests host)
     vrhino_public_test(vrhino-public-musetalk-product-tests host)
     vrhino_public_test(vrhino-public-latentsync-product-tests host)

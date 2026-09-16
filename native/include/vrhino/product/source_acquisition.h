@@ -46,6 +46,13 @@ struct SourceArtifactPlanDocument {
     std::string raw_json;
 };
 
+// Strictly load one declared model plan; never discover or skip this file.
+SourceArtifactPlanDocument load_source_artifact_plan_file(
+    const std::filesystem::path& path,
+    const std::string& expected_model_reference);
+
+// Discovery for callers without a pull-plan declaration. Component provenance
+// documents are a different schema; duplicate model identities still fail.
 SourceArtifactPlanDocument load_source_artifact_plan(
     const std::string& model_reference,
     const std::filesystem::path& converter_spec_root);
