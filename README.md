@@ -34,22 +34,21 @@ comparable to llama.cpp today.
 
 ## Release status
 
-The source version is **v0.8.0-alpha, unreleased**: the first Windows-supporting
-release line. The latest published release remains
-[v0.7.0-alpha](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.7.0-alpha),
-an immutable Linux x86_64 CUDA release; its assets and support scope do not change.
+The current release is **v0.8.0-alpha**, the first release line with a
+qualified native Windows x64 CUDA package. The Linux and Windows assets were
+built from `d460de0a152c9ff92553b17ca37e4b5554c8c766`. Published v0.7.0-alpha
+remains immutable and Linux-scoped.
 
-The Windows qualification baseline is Windows 10 Pro 22H2 / build 19045,
-RTX 3090 24 GiB and NVIDIA driver 610.47. Frozen rc6 completed clean-host Wan
-and LTX qualification; it retains its v0.7 build identity as historical
-evidence and is not a v0.8 download. A fresh post-merge rc7 must qualify Wan,
-LTX, MuseTalk and LatentSync before Windows release publication.
+The frozen Windows rc9 passed clean-host qualification on Windows 10 Pro 22H2 /
+build 19045, RTX 3090 24 GiB, and NVIDIA driver 610.47. Wan, LTX, MuseTalk, and
+LatentSync passed their native product paths. Packaged remote import passed for
+all five public models.
 
-Mochi retains its historical Linux scope. Its frozen admission requires at
-least 80 GiB available device memory, so it is not part of the 24 GiB Windows
-qualification; this is not a failed model test. No universal Windows/GPU or
-macOS support is claimed. See the exact
-[v0.8 support matrix and pending gates](docs/release/v0.8.0-alpha.md).
+Mochi remote import, installation, doctor, and admission passed on Windows;
+full inference was not run on the 24 GiB host because its unchanged admission
+requires 85,899,345,920 bytes of available device memory. Historical Linux
+Mochi qualification is preserved. No universal Windows/GPU or macOS support is
+claimed. See the exact [v0.8 release record](docs/release/v0.8.0-alpha.md).
 
 The self-contained product requires a compatible NVIDIA GPU and driver,
 sufficient memory/disk space, and network access for uncached model sources.
@@ -71,10 +70,9 @@ The exact v0.6.0-alpha Public model set is:
 
 ## Install
 
-Use the [installation guide](docs/install.md) for the existing v0.7 Linux
-download and the planned Windows ZIP layout. **No v0.8 rc7 download has been
-published by this preparation change.** Never rename rc6 to v0.8 or add it to
-the historical v0.7 release.
+Use the [installation guide](docs/install.md) for the v0.8 Linux archive and
+Windows rc9 ZIP. No model weights or converted VRMs are included. The
+historical v0.7 release and its assets remain unchanged.
 
 Keep the entire package directory intact. Windows packages place `vrhino.exe`,
 the bundled media helper and 39 runtime DLLs together; no system FFmpeg or
@@ -205,10 +203,9 @@ contract and local absolute-path media rules.
 
 ## Alpha limitations
 
-Historical Linux qualification and the pending v0.8 Windows qualification
-are distinct. Four Windows product paths must pass on exact rc7 bytes before
-publication. Interfaces and compatibility may change during Alpha; no claim
-covers every NVIDIA GPU, Windows/Linux version, model checkpoint or architecture.
+The Linux and Windows v0.8 assets have separate exact-candidate qualification
+records. Interfaces and compatibility may change during Alpha; no claim covers
+every NVIDIA GPU, Windows/Linux version, model checkpoint, or architecture.
 macOS support is not claimed.
 
 For MuseTalk and LatentSync, technical execution and complete media validation
