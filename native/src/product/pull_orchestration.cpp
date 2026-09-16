@@ -54,7 +54,7 @@ std::string string_field(const Json& object, const std::string& name) {
 
 void validate_relative_path(const fs::path& path) {
     const std::string portable = path.generic_string();
-    if (path.empty() || path.is_absolute() || path.has_root_name() ||
+    if (path.empty() || path.has_root_path() ||
         portable.find('\0') != std::string::npos ||
         portable.find_first_of("\\:\r\n\t") != std::string::npos)
         fail(ModelPackageErrorCode::PackageInvalid,
