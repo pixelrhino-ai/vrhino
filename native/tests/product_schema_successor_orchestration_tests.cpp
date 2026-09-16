@@ -254,8 +254,9 @@ int main() {
             require_test(plan->model_reference == reference,
                          "successor pull plan identity mismatch: " + reference);
             const product::SourceArtifactPlanDocument source =
-                product::load_source_artifact_plan(reference,
-                                                    plan->document_path.parent_path());
+                product::load_pull_source_artifact_plan(*plan);
+            require_test(product::load_source_artifact_plan(reference, spec_root).model_reference == reference,
+                         "packaged-tree discovery collided with component provenance");
             require_test(source.model_reference == reference,
                          "successor source plan identity mismatch: " + reference);
 

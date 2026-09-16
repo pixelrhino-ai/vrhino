@@ -37,6 +37,11 @@ std::optional<PullDistributionPlan> find_pull_distribution_plan(
     const std::string& model_reference,
     const std::filesystem::path& converter_spec_root);
 
+// Resolve the declared relative resource, enforce containment and validate the
+// model identity and immutable source binding. Shared by pull, import and doctor.
+SourceArtifactPlanDocument load_pull_source_artifact_plan(
+    const PullDistributionPlan& plan);
+
 struct UnifiedPullOptions {
     std::filesystem::path converter_spec_root;
     RegistryOptions registry;

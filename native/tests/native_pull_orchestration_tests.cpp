@@ -2,7 +2,9 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <unistd.h>
+#include <chrono>
+#include <sstream>
+#include <utility>
 
 #include "vrhino/product/pull_orchestration.h"
 
@@ -85,14 +87,20 @@ void write_package_manifest(const fs::path& spec) {
 
 }  // namespace
 
-int main() {
+int main(int argc, char** argv) {
     const fs::path root = fs::temp_directory_path() /
-        ("vrhino-pull-orchestration-tests-" + std::to_string(getpid()));
+        ("vrhino-pull-orchestration-tests-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
     std::error_code error;
     fs::remove_all(root, error);
     try {
         const fs::path specs = root / "specs";
         const std::string reference = "vrhino/fixture:1.0.0";
+        // Create the component first, including a lexically earlier sibling.
+        // The original recursive parser fails even if it visits the model first.
+        const std::string component =
+            R"({"schema_version":1,"component":"semantic_segmenter_2d","sources":[]})";
+        write_text(specs / "00-component/source-plan.json", component);
+        write_text(specs / "fixture/component-a/source-plan.json", component);
         write_source_backed_plan(specs / "fixture", reference);
         write_package_manifest(specs / "fixture");
         const auto plan = product::find_pull_distribution_plan(reference, specs);
@@ -104,6 +112,91 @@ int main() {
         require_test(!product::find_pull_distribution_plan(
                           "vrhino/absent:1.0.0", specs).has_value(),
                      "unexpected pull plan match");
+
+        const fs::path declared = specs / "fixture/source-plan.json";
+        const auto exact = product::load_pull_source_artifact_plan(*plan);
+        require_test(fs::equivalent(exact.document_path, declared) &&
+                     exact.model_reference == reference, "exact declared model plan");
+        require_test(product::load_source_artifact_plan(reference, specs).model_reference ==
+                     reference, "component-aware model discovery");
+        write_text(specs / "duplicate/source-plan.json", exact.raw_json);
+        expect_code(product::ModelPackageErrorCode::SourceInvalid, [&] {
+            (void)product::load_source_artifact_plan(reference, specs);
+        }, "duplicate model discovery");
+        require_test(product::load_pull_source_artifact_plan(*plan).model_reference == reference,
+                     "exact loading must not discover another plan");
+        fs::remove_all(specs / "duplicate");
+
+        auto reject_declared = [&](const std::string& bytes,
+                                   product::ModelPackageErrorCode code) {
+            write_text(declared, bytes);
+            expect_code(code, [&] {
+                (void)product::load_pull_source_artifact_plan(*plan);
+            }, "invalid explicit model plan");
+            write_text(declared, exact.raw_json);
+        };
+        reject_declared("{", product::ModelPackageErrorCode::SourceInvalid);
+        reject_declared(component, product::ModelPackageErrorCode::SourceInvalid);
+        for (const auto& replacement : {
+                std::pair<std::string, std::string>{reference, "vrhino/wrong:1.0.0"},
+                {"\"schema_version\":1", "\"schema_version\":2"},
+                {"test.bin", "../test.bin"},
+                {kTestSha, std::string(64, 'z')}}) {
+            std::string invalid = exact.raw_json;
+            invalid.replace(invalid.find(replacement.first), replacement.first.size(),
+                            replacement.second);
+            reject_declared(invalid, product::ModelPackageErrorCode::SourceInvalid);
+        }
+        std::string floating = exact.raw_json;
+        floating.replace(floating.find(kRevision), std::string(kRevision).size(), "main");
+        reject_declared(floating, product::ModelPackageErrorCode::SourceRevisionRequired);
+        auto wrong_source = *plan;
+        wrong_source.source.revision = std::string(40, 'b');
+        expect_code(product::ModelPackageErrorCode::PackageInvalid, [&] {
+            (void)product::load_pull_source_artifact_plan(wrong_source);
+        }, "immutable source binding mismatch");
+        fs::remove(declared);
+        expect_code(product::ModelPackageErrorCode::SourceInvalid, [&] {
+            (void)product::load_pull_source_artifact_plan(*plan);
+        }, "absent declared model plan");
+        write_text(declared, exact.raw_json);
+        for (const std::string& unsafe : {"../source-plan.json", "/source-plan.json",
+                                          "C:/source-plan.json", "..\\source-plan.json"}) {
+            auto invalid = *plan;
+            invalid.source_plan = unsafe;
+            expect_code(product::ModelPackageErrorCode::PackageInvalid, [&] {
+                (void)product::load_pull_source_artifact_plan(invalid);
+            }, "unsafe declared path");
+        }
+        auto nul_path = *plan;
+        nul_path.source_plan = std::string("source-plan.json") + '\0' + "ignored";
+        expect_code(product::ModelPackageErrorCode::PackageInvalid, [&] {
+            (void)product::load_pull_source_artifact_plan(nul_path);
+        }, "embedded NUL declared path");
+        auto alternate = *plan;
+        alternate.source_plan = "resources/declared-model.json";
+        write_text(specs / "fixture" / alternate.source_plan, exact.raw_json);
+        require_test(fs::equivalent(
+            product::load_pull_source_artifact_plan(alternate).document_path,
+            specs / "fixture" / alternate.source_plan),
+            "loader ignored explicit non-default resource name");
+        // Symlink rejection where supported; Windows CI also covers portable
+        // traversal/drive paths without requiring developer-mode symlinks.
+        write_text(root / "outside.json", exact.raw_json);
+        fs::create_symlink(root / "outside.json", specs / "fixture/escape.json", error);
+        if (!error) {
+            auto escaped = *plan; escaped.source_plan = "escape.json";
+            expect_code(product::ModelPackageErrorCode::SourceInvalid, [&] {
+                (void)product::load_pull_source_artifact_plan(escaped);
+            }, "symlink escaped declared path");
+        }
+        // A component discriminator must not hide a malformed model plan.
+        write_text(specs / "00-component/source-plan.json",
+            R"({"schema_version":1,"component":"semantic_segmenter_2d","model_reference":null})");
+        expect_code(product::ModelPackageErrorCode::SourceInvalid, [&] {
+            (void)product::load_source_artifact_plan(reference, specs);
+        }, "model fields cannot be skipped as component provenance");
+        write_text(specs / "00-component/source-plan.json", component);
 
         product::LocalModelCache cache(root / "cache");
         product::UnifiedPullOptions low_space;
@@ -117,12 +210,28 @@ int main() {
 
         const fs::path source_blob = cache.layout().root / "sources/blobs/sha256/9f" /
                                      kTestSha;
-        write_text(source_blob, "test");
+        if (argc == 2) {
+            // The Python fixture serves immutable HF-style paths over loopback.
+            product::LocalSourceCache acquisition(cache.layout().root / "sources");
+            product::AcquisitionOptions remote;
+            remote.huggingface_official.base_url = argv[1];
+            remote.automatic_huggingface_fallback = false;
+            remote.network.allow_development_http = true;
+            const auto acquired = acquisition.acquire(plan->source, exact, remote);
+            require_test(acquired.downloaded_bytes == 4 && acquired.reused_bytes == 0,
+                         "remote acquisition did not download the declared artifact");
+        } else {
+            require_test(argc == 1, "unexpected arguments");
+            write_text(source_blob, "test");
+        }
         product::UnifiedPullOptions options;
         options.converter_spec_root = specs;
+        std::ostringstream progress;
         expect_code(product::ModelPackageErrorCode::PackageVersionUnsupported, [&] {
-            (void)product::pull_runnable_model(reference, cache, options);
+            (void)product::pull_runnable_model(reference, cache, options, &progress);
         }, "unregistered converter failure");
+        require_test(progress.str().find("Acquiring source") != std::string::npos,
+                     "remote pull never reached source acquisition");
         require_test(cache.list().empty(),
                      "failed pull published an installed package");
         require_test(fs::is_regular_file(source_blob) &&

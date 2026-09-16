@@ -23,6 +23,34 @@ jobs:
           if errorlevel 1 exit /b 1
           python tools/test_package_windows_build.py -v
           if errorlevel 1 exit /b 1
+  windows-source-plan:
+    name: Windows declared source-plan resolution
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install Product host dependencies
+        shell: pwsh
+        run: vcpkg install "curl[core,ssl]:x64-windows" "libarchive[core]:x64-windows" zlib:x64-windows
+      - name: Configure shared Product host tests
+        shell: pwsh
+        run: >-
+          cmake -S native -B "$env:RUNNER_TEMP/vrhino-source-plan"
+          -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          -DVCPKG_TARGET_TRIPLET=x64-windows
+          -DVRHINO_ENABLE_CUDA=OFF -DVRHINO_ENABLE_TOKENIZERS=OFF
+      - name: Build shared resolution and successor tests
+        shell: pwsh
+        run: >-
+          cmake --build "$env:RUNNER_TEMP/vrhino-source-plan" --config Release --parallel 2
+          --target vrhino-native-pull-orchestration-tests
+          vrhino-product-schema-successor-orchestration-tests vrhino
+      - name: Test exact loading, collision rejection, remote transport and successors
+        shell: pwsh
+        run: >-
+          ctest --test-dir "$env:RUNNER_TEMP/vrhino-source-plan" -C Release
+          -R "vrhino-(native-pull-orchestration-tests|source-plan-remote-fixture|product-schema-successor-orchestration-tests)$"
+          --output-on-failure --no-tests=error
   host:
     name: Linux host and offline tokenizer build
     runs-on: ubuntu-22.04

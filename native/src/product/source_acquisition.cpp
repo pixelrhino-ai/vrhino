@@ -184,6 +184,7 @@ SourceArtifactPlanDocument parse_plan(const fs::path& path) {
             fail(ModelPackageErrorCode::SourceInvalid,
                  "unsupported source artifact plan schema");
         plan.model_reference = string_field(root, "model_reference");
+        (void)parse_package_reference(plan.model_reference);
         const Json& requested = object_field(root, "requested_source");
         plan.requested_source.provider = string_field(requested, "provider");
         plan.requested_source.repository = string_field(requested, "repository");
@@ -248,6 +249,29 @@ SourceArtifactPlanDocument parse_plan(const fs::path& path) {
         return plan;
     } catch (const ModelPackageError&) {
         throw;
+    } catch (const Error& error) {
+        fail(ModelPackageErrorCode::SourceInvalid,
+             "malformed source artifact plan: " + std::string(error.what()));
+    }
+}
+
+// Component provenance uses an explicit component/component_kind discriminator,
+// not the model acquisition schema. Never classify a document carrying model
+// fields as component-only, including an invalid or empty model_reference.
+bool component_source_plan(const fs::path& path) {
+    try {
+        const Json root = Json::parse(read_text(path));
+        if (!root.is_object() || root.find("model_reference") != nullptr ||
+            root.find("requested_source") != nullptr) return false;
+        const Json* schema = root.find("schema_version");
+        if (schema == nullptr || !schema->is_int() ||
+            schema->integer() != kSourcePlanSchemaVersion) return false;
+        for (const char* field : {"component", "component_kind"}) {
+            const Json* kind = root.find(field);
+            if (kind != nullptr && kind->is_string() && !kind->string().empty())
+                return true;
+        }
+        return false;
     } catch (const Error& error) {
         fail(ModelPackageErrorCode::SourceInvalid,
              "malformed source artifact plan: " + std::string(error.what()));
@@ -558,6 +582,20 @@ SourceReference parse_source_reference(const std::string& reference) {
     return result;
 }
 
+SourceArtifactPlanDocument load_source_artifact_plan_file(
+        const fs::path& path, const std::string& expected_model_reference) {
+    std::error_code error;
+    if (!fs::is_regular_file(path, error) || error)
+        fail(ModelPackageErrorCode::SourceInvalid,
+             "declared source plan is not a readable regular file");
+    SourceArtifactPlanDocument plan = parse_plan(path);
+    if (plan.model_reference != expected_model_reference)
+        fail(ModelPackageErrorCode::SourceInvalid,
+             "declared source plan model_reference does not match: " +
+                 expected_model_reference);
+    return plan;
+}
+
 SourceArtifactPlanDocument load_source_artifact_plan(
         const std::string& model_reference,
         const fs::path& converter_spec_root) {
@@ -571,6 +609,7 @@ SourceArtifactPlanDocument load_source_artifact_plan(
         if (error) fail(ModelPackageErrorCode::SourceInvalid,
                         "cannot scan converter source plans: " + error.message());
         if (!entry.is_regular_file() || entry.path().filename() != "source-plan.json") continue;
+        if (component_source_plan(entry.path())) continue;
         SourceArtifactPlanDocument candidate = parse_plan(entry.path());
         if (candidate.model_reference != model_reference) continue;
         if (match.has_value())

@@ -687,8 +687,14 @@ int main(int argc, char** argv) {
                     options.converter_spec_root.empty()
                         ? product::discover_converter_spec_root()
                         : std::filesystem::canonical(options.converter_spec_root);
-                const product::SourceArtifactPlanDocument plan =
-                    product::load_source_artifact_plan(arguments[1], specification_root);
+                const auto pull_plan = product::find_pull_distribution_plan(
+                    arguments[1], specification_root);
+                const product::SourceArtifactPlanDocument plan = pull_plan.has_value()
+                    ? product::load_pull_source_artifact_plan(*pull_plan)
+                    : product::load_source_artifact_plan(arguments[1], specification_root);
+                if (pull_plan.has_value())
+                    import_options.package_manifest =
+                        pull_plan->document_path.parent_path() / product::kModelManifestName;
                 product::LocalSourceCache source_cache(
                     cache.layout().root / "sources", cache.layout().temporary);
                 product::AcquisitionOptions acquisition_options;

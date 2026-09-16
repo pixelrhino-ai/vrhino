@@ -103,6 +103,8 @@ Fixture make_fixture(const fs::path& root, const fs::path& specs,
     write_text(fixture.package / product::kModelManifestName, manifest.str());
 
     const fs::path specification = specs / name;
+    write_text(specification / "00-component/source-plan.json",
+        R"({"schema_version":1,"component":"semantic_segmenter_2d","sources":[]})");
     write_text(specification / product::kModelManifestName, manifest.str());
     write_text(specification / "pull-plan.json",
         "{\"schema_version\":1,\"model_reference\":\"" + fixture.reference +
@@ -201,6 +203,21 @@ int main() {
         require_contains(installed.text, "Package health: OK", "package health");
         require_contains(installed.text, "Component conditioning: OK", "component health");
         require_contains(installed.text, "Status: PASS", "VRAM admission pass");
+        require_contains(installed.text, "Source plan: 1 artifacts", "declared source plan");
+        const fs::path declared = specs / "fixture/source-plan.json";
+        fs::rename(declared, declared.string() + ".saved");
+        for (const std::string& malformed : {"{", "{}"}) {
+            write_text(declared, malformed);
+            try {
+                (void)product::run_doctor(options(healthy_cache, specs, encoder, qualified.reference));
+                throw std::runtime_error("doctor silently accepted malformed declared plan");
+            } catch (const product::ModelPackageError& error) {
+                require_test(error.code() == product::ModelPackageErrorCode::SourceInvalid,
+                             "doctor returned wrong declared-plan error");
+            }
+        }
+        fs::remove(declared);
+        fs::rename(declared.string() + ".saved", declared);
 
         const product::DoctorReport non_installed = product::run_doctor(
             options(root / "empty-cache", specs, encoder, qualified.reference));
