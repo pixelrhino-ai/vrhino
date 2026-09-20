@@ -33,10 +33,15 @@ VRhino 转换
 
 ## 发布状态
 
-当前版本为 **v0.8.0-alpha**，这是首个包含经过资格验证的原生 Windows x64
-CUDA 包的发布线。Linux 与 Windows 资产均基于
-`d460de0a152c9ff92553b17ca37e4b5554c8c766` 构建。已发布的 v0.7.0-alpha
-仍为不可变的 Linux 范围历史发布。
+**[v0.9.0-alpha 已发布，提供 Linux x86_64 CUDA 包](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.9.0-alpha)**。
+Wan2.2 通过 `vrhino evaluate` 完成原生视频生成，并支持配置权重缓存预算。
+从[安装说明](docs/install.md)和 [Wan2.2 上手指南](docs/models/wan2.2-quickstart.zh-CN.md)开始；
+资产身份见 [v0.9 发布记录](docs/release/v0.9.0-alpha.md)，测试配置见
+[Wan2.2 alpha 支持说明](docs/release/v0.9-wan2.2-known-limitations.md)。
+
+**Windows 继续使用 v0.8.0-alpha**，v0.9 Windows 包尚未完成资格验证。
+历史 v0.8 Linux 与 Windows 资产基于
+`d460de0a152c9ff92553b17ca37e4b5554c8c766` 构建，保持不变。
 
 冻结的 Windows rc9 已在 Windows 10 Pro 22H2 / build 19045、RTX 3090 24 GiB、
 NVIDIA 驱动 610.47 的干净主机上通过资格验证。Wan、LTX、MuseTalk 和
@@ -66,7 +71,7 @@ v0.6.0-alpha 确定的五个 Public 模型路径为：
 
 ## 安装
 
-v0.8 Linux 归档与 Windows rc9 ZIP 的下载、校验和安装方式见
+v0.9 Linux 归档与现有 v0.8 Windows rc9 ZIP 的下载、校验和安装方式见
 [安装说明](docs/install.md)。发布包不包含模型权重或转换后的 VRM；历史 v0.7
 发布及其资产保持不变。
 
@@ -75,6 +80,10 @@ v0.8 Linux 归档与 Windows rc9 ZIP 的下载、校验和安装方式见
 后，从该包运行 `--version`、`device` 和 `doctor`。
 
 ## CLI 示例
+
+Linux v0.9 的 Wan2.2 使用[原生上手指南](docs/models/wan2.2-quickstart.zh-CN.md)中的
+本地包配置与 `vrhino evaluate`；普通 schema2 `run` 支持仍待完成。
+以下 `pull` / `run` 示例继续对应已有 schema1 模型。
 
 v0.6.0-alpha 引入的模型包身份保持不变，各平台资格状态由 v0.8 支持矩阵单独记录：
 

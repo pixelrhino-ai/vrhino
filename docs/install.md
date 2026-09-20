@@ -2,21 +2,22 @@
 
 ## Release status
 
-The current release is **v0.8.0-alpha**, the first release line with a
-qualified native Windows x64 CUDA package. See the exact
-[v0.8 qualification record](release/v0.8.0-alpha.md). Published v0.7.0-alpha
-remains immutable and Linux-scoped.
+**Linux: [v0.9.0-alpha](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.9.0-alpha)**.
+**Windows: v0.8.0-alpha** (existing qualified rc9 package).
+See the [v0.9 release and checksum record](release/v0.9.0-alpha.md) and the
+[v0.8 Windows qualification record](release/v0.8.0-alpha.md).
+Older release assets remain unchanged; v0.9 Windows binaries are not published.
 
 ## Requirements
 
-- Linux package: x86_64, glibc 2.35 or newer
+- Linux v0.9 package: x86_64, glibc 2.35 or newer; CUDA 12.8 / SM80 build, tested on A800 80 GB
 - Windows package: native Windows x64 CUDA; qualification baseline
   Windows 10 Pro 22H2 / build 19045, RTX 3090 24 GiB, NVIDIA driver 610.47
 - compatible NVIDIA GPU and NVIDIA Driver
 - sufficient GPU VRAM and disk space
 - network access for the initial model pull
 
-Linux release readiness and Windows rc9 clean-host qualification passed. Wan,
+The historical v0.8 Linux release and Windows rc9 clean-host qualification passed. Wan,
 LTX, MuseTalk, and LatentSync passed on the Windows baseline. Mochi remote
 import, installation, doctor, and admission passed, while full inference was
 not run on the 24 GiB host because its unchanged admission requires
@@ -32,36 +33,41 @@ Driver remains required.
 ## Linux download
 
 Download these two files from the
-[v0.8.0-alpha release](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.8.0-alpha):
+[v0.9.0-alpha release](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.9.0-alpha):
 
-- `vrhino-linux-x86_64-cuda-v0.8.0-alpha-final-candidate-d460de0.tar.gz`
-- `vrhino-linux-x86_64-cuda-v0.8.0-alpha-final-candidate-d460de0.tar.gz.sha256`
+- [Linux CUDA archive](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.9.0-alpha/vrhino-linux-x86_64-cuda-v0.9.0-alpha-candidate.tar.gz)
+- [SHA256 file](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.9.0-alpha/vrhino-linux-x86_64-cuda-v0.9.0-alpha-candidate.tar.gz.sha256)
+
+The published filenames retain `candidate`; these are the released alpha assets.
+The archive is 1,449,009,466 bytes. Exact hashes are in the
+[release record](release/v0.9.0-alpha.md). Model weights are separate.
 
 If both files are in `~/Downloads`, run:
 
 ```bash
 cd "$HOME/Downloads"
-sha256sum -c vrhino-linux-x86_64-cuda-v0.8.0-alpha-final-candidate-d460de0.tar.gz.sha256
+sha256sum -c vrhino-linux-x86_64-cuda-v0.9.0-alpha-candidate.tar.gz.sha256
 mkdir -p "$HOME/.local/share"
-tar -xzf vrhino-linux-x86_64-cuda-v0.8.0-alpha-final-candidate-d460de0.tar.gz -C "$HOME/.local/share"
-printf '\nexport PATH="$HOME/.local/share/vrhino/bin:$PATH"\n' >> "$HOME/.profile"
-export PATH="$HOME/.local/share/vrhino/bin:$PATH"
+# Extract into a fresh directory; do not overlay an older installation.
+tar -xzf vrhino-linux-x86_64-cuda-v0.9.0-alpha-candidate.tar.gz -C "$HOME/.local/share"
+export PATH="$HOME/.local/share/vrhino-v0.9.0-alpha/bin:$PATH"
 ```
 
-If the files are elsewhere, change to that directory before running the
-checksum and extraction commands.
-
-The full installation remains under `~/.local/share/vrhino`. Do not copy only
-`bin/vrhino`: the launcher resolves the bundled libraries and media encoder
-relative to the intact installation directory.
+Add the same `export PATH=...` line to your shell profile if desired.
+Keep the entire `~/.local/share/vrhino-v0.9.0-alpha` directory intact: the launcher
+resolves bundled libraries and the media encoder relative to it.
 
 Verify from any directory:
 
 ```bash
-vrhino --version
+vrhino --version   # v0.9.0-alpha
 vrhino device
 vrhino doctor
 ```
+
+For Wan2.2, continue with the [quick start](models/wan2.2-quickstart.md)
+([中文](models/wan2.2-quickstart.zh-CN.md)). It uses `evaluate` with a local
+qualified package; the schema1 `pull` / `run` examples below remain separate.
 
 No `sudo`, repository clone, environment activation, or manual
 `LD_LIBRARY_PATH` configuration is required.
@@ -147,7 +153,7 @@ packages, or reveal token/proxy credential values. See
 ## Model and cache location
 
 The VRhino binary installation and model storage are separate. On Linux the
-release tree may remain under `~/.local/share/vrhino`, while model/cache data
+v0.9 release tree may remain under `~/.local/share/vrhino-v0.9.0-alpha`, while model/cache data
 defaults to `~/.vrhino`. On Windows use an explicit `--cache-root` to select
 your intended model storage directory independently of the extracted ZIP.
 
