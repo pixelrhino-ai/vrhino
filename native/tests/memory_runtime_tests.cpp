@@ -46,6 +46,13 @@ void tests() {
 
     MemoryPlanner planner(budget(2048));
     expect(planner.budget().device_weight_budget_bytes() == 1792, "weight budget mismatch");
+    auto capped=budget(2048);capped.weight_cache_budget_bytes=768;
+    expect(capped.device_weight_budget_bytes()==768 && capped.device_budget_bytes==2048 &&
+           capped.reserved_device_workspace_bytes==128 && capped.safety_margin_bytes==128,
+           "Cache cap changed device/workspace envelope");
+    bool cap_invalid=false;try{auto bad=capped;bad.weight_cache_budget_bytes=1793;bad.validate();}
+    catch(const std::invalid_argument&){cap_invalid=true;}
+    expect(cap_invalid,"Oversized cache cap accepted");
     vrhino::BackendMemoryCapabilities unified{true, true, true, true, false, true};
     planner.set_capabilities(unified);
     expect(planner.capabilities().unified_memory &&

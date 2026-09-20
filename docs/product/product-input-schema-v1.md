@@ -128,6 +128,17 @@ whenever `input_schema` is present and has a bounded vocabulary:
   guidance scale, and eta;
 - optional `temporal`: deliberately curated chunk frame count.
 
+For a schema2 text-to-video package, `sampling` may instead contain exactly
+`{"program_artifact":"RESOURCE_ID"}`. The required artifact must be the same
+one referenced by `admission.programs_artifact`. Its canonical declaration owns
+the schedule, solver, step count and per-step guidance; scalar sampling fields
+cannot coexist with this reference. Schema1 and workflows without canonical
+program admission reject this form. Existing schema1 scalar profiles are unchanged.
+Program-backed text preparation checks the requested geometry against the frozen
+output dimensions and requires a non-empty prompt. Such a profile does not grant
+numerical admission: an unqualified schema2 package remains structural-only and
+ordinary CLI/API run continues to reject it.
+
 Frozen fields are never request parameters. Execution/workflow data may be
 checked for equality but is never automatically projected. Alignment EMA,
 detector/TTA policy, tensor bindings, latent layout, RNG streams, memory

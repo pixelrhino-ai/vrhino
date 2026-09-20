@@ -394,7 +394,8 @@ SafeTensorReader::SafeTensorReader(const std::filesystem::path& path) : path_(pa
                           "invalid safetensors header length");
         std::string header(static_cast<size_t>(header_bytes_), '\0');
         read_exact(fd_, header.data(), header.size(), 8, "reading safetensors header");
-        const Json root = Json::parse(header);
+        const Json root = Json::parse(header,
+            {static_cast<size_t>(kMaxSafeTensorHeader), 32, 1000000, 4000000, 65536});
         if (!root.is_object())
             package_error(ModelPackageErrorCode::PackageInvalid,
                           "safetensors header must be an object");
@@ -473,6 +474,15 @@ SafeTensorReader::~SafeTensorReader() {
     if (fd_ >= 0) close(fd_);
 }
 
+void SafeTensorReader::verify_identity(uint64_t expected_size, const std::string& sha256,
+                                     const WorkProgressCallback& progress) const {
+    if (expected_size != file_size_ || sha256.size() != 64 ||
+        !std::all_of(sha256.begin(), sha256.end(), [](char c) {
+            return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+        }) || sha256_file_descriptor(fd_, file_size_, progress) != sha256)
+        package_error(ModelPackageErrorCode::PackageInvalid, "Immutable tensor source identity mismatch");
+}
+
 void SafeTensorReader::read_tensor(const SourceTensorDescriptor& tensor,
                                    const uint64_t relative_offset,
                                    void* destination, const size_t bytes) const {
@@ -531,6 +541,15 @@ FrozenTensorSource::FrozenTensorSource(
 
 FrozenTensorSource::~FrozenTensorSource() {
     for (const int descriptor : descriptors_) close(descriptor);
+}
+
+void FrozenTensorSource::verify_identity(size_t index, uint64_t size,
+                                         const std::string& sha,
+                                         const WorkProgressCallback& progress) const {
+    if (size != file_sizes_.at(index) || sha.size() != 64 ||
+        sha256_file_descriptor(descriptors_.at(index), size, progress) != sha)
+        package_error(ModelPackageErrorCode::ChecksumMismatch,
+                      "Frozen source descriptor identity mismatch");
 }
 
 void FrozenTensorSource::read_tensor(const SourceTensorDescriptor& tensor,

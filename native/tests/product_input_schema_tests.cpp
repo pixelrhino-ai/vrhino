@@ -97,6 +97,31 @@ int main() {
             product::parse_product_frozen_profile(vrhino::Json::parse(ttv_frozen()));
         product::validate_product_contract_for_family(
             "text_to_video", "", ttv, frozen);
+        const auto program_profile = product::parse_product_frozen_profile(vrhino::Json::parse(
+            replace_once(ttv_frozen(), "\"steps\":40,\"guidance_scale\":3.0",
+                         "\"program_artifact\":\"programs\"")));
+        product::validate_product_contract_for_family("text_to_video", "", ttv, program_profile);
+        require_test(program_profile.sampling->program_artifact == "programs" &&
+                         !program_profile.sampling->steps && !program_profile.sampling->guidance_scale,
+                     "program-backed sampling introduced scalar defaults");
+        expect_invalid([&] {
+            product::validate_product_execution_consistency(
+                "text_to_video", "", ttv, program_profile, vrhino::Json(vrhino::Json::Object{}));
+        }, "program profile entered legacy execution");
+        for (const auto& fields : {std::string("\"program_artifact\":\"programs\",\"guidance_scale\":4"),
+                 std::string("\"program_artifact\":\"programs\",\"steps\":3"),
+                 std::string("\"program_artifact\":\"../programs\""),
+                 std::string("\"program_artifact\":\"\""), std::string("\"program_artifact\":1")}) {
+            expect_invalid([&] {
+                (void)product::parse_product_frozen_profile(vrhino::Json::parse(
+                    replace_once(ttv_frozen(), "\"steps\":40,\"guidance_scale\":3.0", fields)));
+            }, "ambiguous/invalid program reference");
+        }
+        expect_invalid([&] {
+            auto ambiguous = program_profile;
+            ambiguous.sampling->guidance_scale = 1;
+            product::validate_product_contract_for_family("text_to_video", "", ttv, ambiguous);
+        }, "in-memory mixed sampling ownership");
         require_test(product::resolve_product_seed(&ttv, std::nullopt, 5703) == 5703,
                      "canonical seed default did not resolve");
         require_test(product::resolve_product_seed(&ttv, 99, 5703) == 99,

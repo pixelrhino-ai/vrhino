@@ -204,8 +204,9 @@ private:
         if (!floating) {
             int64_t result = 0;
             const auto parsed = std::from_chars(token.data(), token.data() + token.size(), result);
-            require(parsed.ec == std::errc(), "JSON integer overflow");
-            return Json(Json::Value(result));
+            if (parsed.ec == std::errc()) return Json(Json::Value(result));
+            require(limits_.oversized_integer_as_float && parsed.ec == std::errc::result_out_of_range,
+                    "JSON integer overflow");
         }
         char* end = nullptr;
         const double result = std::strtod(token.c_str(), &end);

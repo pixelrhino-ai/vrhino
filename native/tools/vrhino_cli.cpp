@@ -24,6 +24,8 @@
 
 #include "vrhino/api/server.h"
 #include "vrhino/product/model_package.h"
+#include "vrhino/product/package_preflight.h"
+#include "vrhino/product/request_wiring.h"
 #include "vrhino/product/info.h"
 #include "vrhino/product/version.h"
 #include "vrhino/product/component_package.h"
@@ -33,6 +35,8 @@
 #include "vrhino/product/registry.h"
 #include "vrhino/product/source_acquisition.h"
 #if VRHINO_PRODUCT_RUN_ENABLED
+#include "vrhino/product/component_preparation.h"
+#include "vrhino/product/evaluation.h"
 #include "vrhino/product/doctor.h"
 #include "vrhino/product/run.h"
 #include "vrhino/product/run_session.h"
@@ -51,6 +55,14 @@ namespace {
         << "Usage:\n"
         << "  vrhino [OPTIONS] pull NAMESPACE/NAME:VERSION\n"
         << "  vrhino [OPTIONS] import NAMESPACE/NAME:VERSION SOURCE-DIRECTORY\n"
+        << "  vrhino [OPTIONS] dry-run MANIFEST LOCAL-RESOURCES REQUEST.json\n"
+        << "  vrhino [OPTIONS] dry-run NAMESPACE/NAME:VERSION REQUEST.json\n"
+        << "  vrhino [OPTIONS] component-check MANIFEST LOCAL-RESOURCES REQUEST.json OPTIONS.json OUTPUT-DIR\n"
+        << "  vrhino [OPTIONS] sampling-step-check MANIFEST LOCAL-RESOURCES REQUEST.json OPTIONS.json OUTPUT-DIR\n"
+        << "  vrhino [OPTIONS] sampling-video-check MANIFEST LOCAL-RESOURCES REQUEST.json OPTIONS.json OUTPUT-DIR\n"
+        << "  vrhino [OPTIONS] evaluate MANIFEST LOCAL-RESOURCES REQUEST.json OPTIONS.json OUTPUT-DIR\n"
+        << "  vrhino [OPTIONS] preflight MANIFEST LOCAL-RESOURCES\n"
+        << "  vrhino [OPTIONS] preflight NAMESPACE/NAME:VERSION\n"
         << "  vrhino [OPTIONS] list\n"
         << "  vrhino [OPTIONS] info NAMESPACE/NAME:VERSION [--json]\n"
         << "  vrhino [OPTIONS] doctor [NAMESPACE/NAME:VERSION]\n"
@@ -80,6 +92,7 @@ namespace {
         << "  --audio PATH        Required driving audio for lip-sync products\n"
         << "  --output PATH       Output MP4 (default: output.mp4)\n"
         << "  --preset NAME       Installed package preset (default: package default)\n"
+        << "  --resources PATH    Local JSON weight-cache constraint (text-to-video)\n"
         << "  --seed N            Deterministic seed override\n"
         << "  --overwrite         Replace an existing output\n"
         << "  --debug             Show product debug details\n";
@@ -192,16 +205,29 @@ product::RunOptions parse_run_options(const std::vector<std::string>& arguments)
     if (arguments.size() < 2 || arguments[0] != "run") usage();
     product::RunOptions result;
     result.model_reference = arguments[1];
+    bool resources_seen = false;
     for (size_t index = 2; index < arguments.size(); ++index) {
         const std::string& option = arguments[index];
         if (option == "--overwrite") { result.overwrite = true; continue; }
         if (option == "--debug") { result.debug = true; continue; }
         if (option != "--prompt" && option != "--video" && option != "--audio" &&
             option != "--output" && option != "--preset" &&
-            option != "--seed" && option != "--encoder") usage();
+            option != "--seed" && option != "--encoder" &&
+            option != "--resources") usage();
         if (index + 1 >= arguments.size()) usage();
         const std::string value = arguments[++index];
-        if (option == "--prompt") result.prompt = value;
+        if (option == "--resources") {
+            if (resources_seen) usage();
+            resources_seen = true;
+            result.resources = product::load_run_resources(
+#ifdef _WIN32
+                product::windows_process::wide(value)
+#else
+                value
+#endif
+            );
+        }
+        else if (option == "--prompt") result.prompt = value;
         else if (option == "--video") result.video =
 #ifdef _WIN32
                     product::windows_process::wide(value);
@@ -389,6 +415,56 @@ int main(int argc, char** argv) {
             if (arguments.size() != 1) usage();
             std::cout << product::format_cli_version(
                 product::current_version_info());
+            return 0;
+        }
+        if (command == "dry-run") {
+            if (arguments.size() != 3 && arguments.size() != 4) usage();
+            auto prepared = arguments.size() == 4 ?
+                product::dry_run_local_product(arguments[1], arguments[2], arguments[3]) :
+                product::dry_run_resolved_product(
+                    product::LocalModelCache(options.cache_root).resolve(arguments[1], false), arguments[2]);
+            std::cout << prepared.evidence.serialize() << '\n';
+            return 0;
+        }
+        if (command == "evaluate") {
+#if VRHINO_PRODUCT_RUN_ENABLED
+            if (arguments.size() != 6) usage();
+            const auto result=product::evaluate_local_product(arguments[1],arguments[2],arguments[3],arguments[4],arguments[5]);
+            std::cout<<result.serialize()<<'\n';
+            return result.at("status").string()=="EXECUTED_UNQUALIFIED" ? 0 : 1;
+#else
+            throw std::runtime_error("Native Product evaluation is unavailable in this build");
+#endif
+        }
+        if (command == "sampling-step-check" || command == "sampling-video-check") {
+#if VRHINO_PRODUCT_RUN_ENABLED
+            if (arguments.size() != 6) usage();
+            const auto result=command=="sampling-step-check" ?
+                product::check_local_sampling_step(arguments[1],arguments[2],arguments[3],arguments[4],arguments[5]) :
+                product::check_local_sampling_video(arguments[1],arguments[2],arguments[3],arguments[4],arguments[5]);
+            std::cout<<result.serialize()<<'\n';
+            return result.at("status").string()=="PASS" ? 0 : 1;
+#else
+            throw std::runtime_error("Native sampling qualification is unavailable in this build");
+#endif
+        }
+        if (command == "component-check") {
+#if VRHINO_PRODUCT_RUN_ENABLED
+            if (arguments.size() != 6) usage();
+            const auto result=product::check_local_components(arguments[1],arguments[2],arguments[3],arguments[4],arguments[5]);
+            std::cout<<result.serialize()<<'\n';
+            return result.at("status").string()=="PASS" ? 0 : 1;
+#else
+            throw std::runtime_error("Native component execution is unavailable in this build");
+#endif
+        }
+        if (command == "preflight") {
+            if (arguments.size() != 2 && arguments.size() != 3) usage();
+            auto admitted = arguments.size() == 3 ?
+                product::preflight_local_product(arguments[1], arguments[2]) :
+                product::preflight_resolved_product(
+                    product::LocalModelCache(options.cache_root).resolve(arguments[1], false));
+            std::cout << admitted.evidence.serialize() << '\n';
             return 0;
         }
         if (command == "serve") {
@@ -784,6 +860,7 @@ int main(int argc, char** argv) {
 #endif
             const product::ResolvedRunnableModel model =
                 cache.resolve(run_options.model_reference, false);
+            product::require_numerical_product_admission(model.manifest);
             const char* external_encoder = std::getenv("VRHINO_FFMPEG");
             if (run_options.encoder_path.empty() &&
                 (external_encoder == nullptr || *external_encoder == '\0')) {

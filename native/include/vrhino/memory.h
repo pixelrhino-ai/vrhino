@@ -3,6 +3,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <memory>
+#include <set>
+#include <optional>
+#include "vrhino/error.h"
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -26,12 +30,17 @@ std::string residency_state_name(ResidencyState state);
 size_t checked_memory_add(size_t left, size_t right, const char* context);
 size_t checked_memory_multiply(size_t left, size_t right, const char* context);
 
+// Cache planning budget, NOT an allocator-enforced total device memory limit.
+// device_weight_budget_bytes subtracts workspace/safety reserves from this envelope.
 struct MemoryBudget {
     size_t device_budget_bytes = 0;
     size_t host_staging_budget_bytes = 0;
     size_t host_total_budget_bytes = 0;
     size_t reserved_device_workspace_bytes = 0;
     size_t safety_margin_bytes = 0;
+    // Optional tighter weight-cache cap. Zero preserves the legacy envelope.
+    // Does not alter workspace reserves or temporary allocation policy.
+    size_t weight_cache_budget_bytes = 0;
 
     void validate() const;
     size_t device_weight_budget_bytes() const;
@@ -193,9 +202,55 @@ private:
     std::unordered_map<uint64_t, State> states_;
 };
 
+// Disjoint simultaneously-live categories. Cached weights must not also be
+// counted as persistent weights. Estimates are declarations, not measured caps.
+struct ResourceEstimate {
+    size_t persistent_weights=0, resident_cache=0, activations=0, workspace=0;
+    size_t upload_temporary=0, sampling_state=0, component_allocations=0, prepared=0;
+    size_t source_backing=0, host_staging=0;
+    size_t device_peak() const;
+    size_t host_peak() const;
+};
+struct ResourceAdmissionBudget {
+    size_t estimated_device_peak_limit=0, estimated_host_peak_limit=0;
+};
+struct ResourceAdmissionRequest {
+    ResourceEstimate estimate;
+    ResourceAdmissionBudget budget;
+    void validate() const;
+};
+
+// Shared with the device implementation; leases are released AFTER derived
+// Backend teardown/drain. A terminal session never admits further execution.
+struct ResourceSessionState {
+    bool terminal=false;
+    std::set<std::shared_ptr<const void>,std::owner_less<std::shared_ptr<const void>>> leases;
+    void require_active() const { require(!terminal,"Resource session is terminal"); }
+};
+
 class MemoryBackend {
 public:
     virtual ~MemoryBackend() = default;
+    void require_active_session() const { resource_session_->require_active(); }
+    bool resource_session_terminal() const { return resource_session_->terminal; }
+    void retire_resource_session() noexcept { resource_session_->terminal=true; }
+    // Explicit source-owner registration, before any asynchronous use/cache.
+    // Owners must refer to immutable backing; no remap/rebind while leased.
+    void retain_resource_owners(const std::vector<std::shared_ptr<const void>>& owners) {
+        require_active_session();
+        auto admitted=resource_session_->leases;
+        for(const auto& owner:owners) { require(owner!=nullptr,"Null source lease"); admitted.insert(owner); }
+        resource_session_->leases.swap(admitted);
+    }
+    size_t resource_owner_count() const { return resource_session_->leases.size(); }
+    // Optional request admission. It compares declared peak estimates and does
+    // not purport to enforce a hard limit on every driver/library allocation.
+    void set_resource_admission(ResourceAdmissionRequest request) {
+        require_active_session(); request.validate(); resource_admission_=std::move(request);
+    }
+    void admit_execution_resources() const {
+        require_active_session(); if(resource_admission_) resource_admission_->validate();
+    }
     virtual BackendMemoryCapabilities memory_capabilities() const = 0;
     virtual void configure_memory_runtime(const MemoryBudget& budget,
                                           const MemoryRuntimeOptions& options) = 0;
@@ -205,6 +260,10 @@ public:
     virtual std::vector<MemoryAccess> end_memory_trace() = 0;
     virtual void set_memory_trace(std::vector<MemoryAccess> trace) = 0;
     virtual MemoryRuntimeStats memory_runtime_stats() const = 0;
+protected:
+    std::shared_ptr<ResourceSessionState> resource_session_=std::make_shared<ResourceSessionState>();
+private:
+    std::optional<ResourceAdmissionRequest> resource_admission_;
 };
 
 }  // namespace vrhino

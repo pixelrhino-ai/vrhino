@@ -1,0 +1,30 @@
+{
+  "architecture": "wan",
+  "expected_dimensions": {
+    "block_count": 40,
+    "feed_forward_size": 13824,
+    "head_count": 40,
+    "hidden_size": 5120,
+    "input_channels": 16,
+    "output_channels": 16,
+    "time_frequency_size": 256
+  },
+  "expected_text_slots": 242,
+  "expected_transformer_slots": 1095,
+  "expected_vae_slots": 194,
+  "manifest_sha256": "4ea6995c08502841565b9dd2e612af0dd97ddfb49ab17721339fc5c077338911",
+  "product": "vrhino/wan2.2-t2v-a14b:0.9.0-structural",
+  "schema": "vrhino.converter.wan_family.v1",
+  "semantic_config": "official_source/wan/configs/wan_t2v_A14B.py",
+  "shared_artifact_identity_basis": {
+    "implementation_reuse": "existing Wan-family decoder and UMT5 declarations",
+    "offset_map_reuse": "source full SHA256 byte identity with qualified Wan2.1 VAE/UMT5; no asset-name inference"
+  },
+  "shared_config": "official_source/wan/configs/shared_config.py",
+  "text_source": "model/models_t5_umt5-xxl-enc-bf16.pth",
+  "transformer_sources": [
+    "model/high_noise_model",
+    "model/low_noise_model"
+  ],
+  "vae_source": "model/Wan2.1_VAE.pth"
+}

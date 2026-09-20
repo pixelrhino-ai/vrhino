@@ -112,8 +112,8 @@ int main() {
                   << "\nkey_tile=" << kOrderedCandidateKeyTile
                   << "\ndynamic_shared_bytes=0"
                   << "\ntemporary_global_workspace_bytes="
-                  << ordered_workspace_bytes(
-                         1, kQueries, kHeads, kOrderedCandidateKeyTile)
+                  << ordered_f32_workspace_bytes(
+                         1, kQueries, kHeads, kWidth, kOrderedCandidateKeyTile)
                   << "\nkernel_dispatches_per_attention="
                   << ordered_dispatches_per_attention(
                          1, kTokens, kOrderedCandidateKeyTile)

@@ -81,8 +81,11 @@ int main(int argc, char** argv) {
         const bool tensor_qk = dtype == vrhino::DType::BF16 && bf16_qk &&
                                std::strcmp(bf16_qk, "tensor") == 0;
         const int64_t rows = q_tokens * heads;
-        const size_t ordered_state =
-            vrhino::cuda_attention_config::ordered_workspace_bytes(
+        const size_t ordered_state = dtype == vrhino::DType::F32
+            ? vrhino::cuda_attention_config::ordered_f32_workspace_bytes(
+                1, q_tokens, heads, width,
+                vrhino::cuda_attention_config::kOrderedCandidateKeyTile)
+            : vrhino::cuda_attention_config::ordered_workspace_bytes(
                 1, q_tokens, heads,
                 vrhino::cuda_attention_config::kOrderedCandidateKeyTile);
         const size_t global_workspace = tensor_two_pass

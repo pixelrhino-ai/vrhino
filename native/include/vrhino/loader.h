@@ -6,6 +6,7 @@
 #include <string>
 
 #include "vrhino/json.h"
+#include "vrhino/canonical_architecture.h"
 #include "vrhino/tensor.h"
 
 namespace vrhino {
@@ -40,6 +41,7 @@ public:
     const std::string& architecture_id() const { return architecture_id_; }
     const Json& metadata() const { return metadata_; }
     const Json& graph() const { return graph_; }
+    CanonicalArchitectureDeclaration canonical_architecture() const;
     const std::map<std::string, TensorRecord>& tensors() const { return tensors_; }
     const Tensor& tensor(const std::string& canonical_name) const;
     std::map<std::string, const Tensor*> bindings(const Json& descriptor) const;

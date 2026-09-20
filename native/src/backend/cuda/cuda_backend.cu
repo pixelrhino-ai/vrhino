@@ -12,6 +12,9 @@
 #include <map>
 #include <type_traits>
 #include <vector>
+#include <exception>
+#include <utility>
+#include "vrhino/resource_transaction.h"
 
 #include <cublas_v2.h>
 #include <cublasLt.h>
@@ -34,6 +37,20 @@ namespace {
 #define CUDA_CHECK(expr) do { cudaError_t status_ = (expr); require(status_ == cudaSuccess, std::string("CUDA error: ") + cudaGetErrorString(status_)); } while (0)
 #define CUBLAS_CHECK(expr) do { cublasStatus_t status_ = (expr); require(status_ == CUBLAS_STATUS_SUCCESS, "cuBLAS error: " + std::to_string(status_)); } while (0)
 #define CUDNN_CHECK(expr) do { cudnnStatus_t status_ = (expr); require(status_ == CUDNN_STATUS_SUCCESS, std::string("cuDNN error: ") + cudnnGetErrorString(status_)); } while (0)
+
+// Device completion must be confirmed before uncertain resources are released.
+// Persistent driver failure is fail-closed: teardown terminates the process,
+// rather than freeing borrowed backing still potentially used by the device.
+void drain_or_terminate() noexcept {
+    if(cudaDeviceSynchronize()!=cudaSuccess) std::terminate();
+}
+void checked_release(cudaError_t status) noexcept {
+    if(status!=cudaSuccess) std::terminate();
+}
+void release_event(cudaEvent_t& event) noexcept {
+    if(event && cudaEventDestroy(event)!=cudaSuccess) std::terminate();
+    event=nullptr;
+}
 
 // Stream-ordered, exact-size reuse for generic CUDA operation temporaries.
 // Every consumer of this pool runs on the legacy default compute stream; a
@@ -65,18 +82,36 @@ public:
         std::lock_guard<std::mutex> lock(mutex_);
         for (auto& [bytes, pointers] : free_) {
             (void)bytes;
-            for (void* pointer : pointers) cudaFree(pointer);
+            for (void* pointer : pointers) checked_release(cudaFree(pointer));
         }
-        if (handoff_pointer_) cudaFree(handoff_pointer_);
-        if (stream_pool_) cudaMemPoolDestroy(stream_pool_);
+        if (handoff_pointer_) checked_release(cudaFree(handoff_pointer_));
+        if (stream_pool_) checked_release(cudaMemPoolDestroy(stream_pool_));
     }
 
     Tensor tensor(std::vector<int64_t> shape, DType dtype,
                   bool workspace = false) {
         const size_t bytes = static_cast<size_t>(shape_numel(shape)) * dtype_size(dtype);
+        auto storage = std::make_shared<Storage>();
+        auto allocation = std::make_shared<PooledAllocation>(shared_from_this(), nullptr, bytes);
         void* pointer = nullptr;
+        bool active_registered=false, physical_registered=false;
         void* expired_handoff = nullptr;
         size_t expired_handoff_bytes = 0;
+        ResourceRollback rollback([&]() noexcept {
+            if(active_registered) {
+                std::lock_guard<std::mutex> lock(mutex_);
+                auto found=active_by_size_.find(bytes);
+                if(found!=active_by_size_.end() && --found->second==0) active_by_size_.erase(found);
+            }
+            if(expired_handoff) {
+                release_native(expired_handoff);
+                physical_bytes_.fetch_sub(expired_handoff_bytes,std::memory_order_relaxed);
+            }
+            if(pointer) {
+                release_native(pointer);
+                if(physical_registered) physical_bytes_.fetch_sub(bytes,std::memory_order_relaxed);
+            }
+        });
         {
             std::lock_guard<std::mutex> lock(mutex_);
             ++request_count_;
@@ -84,6 +119,7 @@ public:
             if (handoff_pointer_) {
                 if (handoff_bytes_ == bytes) {
                     pointer = handoff_pointer_;
+                    physical_registered=true;
                     handoff_pointer_ = nullptr;
                     handoff_bytes_ = 0;
                     ++reuse_count_;
@@ -99,9 +135,9 @@ public:
                     // Oversize handoff is deliberately one-shot. It never
                     // becomes an unbounded cache or competes with a differently
                     // sized next allocation.
+                    note_uncached_release_locked(handoff_bytes_);
                     expired_handoff = handoff_pointer_;
                     expired_handoff_bytes = handoff_bytes_;
-                    note_uncached_release_locked(handoff_bytes_);
                     handoff_pointer_ = nullptr;
                     handoff_bytes_ = 0;
                 }
@@ -109,6 +145,7 @@ public:
             auto found = free_.find(bytes);
             if (!pointer && found != free_.end() && !found->second.empty()) {
                 pointer = found->second.back();
+                physical_registered=true;
                 found->second.pop_back();
                 if (found->second.empty()) free_.erase(found);
                 cached_bytes_ -= bytes;
@@ -140,9 +177,12 @@ public:
                 }
             }
             ++active_by_size_[bytes];
+            active_registered=true;
+            if(pointer) physical_registered=true;
         }
         if (expired_handoff) {
             release_native(expired_handoff);
+            expired_handoff=nullptr;
             physical_bytes_.fetch_sub(expired_handoff_bytes,
                                       std::memory_order_relaxed);
             ++driver_free_count_;
@@ -164,6 +204,7 @@ public:
                         ", largest_handoff_bytes=" +
                         std::to_string(largest_handoff_reuse_bytes()));
             physical_bytes_.fetch_add(bytes, std::memory_order_relaxed);
+            physical_registered=true;
             ++driver_allocation_count_;
         }
         const size_t active = active_bytes_.fetch_add(
@@ -172,14 +213,14 @@ public:
         while (observed < active && !peak_active_bytes_.compare_exchange_weak(
                    observed, active, std::memory_order_relaxed)) {}
 
-        auto storage = std::make_shared<Storage>();
         storage->data = pointer;
         storage->bytes = bytes;
         storage->device = DeviceId::accelerator();
         storage->domain = MemoryDomain::DeviceLocal;
         storage->owner = true;
-        storage->native_owner = std::make_shared<PooledAllocation>(
-            shared_from_this(), pointer, bytes);
+        allocation->pointer=pointer;
+        storage->native_owner = std::move(allocation);
+        rollback.commit();
         return Tensor(std::move(storage), 0, std::move(shape), dtype);
     }
 
@@ -304,9 +345,11 @@ private:
                 active_by_size_.erase(active);
             if (bytes <= cache_limit_bytes_ &&
                 cached_bytes_ <= cache_limit_bytes_ - bytes) {
-                free_[bytes].push_back(pointer);
-                cached_bytes_ += bytes;
-                return;
+                try {
+                    free_[bytes].push_back(pointer);
+                    cached_bytes_ += bytes;
+                    return;
+                } catch(...) { /* Retention is optional; release natively below. */ }
             }
             if (bytes > cache_limit_bytes_) {
                 displaced = handoff_pointer_;
@@ -369,8 +412,9 @@ private:
         }
     }
 
-    void note_uncached_release_locked(size_t bytes) {
-        ++uncached_releases_by_size_[bytes];
+    void note_uncached_release_locked(size_t bytes) noexcept {
+        try { ++uncached_releases_by_size_[bytes]; }
+        catch(...) { /* Telemetry allocation cannot prevent resource release. */ }
     }
 
     cudaError_t allocate_native(void** pointer, size_t bytes) {
@@ -385,10 +429,10 @@ private:
     void release_native(void* pointer) noexcept {
         if (stream_pool_) {
             ++stream_ordered_free_count_;
-            (void)cudaFreeAsync(pointer, nullptr);
+            checked_release(cudaFreeAsync(pointer, nullptr));
         } else {
             ++legacy_free_count_;
-            (void)cudaFree(pointer);
+            checked_release(cudaFree(pointer));
         }
     }
 
@@ -437,6 +481,7 @@ Tensor direct_device_tensor(std::vector<int64_t> shape, DType dtype,
                             CudaTemporaryPool* reclaim_pool = nullptr) {
     auto storage = std::make_shared<Storage>();
     storage->bytes = static_cast<size_t>(shape_numel(shape)) * dtype_size(dtype);
+    storage->deleter = [](void* pointer) { if(cudaFree(pointer)!=cudaSuccess) std::terminate(); };
     if (reclaim_pool) reclaim_pool->note_direct_allocation(storage->bytes);
     cudaError_t status = cudaMalloc(&storage->data, storage->bytes);
     if (status == cudaErrorMemoryAllocation && reclaim_pool) {
@@ -449,7 +494,6 @@ Tensor direct_device_tensor(std::vector<int64_t> shape, DType dtype,
     storage->device = DeviceId::accelerator();
     storage->domain = MemoryDomain::DeviceLocal;
     storage->owner = true;
-    storage->deleter = [](void* pointer) { cudaFree(pointer); };
     return Tensor(std::move(storage), 0, std::move(shape), dtype);
 }
 
@@ -757,6 +801,79 @@ __global__ void layer_norm_kernel(const T* input, const T* weight, const T* bias
 
 constexpr int kNormThreads = 256;
 
+// Contiguous RMS rows use a fixed F32 reduction and mean projection. Keep
+// the established kernels for layouts requiring a different reduction plan.
+int rms_contiguous_reduction_lanes(int64_t width, int64_t rows) {
+    if (width <= 0 || rows <= 0 || (width > 128 && width % 4 != 0)) return 0;
+    const int64_t inputs = width > 128 ? width / 4 : width;
+    int input_power = 1, row_power = 1;
+    while (input_power < 512 && input_power * 2 <= inputs) input_power *= 2;
+    while (row_power < 512 && row_power * 2 <= rows) row_power *= 2;
+    int lanes = std::min(input_power, 32);
+    const int row_groups = std::min(row_power, 512 / lanes);
+    lanes = std::min(input_power, 512 / row_groups);
+    const int64_t values_per_lane = width / lanes + (width % lanes != 0);
+    if (values_per_lane >= std::min(row_groups * 16, 256)) return 0;
+    return lanes;
+}
+
+template <typename Input, typename Output>
+__global__ void rms_norm_contiguous_f32_kernel(
+        const Input* input, const Output* weight, Output* output,
+        int64_t rows, int64_t width, float eps) {
+    __shared__ float partials[512];
+    const int lane = threadIdx.x;
+    for (int64_t row = blockIdx.x; row < rows; row += gridDim.x) {
+        float sums[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+        if (width > 128) {
+            for (int64_t column = lane * 4; column < width;
+                 column += blockDim.x * 4) {
+                for (int component = 0; component < 4; ++component) {
+                    const float value = load_value(input[row * width + column + component]);
+                    sums[component] = __fadd_rn(sums[component], __fmul_rn(value, value));
+                }
+            }
+        } else {
+            for (int64_t column = lane; column < width; column += blockDim.x * 4) {
+                for (int component = 0; component < 4; ++component) {
+                    const int64_t index = column + component * blockDim.x;
+                    if (index < width) {
+                        const float value = load_value(input[row * width + index]);
+                        sums[component] = __fadd_rn(sums[component], __fmul_rn(value, value));
+                    }
+                }
+            }
+        }
+        partials[lane] = __fadd_rn(__fadd_rn(__fadd_rn(sums[0], sums[1]), sums[2]), sums[3]);
+        __syncthreads();
+        for (int offset = blockDim.x / 2; offset >= 32; offset /= 2) {
+            if (lane < offset)
+                partials[lane] = __fadd_rn(partials[lane], partials[lane + offset]);
+            __syncthreads();
+        }
+        float total = partials[lane];
+        if (lane < 32) {
+            const unsigned mask = __activemask();
+            for (int offset = 1; offset < min(int(blockDim.x), 32); offset *= 2)
+                total = __fadd_rn(total, __shfl_down_sync(mask, total, offset));
+            if (lane == 0) partials[0] = total;
+        }
+        __syncthreads();
+        // Division and reciprocal multiplication have different F32 rounding.
+        // Keep the projection separate from the sum and epsilon addition.
+        const float mean = __fmul_rn(partials[0], __fdiv_rn(1.0f, float(width)));
+        const float inverse = rsqrtf(__fadd_rn(mean, eps));
+        for (int64_t column = lane; column < width; column += blockDim.x) {
+            float value = __fmul_rn(load_value(input[row * width + column]), inverse);
+            if constexpr (std::is_same_v<Input, __nv_bfloat16>)
+                value = load_value(store_value<Input>(value));
+            if (weight) value = __fmul_rn(value, load_value(weight[column]));
+            output[row * width + column] = store_value<Output>(value);
+        }
+        __syncthreads();
+    }
+}
+
 template <typename T>
 __global__ void layer_norm_parallel_kernel(
         const T* input, const T* weight, const T* bias, T* output,
@@ -1057,7 +1174,11 @@ __global__ void rope_kernel(const T* input, const F* cosine, const F* sine,
         const float paired = load_value(input[paired_index]);
         const float rotated = (index & 1) ? paired : -paired;
         const int64_t f = broadcast_offset(index, x_meta, frequency_meta);
-        output[index] = store_value<T>(load_value(input[index]) * load_value(cosine[f]) + rotated * load_value(sine[f]));
+        // Preserve the two F32 product boundaries before the sum/output cast.
+        // Contraction can cross a downstream BF16 rounding midpoint.
+        const float first = __fmul_rn(load_value(input[index]), load_value(cosine[f]));
+        const float second = __fmul_rn(rotated, load_value(sine[f]));
+        output[index] = store_value<T>(__fadd_rn(first, second));
     }
 }
 
@@ -1217,12 +1338,29 @@ __global__ void attention_ordered_initialize_kernel(float* maximum, float* denom
     }
 }
 
+// F32 compensated summation. Explicit rounded operations prevent contraction
+// from eliminating the correction; no dtype promotion or policy override.
+__device__ __forceinline__ void attention_compensated_add(
+    float value, float& sum, float& correction) {
+    const float adjusted = __fsub_rn(value, correction);
+    const float next = __fadd_rn(sum, adjusted);
+    correction = __fsub_rn(__fsub_rn(next, sum), adjusted);
+    sum = next;
+}
+__device__ __forceinline__ void attention_compensated_rescale(
+    float scale, float& sum, float& correction) {
+    const float scaled = __fmul_rn(sum, scale);
+    const float residual = __fmaf_rn(sum, scale, -scaled);
+    correction = __fsub_rn(__fmul_rn(correction, scale), residual);
+    sum = scaled;
+}
+
 template <typename B>
 __global__ void attention_ordered_state_kernel(
     float* scores_or_current, float* previous, float* maximum, float* denominator,
     const uint8_t* mask, const B* bias, int batch, int q_tokens, int k_tokens,
     int heads, int key_base, int key_count, float scale, bool causal,
-    Meta mask_meta, Meta bias_meta) {
+    Meta mask_meta, Meta bias_meta, float* compensation = nullptr) {
     const int64_t rows = static_cast<int64_t>(batch) * q_tokens * heads;
     for (int64_t row = static_cast<int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
          row < rows; row += static_cast<int64_t>(blockDim.x) * gridDim.x) {
@@ -1235,6 +1373,7 @@ __global__ void attention_ordered_state_kernel(
             static_cast<int64_t>(query) * key_count;
         float row_maximum = maximum[row];
         float row_denominator = denominator[row];
+        float correction = compensation ? compensation[row] : 0.0f;
 
         Meta mask_logical{};
         mask_logical.rank = 3;
@@ -1270,7 +1409,12 @@ __global__ void attention_ordered_state_kernel(
                 previous_scale = isfinite(row_maximum)
                     ? expf(row_maximum - updated_maximum) : 0.0f;
                 current_scale = expf(score - updated_maximum);
-                row_denominator = row_denominator * previous_scale + current_scale;
+                if (compensation) {
+                    attention_compensated_rescale(previous_scale, row_denominator, correction);
+                    attention_compensated_add(current_scale, row_denominator, correction);
+                } else {
+                    row_denominator = row_denominator * previous_scale + current_scale;
+                }
                 row_maximum = updated_maximum;
             }
             previous[score_base + local_key] = previous_scale;
@@ -1278,6 +1422,7 @@ __global__ void attention_ordered_state_kernel(
         }
         maximum[row] = row_maximum;
         denominator[row] = row_denominator;
+        if (compensation) compensation[row] = correction;
     }
 }
 
@@ -1285,7 +1430,7 @@ template <typename V>
 __global__ void attention_ordered_pv_kernel(
     const float* current, const float* previous, const V* v, float* output,
     int batch, int q_tokens, int k_tokens, int heads, int width,
-    int key_base, int key_count) {
+    int key_base, int key_count, float* compensation = nullptr) {
     const int64_t count = static_cast<int64_t>(batch) * q_tokens * heads * width;
     for (int64_t index = static_cast<int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
          index < count; index += static_cast<int64_t>(blockDim.x) * gridDim.x) {
@@ -1299,22 +1444,32 @@ __global__ void attention_ordered_pv_kernel(
             (static_cast<int64_t>(b) * heads + head) * q_tokens * key_count +
             static_cast<int64_t>(query) * key_count;
         float accumulator = output[index];
+        float correction = compensation ? compensation[index] : 0.0f;
         for (int local_key = 0; local_key < key_count; ++local_key) {
             const int key = key_base + local_key;
             const int64_t vi =
                 ((static_cast<int64_t>(b) * k_tokens + key) * heads + head) * width +
                 dimension;
-            accumulator = accumulator * previous[score_base + local_key] +
-                          current[score_base + local_key] * load_value(v[vi]);
+            if (compensation) {
+                attention_compensated_rescale(previous[score_base + local_key], accumulator, correction);
+                const float value = load_value(v[vi]);
+                const float product = __fmul_rn(current[score_base + local_key], value);
+                attention_compensated_add(product, accumulator, correction);
+                attention_compensated_add(__fmaf_rn(current[score_base + local_key], value, -product), accumulator, correction);
+            } else {
+                accumulator = accumulator * previous[score_base + local_key] +
+                              current[score_base + local_key] * load_value(v[vi]);
+            }
         }
         output[index] = accumulator;
+        if (compensation) compensation[index] = correction;
     }
 }
 
 __global__ void attention_ordered_pv_float4_kernel(
     const float* current, const float* previous, const float* v, float* output,
     int batch, int q_tokens, int k_tokens, int heads, int width,
-    int key_base, int key_count) {
+    int key_base, int key_count, float* compensation = nullptr) {
     const int vectors = width / 4;
     const int64_t count = static_cast<int64_t>(batch) * q_tokens * heads * vectors;
     const float4* values = reinterpret_cast<const float4*>(v);
@@ -1331,6 +1486,7 @@ __global__ void attention_ordered_pv_float4_kernel(
             (static_cast<int64_t>(b) * heads + head) * q_tokens * key_count +
             static_cast<int64_t>(query) * key_count;
         float4 accumulator = outputs[index];
+        float4 correction = compensation ? reinterpret_cast<float4*>(compensation)[index] : make_float4(0,0,0,0);
         for (int local_key = 0; local_key < key_count; ++local_key) {
             const int key = key_base + local_key;
             const int64_t vi =
@@ -1339,12 +1495,32 @@ __global__ void attention_ordered_pv_float4_kernel(
             const float4 value = values[vi];
             const float previous_scale = previous[score_base + local_key];
             const float current_scale = current[score_base + local_key];
-            accumulator.x = accumulator.x * previous_scale + current_scale * value.x;
-            accumulator.y = accumulator.y * previous_scale + current_scale * value.y;
-            accumulator.z = accumulator.z * previous_scale + current_scale * value.z;
-            accumulator.w = accumulator.w * previous_scale + current_scale * value.w;
+            if (compensation) {
+                attention_compensated_rescale(previous_scale, accumulator.x, correction.x);
+                const float product_x = __fmul_rn(current_scale, value.x);
+                attention_compensated_add(product_x, accumulator.x, correction.x);
+                attention_compensated_add(__fmaf_rn(current_scale, value.x, -product_x), accumulator.x, correction.x);
+                attention_compensated_rescale(previous_scale, accumulator.y, correction.y);
+                const float product_y = __fmul_rn(current_scale, value.y);
+                attention_compensated_add(product_y, accumulator.y, correction.y);
+                attention_compensated_add(__fmaf_rn(current_scale, value.y, -product_y), accumulator.y, correction.y);
+                attention_compensated_rescale(previous_scale, accumulator.z, correction.z);
+                const float product_z = __fmul_rn(current_scale, value.z);
+                attention_compensated_add(product_z, accumulator.z, correction.z);
+                attention_compensated_add(__fmaf_rn(current_scale, value.z, -product_z), accumulator.z, correction.z);
+                attention_compensated_rescale(previous_scale, accumulator.w, correction.w);
+                const float product_w = __fmul_rn(current_scale, value.w);
+                attention_compensated_add(product_w, accumulator.w, correction.w);
+                attention_compensated_add(__fmaf_rn(current_scale, value.w, -product_w), accumulator.w, correction.w);
+            } else {
+                accumulator.x = accumulator.x * previous_scale + current_scale * value.x;
+                accumulator.y = accumulator.y * previous_scale + current_scale * value.y;
+                accumulator.z = accumulator.z * previous_scale + current_scale * value.z;
+                accumulator.w = accumulator.w * previous_scale + current_scale * value.w;
+            }
         }
         outputs[index] = accumulator;
+        if (compensation) reinterpret_cast<float4*>(compensation)[index] = correction;
     }
 }
 
@@ -2162,10 +2338,12 @@ struct CudaBackend::Impl {
         size_t bytes = 0;
         bool prefetch = false;
         bool overlapped = false;
+        std::shared_ptr<const void> source_storage;
     };
     std::vector<PendingTransfer> pending_transfers;
     EventFenceTracker fence_tracker;
     std::map<uint64_t, cudaEvent_t> fences;
+    std::map<uint64_t,std::pair<Tensor,Tensor>> fence_buffers;
     std::shared_ptr<CudaTemporaryPool> temporary_pool =
         std::make_shared<CudaTemporaryPool>();
 
@@ -2186,7 +2364,9 @@ struct CudaBackend::Impl {
     int64_t bf16_linear_accumulation_elements = 0;
     static constexpr size_t kBf16LinearWorkspaceLimit = 32ULL << 20;
 
-    Impl() {
+    std::shared_ptr<ResourceSessionState> session;
+    explicit Impl(std::shared_ptr<ResourceSessionState> state) : session(std::move(state)) {
+        ResourceRollback rollback([&]() noexcept { cleanup(); });
         CUBLAS_CHECK(cublasCreate(&cublas)); CUBLAS_CHECK(cublasSetMathMode(cublas, CUBLAS_PEDANTIC_MATH));
         CUBLAS_CHECK(cublasLtCreate(&cublaslt));
         CUDA_CHECK(cudaStreamCreateWithFlags(&transfer_stream, cudaStreamNonBlocking));
@@ -2211,18 +2391,20 @@ struct CudaBackend::Impl {
         temporary_pool->set_cache_limit(
             temporary_cache_limit(memory_budget),
             temporary_pool_retention_limit(memory_budget));
+        rollback.commit();
     }
-    ~Impl() {
-        for (auto& item : pending_profiles) { cudaEventDestroy(item.start); cudaEventDestroy(item.end); }
-        for (auto& item : active_profiles) cudaEventDestroy(item.start);
-        for (auto& item : pending_transfers) { cudaEventDestroy(item.start); cudaEventDestroy(item.end); }
+    ~Impl() { drain_or_terminate(); cleanup(); }
+    void cleanup() noexcept {
+        for (auto& item : pending_profiles) { release_event(item.start); release_event(item.end); }
+        for (auto& item : active_profiles) release_event(item.start);
+        for (auto& item : pending_transfers) { release_event(item.start); release_event(item.end); }
         for (auto& item : pinned_cache) {
-            if (item.second.last_transfer) cudaEventDestroy(item.second.last_transfer);
-            cudaFreeHost(item.second.data);
+            release_event(item.second.last_transfer);
+            checked_release(cudaFreeHost(item.second.data));
         }
         for (auto& [id, event] : fences) {
             (void)id;
-            cudaEventDestroy(event);
+            release_event(event);
         }
         fence_tracker.shutdown();
         for (auto& [key, plan] : bf16_linear_plans) {
@@ -2232,17 +2414,21 @@ struct CudaBackend::Impl {
             if (plan.weight_layout) cublasLtMatrixLayoutDestroy(plan.weight_layout);
             if (plan.operation) cublasLtMatmulDescDestroy(plan.operation);
         }
-        if (bf16_linear_workspace) cudaFree(bf16_linear_workspace);
-        cudaStreamDestroy(transfer_stream);
+        if (bf16_linear_workspace) checked_release(cudaFree(bf16_linear_workspace));
+        if (transfer_stream) checked_release(cudaStreamDestroy(transfer_stream));
         cudnn_sdpa.reset();
         cudnn_conv.reset();
-        cudnnDestroy(cudnn); cublasLtDestroy(cublaslt); cublasDestroy(cublas);
+        if(cudnn && cudnnDestroy(cudnn)!=CUDNN_STATUS_SUCCESS) std::terminate();
+        if(cublaslt && cublasLtDestroy(cublaslt)!=CUBLAS_STATUS_SUCCESS) std::terminate();
+        if(cublas && cublasDestroy(cublas)!=CUBLAS_STATUS_SUCCESS) std::terminate();
     }
     Tensor temporary(std::vector<int64_t> shape, DType dtype,
                      bool workspace = false) {
+        session->require_active();
         return temporary_pool->tensor(std::move(shape), dtype, workspace);
     }
     Tensor direct(std::vector<int64_t> shape, DType dtype) {
+        session->require_active();
         return direct_device_tensor(
             std::move(shape), dtype, temporary_pool.get());
     }
@@ -2378,6 +2564,23 @@ struct CudaBackend::Impl {
 };
 
 namespace {
+// Declare after output handles and before acquisition: unwind drains before
+// those handles release their storage. Any failed transaction retires session.
+class CudaFailureGuard {
+public:
+    explicit CudaFailureGuard(CudaBackend::Impl* impl) : impl_(impl), exceptions_(std::uncaught_exceptions()) {
+        impl_->session->require_active();
+    }
+    ~CudaFailureGuard() noexcept {
+        if(std::uncaught_exceptions()>exceptions_) {
+            impl_->session->terminal=true;
+            drain_or_terminate();
+        }
+    }
+private:
+    CudaBackend::Impl* impl_;
+    int exceptions_;
+};
 bool bf16_linear_lt_eligible(int64_t m, int64_t n, int64_t k, DType output_dtype,
                              int compute_major) {
     if (output_dtype != DType::BF16 || compute_major < 8 || k % 8 != 0 || n % 8 != 0)
@@ -2467,8 +2670,15 @@ CudaBackend::Impl::Bf16LinearPlan* find_bf16_linear_lt_plan(
         if (plan.operation) cublasLtMatmulDescDestroy(plan.operation);
         return nullptr;
     }
+    ResourceRollback rollback([&]() noexcept {
+        if(plan.output_layout) cublasLtMatrixLayoutDestroy(plan.output_layout);
+        if(plan.input_layout) cublasLtMatrixLayoutDestroy(plan.input_layout);
+        if(plan.weight_layout) cublasLtMatrixLayoutDestroy(plan.weight_layout);
+        if(plan.operation) cublasLtMatmulDescDestroy(plan.operation);
+    });
     auto [inserted, ok] = impl->bf16_linear_plans.emplace(key, plan);
     require(ok, "BF16 Linear plan cache insertion failed");
+    rollback.commit();
     return &inserted->second;
 }
 
@@ -2614,18 +2824,20 @@ StagedSource pinned_source(CudaBackend::Impl* impl, const void* source, size_t b
                           it->second.last_use < victim->second.last_use)) victim = it;
         }
         if (victim == impl->pinned_cache.end()) return {source, nullptr};
-        if (victim->second.last_transfer) cudaEventDestroy(victim->second.last_transfer);
+        release_event(victim->second.last_transfer);
         CUDA_CHECK(cudaFreeHost(victim->second.data));
         impl->memory_stats.accounting.host_staging_bytes -= victim->second.bytes;
         impl->pinned_cache.erase(victim);
         ++impl->memory_stats.staging_evictions;
     }
     void* pinned = nullptr;
+    ResourceRollback rollback([&]() noexcept { if(pinned) checked_release(cudaFreeHost(pinned)); });
     CUDA_CHECK(cudaHostAlloc(&pinned, bytes, cudaHostAllocPortable));
     std::memcpy(pinned, source, bytes);
     auto [inserted, ok] = impl->pinned_cache.emplace(
         key, CudaBackend::Impl::PinnedCacheEntry{pinned, bytes, ++impl->memory_clock, nullptr});
     require(ok, "Pinned cache duplicate insertion");
+    rollback.commit();
     impl->memory_stats.accounting.host_staging_bytes += bytes;
     impl->memory_stats.accounting.peak_host_staging_bytes = std::max(
         impl->memory_stats.accounting.peak_host_staging_bytes,
@@ -2639,9 +2851,11 @@ StagedSource pinned_source(CudaBackend::Impl* impl, const void* source, size_t b
 
 cudaEvent_t enqueue_h2d(CudaBackend::Impl* impl, void* destination,
                         const void* source, size_t bytes, bool wait_for_use,
-                        bool prefetched, bool cacheable_source) {
+                        bool prefetched, bool cacheable_source, const Tensor& source_tensor) {
+    cudaEvent_t start{}, end{}, staged_end{};
+    ResourceRollback events([&]() noexcept { release_event(staged_end); release_event(end); release_event(start); });
+    CudaFailureGuard submission(impl); // drains before events and caller buffers unwind
     StagedSource staged = pinned_source(impl, source, bytes, cacheable_source);
-    cudaEvent_t start{}, end{};
     CUDA_CHECK(cudaEventCreate(&start));
     CUDA_CHECK(cudaEventCreate(&end));
     CUDA_CHECK(cudaEventRecord(start, impl->transfer_stream));
@@ -2649,29 +2863,33 @@ cudaEvent_t enqueue_h2d(CudaBackend::Impl* impl, void* destination,
                                impl->transfer_stream));
     CUDA_CHECK(cudaEventRecord(end, impl->transfer_stream));
     if (staged.entry) {
-        if (staged.entry->last_transfer) cudaEventDestroy(staged.entry->last_transfer);
-        CUDA_CHECK(cudaEventCreate(&staged.entry->last_transfer));
-        CUDA_CHECK(cudaEventRecord(staged.entry->last_transfer, impl->transfer_stream));
+        CUDA_CHECK(cudaEventCreate(&staged_end));
+        CUDA_CHECK(cudaEventRecord(staged_end, impl->transfer_stream));
     }
-    impl->pending_transfers.push_back({start, end, bytes, prefetched, false});
+    if (wait_for_use) CUDA_CHECK(cudaStreamWaitEvent(nullptr, end));
+    // Vector insertion may throw. Local owners remain authoritative until it succeeds.
+    impl->pending_transfers.push_back({start, end, bytes, prefetched, false, source_tensor.storage_lease()});
+    if(staged.entry) {
+        release_event(staged.entry->last_transfer);
+        staged.entry->last_transfer=staged_end;
+    }
+    events.commit();
     ++impl->memory_stats.upload_copies;
     impl->memory_stats.upload_bytes += bytes;
-    if (wait_for_use) {
-        CUDA_CHECK(cudaStreamWaitEvent(nullptr, end));
-        ++impl->memory_stats.stream_waits;
-        ++impl->memory_stats.event_waits;
-    }
+    if(wait_for_use) { ++impl->memory_stats.stream_waits; ++impl->memory_stats.event_waits; }
     return end;
 }
 
 void resolve_transfers(CudaBackend::Impl* impl) {
+    for(auto& [key,entry]:impl->weight_cache) { (void)key; entry.ready=nullptr; }
+    for(auto& [key,entry]:impl->quantized_weight_cache) { (void)key; entry.ready=nullptr; }
     for (auto& transfer : impl->pending_transfers) {
         float milliseconds = 0.0f;
         CUDA_CHECK(cudaEventElapsedTime(&milliseconds, transfer.start, transfer.end));
         impl->memory_stats.upload_seconds += milliseconds / 1000.0;
         if (transfer.overlapped) impl->memory_stats.overlapped_upload_seconds += milliseconds / 1000.0;
-        CUDA_CHECK(cudaEventDestroy(transfer.start));
-        CUDA_CHECK(cudaEventDestroy(transfer.end));
+        release_event(transfer.start);
+        release_event(transfer.end);
     }
     impl->pending_transfers.clear();
 }
@@ -2720,17 +2938,19 @@ void schedule_prefetch(CudaBackend::Impl* impl, const void* protected_identity) 
                 ++impl->memory_stats.prefetch_dropped;
                 continue;
             }
-            Tensor packed = impl->direct(
+            Tensor packed, scales;
+            CudaFailureGuard transaction(impl);
+            packed = impl->direct(
                 {static_cast<int64_t>(input.bytes())}, DType::U8);
-            Tensor scales = impl->direct(
+            scales = impl->direct(
                 quantization.scales.shape(), DType::F32);
-            enqueue_h2d(impl, packed.data(), input.data(), input.bytes(), false, true, true);
+            enqueue_h2d(impl, packed.data(), input.data(), input.bytes(), false, true, true, input);
             cudaEvent_t ready = enqueue_h2d(impl, scales.data(), quantization.scales.data(),
-                                            quantization.scales.bytes(), false, true, true);
-            impl->weight_cache_resident += resident;
+                                            quantization.scales.bytes(), false, true, true, quantization.scales);
             impl->quantized_weight_cache.emplace(identity,
                 CudaBackend::Impl::QuantizedCacheEntry{
                     packed, scales, resident, ++impl->memory_clock, true, ready});
+            impl->weight_cache_resident += resident;
             impl->memory_stats.accounting.quantized_packed_bytes += resident;
             impl->upload_bytes += resident;
             continue;
@@ -2744,12 +2964,14 @@ void schedule_prefetch(CudaBackend::Impl* impl, const void* protected_identity) 
             ++impl->memory_stats.prefetch_dropped;
             continue;
         }
-        Tensor value = impl->direct(input.shape(), input.dtype());
+        Tensor value;
+        CudaFailureGuard transaction(impl);
+        value = impl->direct(input.shape(), input.dtype());
         cudaEvent_t ready = enqueue_h2d(impl, value.data(), input.data(), input.bytes(),
-                                        false, true, true);
-        impl->weight_cache_resident += resident;
+                                        false, true, true, input);
         impl->weight_cache.emplace(key, CudaBackend::Impl::WeightCacheEntry{
             value, resident, ++impl->memory_clock, true, ready});
+        impl->weight_cache_resident += resident;
         impl->upload_bytes += resident;
     }
 }
@@ -2759,13 +2981,19 @@ public:
     ProfileScope(CudaBackend::Impl* impl, std::string name)
         : impl_(impl), name_(std::move(name)) {
         if (!impl_->profiling) return;
+        ResourceRollback rollback([&]() noexcept { release_event(end_); release_event(start_); });
+        CudaFailureGuard transaction(impl_);
         CUDA_CHECK(cudaEventCreate(&start_)); CUDA_CHECK(cudaEventCreate(&end_));
         CUDA_CHECK(cudaEventRecord(start_));
+        rollback.commit();
     }
-    ~ProfileScope() {
+    ~ProfileScope() noexcept {
         if (!impl_->profiling) return;
-        cudaEventRecord(end_);
+        ResourceRollback cleanup([&]() noexcept { release_event(end_); release_event(start_); });
+        try {
+        CUDA_CHECK(cudaEventRecord(end_));
         impl_->pending_profiles.push_back({name_, start_, end_});
+        start_=nullptr; end_=nullptr;
         impl_->pending_profile_peak = std::max(
             impl_->pending_profile_peak, impl_->pending_profiles.size());
         constexpr size_t kMaximumPendingProfiles = 8192;
@@ -2783,14 +3011,15 @@ public:
                 ++aggregate.calls;
                 aggregate.device_milliseconds += milliseconds;
                 aggregate.samples_milliseconds.push_back(milliseconds);
-                CUDA_CHECK(cudaEventDestroy(item.start));
-                CUDA_CHECK(cudaEventDestroy(item.end));
+                release_event(item.start);
+                release_event(item.end);
                 ++completed;
             }
             impl_->pending_profiles.erase(
                 impl_->pending_profiles.begin(),
                 impl_->pending_profiles.begin() + static_cast<std::ptrdiff_t>(completed));
         }
+        } catch(...) { impl_->session->terminal=true; drain_or_terminate(); }
     }
 private:
     CudaBackend::Impl* impl_;
@@ -2800,9 +3029,9 @@ private:
 };
 }  // namespace
 
-#define VRHINO_PROFILE(name) ProfileScope profile_scope_(impl_, name)
+#define VRHINO_PROFILE(name) CudaFailureGuard operation_transaction_(impl_); ProfileScope profile_scope_(impl_, name)
 
-CudaBackend::CudaBackend() : impl_(new Impl()) {}
+CudaBackend::CudaBackend() : impl_(new Impl(resource_session_)) {}
 CudaBackend::~CudaBackend() { delete impl_; }
 std::string CudaBackend::name() const { return "native-cuda-correctness"; }
 int CudaBackend::device_count() const { int count = 0; CUDA_CHECK(cudaGetDeviceCount(&count)); return count; }
@@ -2827,17 +3056,22 @@ DeviceCapability CudaBackend::device_capability(int device) const {
 BackendMemoryCapabilities CudaBackend::memory_capabilities() const {
     return {false, false, false, true, true, true};
 }
-bool CudaBackend::supports(DType dtype) const { return dtype == DType::F32 || dtype == DType::BF16 || dtype == DType::U8 || dtype == DType::Bool || dtype == DType::I64 || dtype == DType::I32; }
+bool CudaBackend::supports(DType dtype) const {
+    require_active_session(); return dtype == DType::F32 || dtype == DType::BF16 || dtype == DType::U8 || dtype == DType::Bool || dtype == DType::I64 || dtype == DType::I32; }
 void CudaBackend::set_execution_dtype(DType dtype) {
+    require_active_session();
     require(dtype == DType::F32 || dtype == DType::BF16, "Execution dtype must be float32 or bfloat16");
     require(dtype != DType::BF16 || impl_->compute_major >= 8,
             "Native BF16 requires CUDA compute capability 8.0+");
     impl_->execution_dtype = dtype;
 }
 DType CudaBackend::execution_dtype() const { return impl_->execution_dtype; }
-Tensor CudaBackend::allocate_host(const std::vector<int64_t>& shape, DType dtype) { return Tensor::host(shape, dtype); }
-Tensor CudaBackend::allocate_device(const std::vector<int64_t>& shape, DType dtype) { Tensor value = impl_->direct(shape, dtype); impl_->record(); return value; }
+Tensor CudaBackend::allocate_host(const std::vector<int64_t>& shape, DType dtype) {
+    require_active_session(); return Tensor::host(shape, dtype); }
+Tensor CudaBackend::allocate_device(const std::vector<int64_t>& shape, DType dtype) {
+    require_active_session(); Tensor value = impl_->direct(shape, dtype); impl_->record(); return value; }
 TransferFence CudaBackend::copy(const Tensor& source, Tensor& destination, CopyMode mode) {
+    CudaFailureGuard transaction(impl_);
     require(source.defined() && destination.defined() &&
             source.dtype() == destination.dtype() && source.shape() == destination.shape(),
             "copy contract violation");
@@ -2859,28 +3093,45 @@ TransferFence CudaBackend::copy(const Tensor& source, Tensor& destination, CopyM
         return {};
     }
     TransferFence fence = create_fence(destination.device().index);
+    ResourceRollback rollback([&]() noexcept {
+        drain_or_terminate();
+        auto found=impl_->fences.find(fence.id);
+        if(found!=impl_->fences.end()) { release_event(found->second); impl_->fences.erase(found); }
+        impl_->fence_buffers.erase(fence.id);
+        try { impl_->fence_tracker.destroy(fence); } catch(...) { std::terminate(); }
+    });
+    impl_->fence_buffers.emplace(fence.id,std::make_pair(source,destination));
     CUDA_CHECK(cudaMemcpyAsync(destination.data(), source.data(), source.bytes(), kind));
     record_fence(fence);
     impl_->record();
+    rollback.commit();
     return fence;
 }
 TransferFence CudaBackend::create_fence(int device) {
+    require_active_session();
     require(device == 0, "CUDA fence device index out of range");
-    TransferFence fence = impl_->fence_tracker.create();
     cudaEvent_t event{};
+    ResourceRollback cleanup([&]() noexcept { release_event(event); });
+    CudaFailureGuard transaction(impl_);
     CUDA_CHECK(cudaEventCreateWithFlags(&event, cudaEventDisableTiming));
+    TransferFence fence = impl_->fence_tracker.create();
+    ResourceRollback tracker([&]() noexcept { try { impl_->fence_tracker.destroy(fence); } catch(...) { std::terminate(); } });
     require(impl_->fences.emplace(fence.id, event).second, "duplicate CUDA fence");
+    tracker.commit(); cleanup.commit();
     return fence;
 }
 void CudaBackend::record_fence(TransferFence fence) {
+    CudaFailureGuard transaction(impl_);
     impl_->fence_tracker.record(fence);
     CUDA_CHECK(cudaEventRecord(impl_->fences.at(fence.id)));
 }
 void CudaBackend::wait_fence(TransferFence fence) {
+    CudaFailureGuard transaction(impl_);
     impl_->fence_tracker.wait(fence);
     CUDA_CHECK(cudaStreamWaitEvent(nullptr, impl_->fences.at(fence.id)));
 }
 bool CudaBackend::query_fence(TransferFence fence) {
+    CudaFailureGuard transaction(impl_);
     if (!impl_->fence_tracker.query(fence)) return false;
     const cudaError_t status = cudaEventQuery(impl_->fences.at(fence.id));
     if (status == cudaErrorNotReady) return false;
@@ -2888,14 +3139,20 @@ bool CudaBackend::query_fence(TransferFence fence) {
     return true;
 }
 void CudaBackend::destroy_fence(TransferFence fence) {
-    impl_->fence_tracker.destroy(fence);
+    CudaFailureGuard transaction(impl_);
     const auto found = impl_->fences.find(fence.id);
     require(found != impl_->fences.end(), "destroyed or stale CUDA fence");
-    CUDA_CHECK(cudaEventDestroy(found->second));
+    if(impl_->fence_tracker.query(fence)) CUDA_CHECK(cudaEventSynchronize(found->second));
+    impl_->fence_tracker.destroy(fence);
+    release_event(found->second);
     impl_->fences.erase(found);
+    impl_->fence_buffers.erase(fence.id);
 }
 
 Tensor CudaBackend::copy_to_device(const Tensor& input, DType dtype) {
+    require_active_session();
+    Tensor output, source, packed, scales;
+    CudaFailureGuard transaction(impl_);
     require(input.defined(), "Cannot upload undefined tensor");
     if (input.device() == DeviceId::accelerator() && input.dtype() == dtype) return input;
     const bool cacheable_small_value = input.device() == DeviceId::host() &&
@@ -2934,7 +3191,6 @@ Tensor CudaBackend::copy_to_device(const Tensor& input, DType dtype) {
         const void* key = input.data();
         const size_t resident_bytes = input.bytes() + quantization.scales.bytes();
         note_memory_access(impl_, input, dtype, resident_bytes);
-        Tensor packed, scales;
         const auto found = impl_->quantized_weight_cache.find(key);
         if (found != impl_->quantized_weight_cache.end()) {
             ++impl_->weight_cache_hit_count;
@@ -2953,9 +3209,9 @@ Tensor CudaBackend::copy_to_device(const Tensor& input, DType dtype) {
             scales = impl_->direct(
                 quantization.scales.shape(), DType::F32);
             if (impl_->memory_options.enabled) {
-                enqueue_h2d(impl_, packed.data(), input.data(), input.bytes(), true, false, true);
+                enqueue_h2d(impl_, packed.data(), input.data(), input.bytes(), true, false, true, input);
                 enqueue_h2d(impl_, scales.data(), quantization.scales.data(),
-                            quantization.scales.bytes(), true, false, true);
+                            quantization.scales.bytes(), true, false, true, quantization.scales);
             } else {
                 CUDA_CHECK(cudaMemcpy(packed.data(), input.data(), input.bytes(), cudaMemcpyHostToDevice));
                 CUDA_CHECK(cudaMemcpy(scales.data(), quantization.scales.data(), quantization.scales.bytes(),
@@ -2966,16 +3222,16 @@ Tensor CudaBackend::copy_to_device(const Tensor& input, DType dtype) {
             impl_->upload_seconds += std::chrono::duration<double>(
                 std::chrono::steady_clock::now() - started).count();
             if (ensure_weight_capacity(impl_, resident)) {
-                impl_->weight_cache_resident += resident;
                 impl_->quantized_weight_cache.emplace(
                     key, Impl::QuantizedCacheEntry{packed, scales, resident,
                                                    ++impl_->memory_clock, false, nullptr});
+                impl_->weight_cache_resident += resident;
                 impl_->memory_stats.accounting.quantized_packed_bytes += resident;
             }
         }
         schedule_prefetch(impl_, key);
         VRHINO_PROFILE("quantized_dequant");
-        Tensor output = impl_->temporary(input.shape(), dtype);
+        output = impl_->temporary(input.shape(), dtype);
         const int64_t inner = input.numel() / input.dim(0);
         const int64_t groups = (inner + quantization.group_size - 1) / quantization.group_size;
         const int grid = blocks(input.numel());
@@ -3019,22 +3275,22 @@ Tensor CudaBackend::copy_to_device(const Tensor& input, DType dtype) {
           "|from=" + dtype_name(input.dtype()) + "|to=" + dtype_name(dtype)
         : "h2d_or_cast");
     const auto started = std::chrono::steady_clock::now();
-    Tensor output = input.device() == DeviceId::host()
+    output = input.device() == DeviceId::host()
         ? impl_->direct(input.shape(), dtype)
         : impl_->temporary(input.shape(), dtype);
     if (input.dtype() == dtype) {
         if (input.device() == DeviceId::host() && impl_->memory_options.enabled)
             enqueue_h2d(impl_, output.data(), input.data(), input.bytes(),
-                        true, false, immutable_mmap);
+                        true, false, immutable_mmap, input);
         else CUDA_CHECK(cudaMemcpy(output.data(), input.data(), input.bytes(), input.device() == DeviceId::host() ? cudaMemcpyHostToDevice : cudaMemcpyDeviceToDevice));
     }
     else {
-        Tensor source = input;
+        source = input;
         if (source.device() == DeviceId::host()) {
             source = impl_->direct(input.shape(), input.dtype());
             if (impl_->memory_options.enabled)
                 enqueue_h2d(impl_, source.data(), input.data(), input.bytes(),
-                            true, false, immutable_mmap);
+                            true, false, immutable_mmap, input);
             else CUDA_CHECK(cudaMemcpy(source.data(), input.data(), input.bytes(), cudaMemcpyHostToDevice));
             impl_->memory_stats.accounting.temporary_bytes = input.bytes();
             impl_->memory_stats.accounting.peak_temporary_bytes = std::max(
@@ -3068,9 +3324,9 @@ Tensor CudaBackend::copy_to_device(const Tensor& input, DType dtype) {
         impl_->upload_seconds += std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
     }
     if (immutable_mmap && ensure_weight_capacity(impl_, output.bytes())) {
-        impl_->weight_cache_resident += output.bytes();
         impl_->weight_cache.emplace(cache_key,
             Impl::WeightCacheEntry{output, output.bytes(), ++impl_->memory_clock, false, nullptr});
+        impl_->weight_cache_resident += output.bytes();
     }
     if (immutable_mmap) schedule_prefetch(impl_, cache_key.first);
     if (cacheable_small_value &&
@@ -3087,6 +3343,7 @@ Tensor CudaBackend::copy_to_device(const Tensor& input, DType dtype) {
 }
 
 Tensor CudaBackend::copy_to_host(const Tensor& input) {
+    require_active_session();
     require(input.device() == DeviceId::accelerator(), "copy_to_host expects CUDA tensor");
     ProfileScope profile_scope_(impl_, impl_->profiling
         ? "d2h|bytes=" + std::to_string(input.bytes()) + "|dtype=" +
@@ -3096,8 +3353,10 @@ Tensor CudaBackend::copy_to_host(const Tensor& input) {
     CUDA_CHECK(cudaMemcpy(output.data(), input.data(), input.bytes(), cudaMemcpyDeviceToHost)); return output;
 }
 void CudaBackend::synchronize() {
-    CUDA_CHECK(cudaDeviceSynchronize());
-    if (impl_->memory_options.enabled) resolve_transfers(impl_);
+    try {
+        CUDA_CHECK(cudaDeviceSynchronize());
+        if (impl_->memory_options.enabled) resolve_transfers(impl_);
+    } catch(...) { resource_session_->terminal=true; throw; }
 }
 size_t CudaBackend::peak_device_bytes() const {
     impl_->refresh_device_accounting();
@@ -3106,10 +3365,12 @@ size_t CudaBackend::peak_device_bytes() const {
 size_t CudaBackend::weight_upload_bytes() const { return impl_->upload_bytes; }
 double CudaBackend::weight_upload_seconds() const { return impl_->upload_seconds; }
 void CudaBackend::enable_profiling(bool enabled) {
+    require_active_session();
     require(impl_->pending_profiles.empty(), "Cannot change profiling mode with unresolved CUDA events");
     impl_->profiling = enabled;
 }
-bool CudaBackend::profiling_enabled() const { return impl_->profiling; }
+bool CudaBackend::profiling_enabled() const {
+    require_active_session(); return impl_->profiling; }
 std::map<std::string, ProfileStat> CudaBackend::profile_stats() {
     synchronize(); std::map<std::string, ProfileStat> result;
     for (auto& item : impl_->pending_profiles) {
@@ -3118,7 +3379,7 @@ std::map<std::string, ProfileStat> CudaBackend::profile_stats() {
         ++aggregate.calls;
         aggregate.device_milliseconds += milliseconds;
         aggregate.samples_milliseconds.push_back(milliseconds);
-        CUDA_CHECK(cudaEventDestroy(item.start)); CUDA_CHECK(cudaEventDestroy(item.end));
+        release_event(item.start); release_event(item.end);
     }
     impl_->pending_profiles.clear();
     for (auto& [name, aggregate] : impl_->resolved_profiles) {
@@ -3218,33 +3479,42 @@ std::map<std::string, ProfileStat> CudaBackend::profile_stats() {
     return result;
 }
 void CudaBackend::profile_region_begin(const std::string& name) {
+    require_active_session();
     if (!impl_->profiling) return;
     cudaEvent_t start{};
+    ResourceRollback rollback([&]() noexcept { release_event(start); });
+    CudaFailureGuard transaction(impl_);
     CUDA_CHECK(cudaEventCreate(&start));
     CUDA_CHECK(cudaEventRecord(start));
     impl_->active_profiles.push_back({name, start});
+    rollback.commit();
 }
 void CudaBackend::profile_region_end() {
-    if (!impl_->profiling) return;
+    if (!impl_->profiling || resource_session_terminal()) return;
     require(!impl_->active_profiles.empty(), "CUDA profile region stack underflow");
-    auto active = std::move(impl_->active_profiles.back());
-    impl_->active_profiles.pop_back();
+    const auto& active=impl_->active_profiles.back();
     cudaEvent_t end{};
+    ResourceRollback rollback([&]() noexcept { release_event(end); });
+    CudaFailureGuard transaction(impl_);
     CUDA_CHECK(cudaEventCreate(&end));
     CUDA_CHECK(cudaEventRecord(end));
-    impl_->pending_profiles.push_back({std::move(active.name), active.start, end});
+    impl_->pending_profiles.push_back({active.name, active.start, end});
+    impl_->active_profiles.pop_back();
+    rollback.commit();
 }
 uint64_t CudaBackend::weight_cache_hits() const { return impl_->weight_cache_hit_count; }
 uint64_t CudaBackend::weight_cache_misses() const { return impl_->weight_cache_miss_count; }
 size_t CudaBackend::weight_cache_resident_bytes() const { return impl_->weight_cache_resident; }
 size_t CudaBackend::weight_cache_capacity_bytes() const { return impl_->weight_cache_capacity; }
 void CudaBackend::enable_weight_cache(bool enabled) {
+    require_active_session();
     require(impl_->weight_cache.empty() && impl_->quantized_weight_cache.empty(),
             "Weight cache mode must be selected before execution");
     impl_->weight_cache_enabled = enabled;
 }
 void CudaBackend::configure_memory_runtime(const MemoryBudget& budget,
                                            const MemoryRuntimeOptions& options) {
+    require_active_session();
     require(impl_->weight_cache.empty() && impl_->quantized_weight_cache.empty() &&
             impl_->pinned_cache.empty(),
             "Memory Runtime must be configured before execution");
@@ -3263,8 +3533,10 @@ void CudaBackend::configure_memory_runtime(const MemoryBudget& budget,
     impl_->memory_stats = {};
     impl_->memory_stats.accounting.device_workspace_bytes = budget.reserved_device_workspace_bytes;
 }
-bool CudaBackend::memory_runtime_enabled() const { return impl_->memory_options.enabled; }
+bool CudaBackend::memory_runtime_enabled() const {
+    require_active_session(); return impl_->memory_options.enabled; }
 void CudaBackend::set_vrm_mapped_bytes(size_t bytes) {
+    require_active_session();
     require(!impl_->memory_options.enabled || bytes <= impl_->memory_budget.host_total_budget_bytes,
             "VRM mapping exceeds CPU total memory budget");
     impl_->memory_stats.accounting.vrm_mapped_bytes = bytes;
@@ -3274,6 +3546,7 @@ void CudaBackend::set_vrm_mapped_bytes(size_t bytes) {
         bytes + impl_->memory_stats.accounting.host_staging_bytes);
 }
 void CudaBackend::begin_memory_trace() {
+    require_active_session();
     impl_->recorded_trace.clear();
     impl_->trace_recording = true;
 }
@@ -3282,6 +3555,7 @@ std::vector<MemoryAccess> CudaBackend::end_memory_trace() {
     return impl_->recorded_trace;
 }
 void CudaBackend::set_memory_trace(std::vector<MemoryAccess> trace) {
+    require_active_session();
     impl_->execution_trace = std::move(trace);
     impl_->trace_cursor = 0;
 }
@@ -3303,14 +3577,18 @@ MemoryRuntimeStats CudaBackend::memory_runtime_stats() const {
         impl_->temporary_pool->largest_handoff_reuse_bytes();
     return result;
 }
-void CudaBackend::enable_true_quant_compute(bool enabled) { impl_->true_quant_compute = enabled; }
-bool CudaBackend::true_quant_compute_enabled() const { return impl_->true_quant_compute; }
+void CudaBackend::enable_true_quant_compute(bool enabled) {
+    require_active_session(); impl_->true_quant_compute = enabled; }
+bool CudaBackend::true_quant_compute_enabled() const {
+    require_active_session(); return impl_->true_quant_compute; }
 QuantComputeStats CudaBackend::quant_compute_stats() const { return impl_->quant_compute; }
-void CudaBackend::reset_quant_compute_stats() { impl_->quant_compute = {}; }
+void CudaBackend::reset_quant_compute_stats() {
+    require_active_session(); impl_->quant_compute = {}; }
 
 Tensor CudaBackend::linear(const Tensor& x_raw, const Tensor& weight_raw,
                            const Tensor* bias_raw, DType compute,
                            DType requested_output) {
+    require_active_session();
     require(x_raw.ndim() >= 1 && weight_raw.ndim() == 2, "linear shape rank mismatch");
     require(x_raw.dim(-1) == weight_raw.dim(1), "linear K mismatch");
     const DType dtype = compute == DType::F16 ? impl_->execution_dtype : compute;
@@ -3342,6 +3620,7 @@ Tensor CudaBackend::linear(const Tensor& x_raw, const Tensor& weight_raw,
             require(quantization.scales.shape() == std::vector<int64_t>({n, groups}),
                     "Quantized Linear scale shape mismatch");
             Tensor packed, scales;
+            CudaFailureGuard transaction(impl_);
             const void* key = weight_raw.data();
             const size_t resident_bytes = weight_raw.bytes() + quantization.scales.bytes();
             note_memory_access(impl_, weight_raw, DType::BF16, resident_bytes);
@@ -3365,9 +3644,9 @@ Tensor CudaBackend::linear(const Tensor& x_raw, const Tensor& weight_raw,
                         quantization.scales.shape(), DType::F32);
                     if (impl_->memory_options.enabled) {
                         enqueue_h2d(impl_, packed.data(), weight_raw.data(), weight_raw.bytes(),
-                                    true, false, true);
+                                    true, false, true, weight_raw);
                         enqueue_h2d(impl_, scales.data(), quantization.scales.data(),
-                                    quantization.scales.bytes(), true, false, true);
+                                    quantization.scales.bytes(), true, false, true, quantization.scales);
                     } else {
                         CUDA_CHECK(cudaMemcpy(packed.data(), weight_raw.data(), weight_raw.bytes(), cudaMemcpyHostToDevice));
                         CUDA_CHECK(cudaMemcpy(scales.data(), quantization.scales.data(), quantization.scales.bytes(),
@@ -3378,10 +3657,10 @@ Tensor CudaBackend::linear(const Tensor& x_raw, const Tensor& weight_raw,
                     impl_->upload_seconds += std::chrono::duration<double>(
                         std::chrono::steady_clock::now() - started).count();
                     if (ensure_weight_capacity(impl_, resident)) {
-                        impl_->weight_cache_resident += resident;
                         impl_->quantized_weight_cache.emplace(
                             key, Impl::QuantizedCacheEntry{packed, scales, resident,
                                                           ++impl_->memory_clock, false, nullptr});
+                        impl_->weight_cache_resident += resident;
                         impl_->memory_stats.accounting.quantized_packed_bytes += resident;
                     }
                 }
@@ -3532,12 +3811,17 @@ Tensor binary(CudaBackend& backend, CudaBackend::Impl* impl,
     else binary_kernel<float, Kind><<<blocks(output.numel()), kThreads>>>(a.data_as<float>(), b.data_as<float>(), output.data_as<float>(), output.numel(), meta(shape), meta(a.shape()), meta(b.shape()));
     CUDA_CHECK(cudaGetLastError()); return output;
 }
-Tensor CudaBackend::add(const Tensor& a, const Tensor& b) { VRHINO_PROFILE("elementwise.add"); Tensor value = binary<0>(*this, impl_, a, b); impl_->record(); return value; }
-Tensor CudaBackend::mul(const Tensor& a, const Tensor& b) { VRHINO_PROFILE("elementwise.mul"); Tensor value = binary<1>(*this, impl_, a, b); impl_->record(); return value; }
-Tensor CudaBackend::div(const Tensor& a, const Tensor& b) { VRHINO_PROFILE("elementwise.div"); Tensor value = binary<2>(*this, impl_, a, b); impl_->record(); return value; }
-Tensor CudaBackend::maximum(const Tensor& a, const Tensor& b) { VRHINO_PROFILE("elementwise.maximum"); Tensor value = binary<3>(*this, impl_, a, b); impl_->record(); return value; }
+Tensor CudaBackend::add(const Tensor& a, const Tensor& b) {
+    require_active_session(); VRHINO_PROFILE("elementwise.add"); Tensor value = binary<0>(*this, impl_, a, b); impl_->record(); return value; }
+Tensor CudaBackend::mul(const Tensor& a, const Tensor& b) {
+    require_active_session(); VRHINO_PROFILE("elementwise.mul"); Tensor value = binary<1>(*this, impl_, a, b); impl_->record(); return value; }
+Tensor CudaBackend::div(const Tensor& a, const Tensor& b) {
+    require_active_session(); VRHINO_PROFILE("elementwise.div"); Tensor value = binary<2>(*this, impl_, a, b); impl_->record(); return value; }
+Tensor CudaBackend::maximum(const Tensor& a, const Tensor& b) {
+    require_active_session(); VRHINO_PROFILE("elementwise.maximum"); Tensor value = binary<3>(*this, impl_, a, b); impl_->record(); return value; }
 
 Tensor CudaBackend::batched_matmul(const Tensor& a_raw, const Tensor& b_raw) {
+    require_active_session();
     VRHINO_PROFILE("batched_matmul");
     require(a_raw.ndim() == 3 && b_raw.ndim() == 3 &&
             a_raw.dim(0) == b_raw.dim(0) && a_raw.dim(2) == b_raw.dim(1),
@@ -3562,12 +3846,14 @@ Tensor CudaBackend::batched_matmul(const Tensor& a_raw, const Tensor& b_raw) {
     return output;
 }
 Tensor CudaBackend::reshape(const Tensor& x, const std::vector<int64_t>& shape) {
+    require_active_session();
     VRHINO_PROFILE("reshape");
     const DType dtype = x.device() == DeviceId::accelerator() && (x.dtype() == DType::F32 || x.dtype() == DType::BF16) ? x.dtype() : execution_dtype();
     return copy_to_device(x, dtype).reshape(shape);
 }
 
 Tensor CudaBackend::permute(const Tensor& x_raw, const std::vector<int64_t>& dims) {
+    require_active_session();
     VRHINO_PROFILE("permute");
     require(static_cast<int64_t>(dims.size()) == x_raw.ndim(), "permute rank mismatch");
     const DType dtype = x_raw.device() == DeviceId::accelerator() && (x_raw.dtype() == DType::F32 || x_raw.dtype() == DType::BF16) ? x_raw.dtype() : execution_dtype(); Tensor x = copy_to_device(x_raw, dtype); std::vector<int64_t> shape(dims.size()); Meta dm{}; dm.rank = dims.size();
@@ -3580,6 +3866,7 @@ Tensor CudaBackend::permute(const Tensor& x_raw, const std::vector<int64_t>& dim
 }
 
 Tensor CudaBackend::concat(const std::vector<Tensor>& inputs, int64_t dim) {
+    require_active_session();
     VRHINO_PROFILE("concat");
     require(!inputs.empty(), "concat requires inputs"); int rank = inputs[0].ndim(); if (dim < 0) dim += rank;
     require(dim >= 0 && dim < rank, "concat dimension invalid"); std::vector<int64_t> shape = inputs[0].shape(); shape[dim] = 0;
@@ -3590,6 +3877,7 @@ Tensor CudaBackend::concat(const std::vector<Tensor>& inputs, int64_t dim) {
 }
 
 Tensor CudaBackend::slice(const Tensor& raw, int64_t dim, int64_t start, int64_t stop) {
+    require_active_session();
     VRHINO_PROFILE("slice");
     if (dim < 0) dim += raw.ndim(); require(dim >= 0 && dim < raw.ndim(), "slice dimension invalid");
     const int64_t size = raw.shape()[dim]; if (start < 0) start += size; if (stop < 0) stop += size;
@@ -3601,13 +3889,16 @@ Tensor CudaBackend::slice(const Tensor& raw, int64_t dim, int64_t start, int64_t
 }
 
 std::vector<Tensor> CudaBackend::split(const Tensor& x, const std::vector<int64_t>& sections, int64_t dim) {
+    require_active_session();
     if (dim < 0) dim += x.ndim(); int64_t total = std::accumulate(sections.begin(), sections.end(), int64_t{0}); require(total == x.shape()[dim], "split sections mismatch");
     std::vector<Tensor> result; int64_t offset = 0; for (int64_t section : sections) { result.push_back(slice(x, dim, offset, offset + section)); offset += section; } return result;
 }
 
-Tensor CudaBackend::cast(const Tensor& x, DType dtype) { VRHINO_PROFILE("cast"); return copy_to_device(x, dtype); }
+Tensor CudaBackend::cast(const Tensor& x, DType dtype) {
+    require_active_session(); VRHINO_PROFILE("cast"); return copy_to_device(x, dtype); }
 
 Tensor CudaBackend::indexed_gather(const Tensor& table_raw, const Tensor& indices_raw) {
+    require_active_session();
     VRHINO_PROFILE("indexed_gather");
     require(table_raw.ndim() == 2 || table_raw.ndim() == 3,
             "indexed_gather table must have rank 2 or 3");
@@ -3656,6 +3947,7 @@ Tensor CudaBackend::indexed_gather(const Tensor& table_raw, const Tensor& indice
 }
 
 Tensor CudaBackend::layer_norm(const Tensor& raw, const Tensor* weight_raw, const Tensor* bias_raw, float eps) {
+    require_active_session();
     const char* bf16_output_text = std::getenv("VRHINO_BF16_NORM_OUTPUT");
     require(!bf16_output_text || std::strcmp(bf16_output_text, "bf16") == 0 ||
                                     std::strcmp(bf16_output_text, "fp32") == 0,
@@ -3690,6 +3982,7 @@ Tensor CudaBackend::layer_norm(const Tensor& raw, const Tensor* weight_raw, cons
 
 Tensor CudaBackend::rms_norm(const Tensor& raw, const Tensor* weight_raw, float eps,
                              int64_t axis, DType requested_output) {
+    require_active_session();
     if (axis < 0) axis += raw.ndim(); require(axis >= 0 && axis < raw.ndim(), "rms_norm axis invalid");
     const char* bf16_output_text = std::getenv("VRHINO_BF16_NORM_OUTPUT");
     require(!bf16_output_text || std::strcmp(bf16_output_text, "bf16") == 0 ||
@@ -3718,6 +4011,24 @@ Tensor CudaBackend::rms_norm(const Tensor& raw, const Tensor* weight_raw, float 
         if (dtype == DType::BF16 && output_dtype == DType::F32)
             require(weight_raw != nullptr,
                     "BF16-to-FP32 rms_norm requires affine weight");
+        const int lanes = rms_contiguous_reduction_lanes(width, rows);
+        if (lanes != 0) {
+            const auto grid = std::min<int64_t>(rows, 65535);
+            if (dtype == DType::BF16 && output_dtype == DType::F32)
+                rms_norm_contiguous_f32_kernel<<<grid, lanes>>>(
+                    x.data_as<__nv_bfloat16>(), weight.data_as<float>(),
+                    output.data_as<float>(), rows, width, eps);
+            else if (dtype == DType::BF16)
+                rms_norm_contiguous_f32_kernel<<<grid, lanes>>>(
+                    x.data_as<__nv_bfloat16>(),
+                    weight_raw ? weight.data_as<__nv_bfloat16>() : nullptr,
+                    output.data_as<__nv_bfloat16>(), rows, width, eps);
+            else
+                rms_norm_contiguous_f32_kernel<<<grid, lanes>>>(
+                    x.data_as<float>(), weight_raw ? weight.data_as<float>() : nullptr,
+                    output.data_as<float>(), rows, width, eps);
+            CUDA_CHECK(cudaGetLastError()); impl_->record(); return output;
+        }
         if (dtype == DType::BF16 && output_dtype == DType::F32) {
             rms_norm_bf16_input_f32_weight_parallel_kernel<<<
                 std::min<int64_t>(rows, 65535), kNormThreads>>>(
@@ -3758,6 +4069,7 @@ Tensor CudaBackend::rms_norm(const Tensor& raw, const Tensor* weight_raw, float 
 }
 
 Tensor CudaBackend::activation(const Tensor& raw, Activation kind) {
+    require_active_session();
     const DType dtype = raw.device() == DeviceId::accelerator() && (raw.dtype() == DType::F32 || raw.dtype() == DType::BF16) ? raw.dtype() : execution_dtype(); Tensor input = copy_to_device(raw, dtype), output = impl_->temporary(input.shape(), dtype);
     ProfileScope profile_scope_(impl_, impl_->profiling
         ? "activation|elements=" + std::to_string(input.numel()) + "|kind=" +
@@ -3768,6 +4080,7 @@ Tensor CudaBackend::activation(const Tensor& raw, Activation kind) {
 }
 
 Tensor CudaBackend::sinusoidal_embedding(const Tensor& raw, int64_t width, bool flip, double downscale, bool frequency_f64) {
+    require_active_session();
     VRHINO_PROFILE("sinusoidal_embedding");
     require(raw.ndim() == 1 && width > 0, "sinusoidal embedding contract violation"); const DType dtype = raw.device() == DeviceId::accelerator() && (raw.dtype() == DType::F32 || raw.dtype() == DType::BF16) ? raw.dtype() : execution_dtype(); Tensor positions = copy_to_device(raw, dtype), output = impl_->temporary({raw.numel(), width}, dtype);
     if (dtype == DType::BF16) sinusoidal_kernel<<<blocks(output.numel()), kThreads>>>(positions.data_as<__nv_bfloat16>(), output.data_as<__nv_bfloat16>(), raw.numel(), width, flip, downscale, frequency_f64);
@@ -3775,6 +4088,7 @@ Tensor CudaBackend::sinusoidal_embedding(const Tensor& raw, int64_t width, bool 
 }
 
 Tensor CudaBackend::rope_nd(const Tensor& raw, const Tensor& cos_raw, const Tensor& sin_raw) {
+    require_active_session();
     require(raw.dim(-1) % 2 == 0, "RoPE width must be even");
     const DType dtype = raw.device() == DeviceId::accelerator() && (raw.dtype() == DType::F32 || raw.dtype() == DType::BF16) ? raw.dtype() : execution_dtype();
     const DType frequency_dtype = cos_raw.device() == DeviceId::accelerator() && (cos_raw.dtype() == DType::F32 || cos_raw.dtype() == DType::BF16) ? cos_raw.dtype() : dtype;
@@ -3793,6 +4107,7 @@ Tensor CudaBackend::rope_nd(const Tensor& raw, const Tensor& cos_raw, const Tens
 Tensor CudaBackend::attention(const Tensor& q_raw, const Tensor& k_raw, const Tensor& v_raw,
                               const Tensor* mask_raw, bool causal, float scale,
                               const Tensor* bias_raw, AttentionObservation* observation) {
+    require_active_session();
     VRHINO_PROFILE("attention");
     require(observation == nullptr,
             "CUDA attention observation is available only in the fixed Linux capture harness");
@@ -4088,6 +4403,18 @@ Tensor CudaBackend::attention(const Tensor& q_raw, const Tensor& k_raw, const Te
         Tensor previous = impl_->temporary(scores.shape(), DType::F32);
         Tensor accumulation = output_dtype == DType::F32
             ? output : impl_->temporary(q.shape(), DType::F32);
+        // Corrections persist across tiles. BF16's existing implementation is
+        // unchanged; F32 uses only F32 state and bounded O(B*Q*H*D) scratch.
+        Tensor denominator_correction, accumulation_correction;
+        float* dc = nullptr; float* ac = nullptr;
+        if (dtype == DType::F32) {
+            denominator_correction = impl_->temporary({rows}, DType::F32);
+            accumulation_correction = impl_->temporary(q.shape(), DType::F32);
+            dc = denominator_correction.data_as<float>();
+            ac = accumulation_correction.data_as<float>();
+            CUDA_CHECK(cudaMemsetAsync(dc, 0, denominator_correction.bytes()));
+            CUDA_CHECK(cudaMemsetAsync(ac, 0, accumulation_correction.bytes()));
+        }
         attention_ordered_initialize_kernel<<<blocks(output.numel()), kThreads>>>(
             maximum.data_as<float>(), denominator.data_as<float>(),
             accumulation.data_as<float>(),
@@ -4136,13 +4463,13 @@ Tensor CudaBackend::attention(const Tensor& q_raw, const Tensor& k_raw, const Te
                     scores.data_as<float>(), previous.data_as<float>(),
                     maximum.data_as<float>(), denominator.data_as<float>(), mp,
                     bias_raw ? bias.data_as<__nv_bfloat16>() : nullptr, q.dim(0), q.dim(1),
-                    k.dim(1), q.dim(2), key_base, key_count, scale, causal, mm, bm);
+                    k.dim(1), q.dim(2), key_base, key_count, scale, causal, mm, bm, dc);
             } else {
                 attention_ordered_state_kernel<<<blocks(rows), kThreads>>>(
                     scores.data_as<float>(), previous.data_as<float>(),
                     maximum.data_as<float>(), denominator.data_as<float>(), mp,
                     bias_raw ? bias.data_as<float>() : nullptr, q.dim(0), q.dim(1),
-                    k.dim(1), q.dim(2), key_base, key_count, scale, causal, mm, bm);
+                    k.dim(1), q.dim(2), key_base, key_count, scale, causal, mm, bm, dc);
             }
             CUDA_CHECK(cudaGetLastError());
             if (dtype == DType::BF16 && q.dim(3) % 2 == 0) {
@@ -4154,7 +4481,7 @@ Tensor CudaBackend::attention(const Tensor& q_raw, const Tensor& k_raw, const Te
                 attention_ordered_pv_float4_kernel<<<blocks(output.numel() / 4), kThreads>>>(
                     scores.data_as<float>(), previous.data_as<float>(), v.data_as<float>(),
                     accumulation.data_as<float>(), q.dim(0), q.dim(1), k.dim(1),
-                    q.dim(2), q.dim(3), key_base, key_count);
+                    q.dim(2), q.dim(3), key_base, key_count, ac);
             } else if (dtype == DType::BF16) {
                 attention_ordered_pv_kernel<<<blocks(output.numel()), kThreads>>>(
                     scores.data_as<float>(), previous.data_as<float>(),
@@ -4164,7 +4491,7 @@ Tensor CudaBackend::attention(const Tensor& q_raw, const Tensor& k_raw, const Te
                 attention_ordered_pv_kernel<<<blocks(output.numel()), kThreads>>>(
                     scores.data_as<float>(), previous.data_as<float>(), v.data_as<float>(),
                     accumulation.data_as<float>(), q.dim(0), q.dim(1), k.dim(1),
-                    q.dim(2), q.dim(3), key_base, key_count);
+                    q.dim(2), q.dim(3), key_base, key_count, ac);
             }
             CUDA_CHECK(cudaGetLastError());
         }
@@ -4178,8 +4505,9 @@ Tensor CudaBackend::attention(const Tensor& q_raw, const Tensor& k_raw, const Te
                 output.data_as<float>(), rows, q.dim(3));
         }
         // Account for generic temporary score/state storage while it is live.
-        // The existing reserved device-workspace budget covers this allocation;
-        // no architecture-specific Memory Runtime policy is introduced.
+        // F32 scratch includes persistent tile corrections (see
+        // ordered_f32_workspace_bytes); allocation failures retain the shared
+        // resource transaction semantics, not a model-specific memory policy.
         impl_->record();
     } else if (dtype == DType::BF16 && output_dtype == DType::F32) {
         attention_kernel<__nv_bfloat16, float><<<static_cast<int>(blocks_required), threads, workspace>>>(q.data_as<__nv_bfloat16>(), k.data_as<__nv_bfloat16>(), v.data_as<__nv_bfloat16>(), mp, bias_raw ? bias.data_as<__nv_bfloat16>() : nullptr, output.data_as<float>(), q.dim(0), q.dim(1), k.dim(1), q.dim(2), q.dim(3), output_tiles, causal, scale, mm, bm);
@@ -4334,11 +4662,13 @@ Tensor convolution(CudaBackend& backend, CudaBackend::Impl* impl, const Tensor& 
 Tensor CudaBackend::conv3d(const Tensor& x, const Tensor& weight, const Tensor* bias,
                            const std::vector<int>& stride, const std::vector<int>& padding,
                            const std::vector<int>& dilation, int groups) {
+    require_active_session();
     return convolution<3>(*this, impl_, x, weight, bias, stride, padding, dilation, groups);
 }
 Tensor CudaBackend::conv2d(const Tensor& x, const Tensor& weight, const Tensor* bias,
                            const std::vector<int>& stride, const std::vector<int>& padding,
                            const std::vector<int>& dilation, int groups) {
+    require_active_session();
     return convolution<2>(*this, impl_, x, weight, bias, stride, padding, dilation, groups);
 }
 
@@ -4347,6 +4677,7 @@ Tensor CudaBackend::conv_transpose2d(
         const std::vector<int>& stride, const std::vector<int>& padding,
         const std::vector<int>& output_padding, const std::vector<int>& dilation,
         int groups) {
+    require_active_session();
     VRHINO_PROFILE("conv_transpose2d");
     require(raw.ndim() == 4 && raw_weight.ndim() == 4 &&
             stride.size() == 2 && padding.size() == 2 &&
@@ -4400,6 +4731,7 @@ Tensor CudaBackend::max_pool2d(const Tensor& raw,
                                const std::vector<int>& kernel,
                                const std::vector<int>& stride,
                                const std::vector<int>& padding) {
+    require_active_session();
     VRHINO_PROFILE("max_pool2d");
     require(raw.ndim() == 4 && kernel.size() == 2 && stride.size() == 2 &&
             padding.size() == 2 && kernel[0] > 0 && kernel[1] > 0 &&
@@ -4433,6 +4765,7 @@ Tensor CudaBackend::max_pool2d(const Tensor& raw,
 }
 
 Tensor CudaBackend::pad(const Tensor& raw, const std::vector<int64_t>& padding, float value, PadMode mode) {
+    require_active_session();
     VRHINO_PROFILE("pad");
     require(padding.size() % 2 == 0 && padding.size() <= static_cast<size_t>(2 * raw.ndim()), "Invalid pad vector");
     const DType dtype = raw.device() == DeviceId::accelerator() && (raw.dtype() == DType::F32 || raw.dtype() == DType::BF16) ? raw.dtype() : execution_dtype(); Tensor input = copy_to_device(raw, dtype); std::vector<int64_t> shape = input.shape(); Meta before{}; before.rank = input.ndim();
@@ -4442,6 +4775,7 @@ Tensor CudaBackend::pad(const Tensor& raw, const std::vector<int64_t>& padding, 
 }
 
 Tensor CudaBackend::reduce_sum(const Tensor& raw, int64_t dim, bool keepdim) {
+    require_active_session();
     VRHINO_PROFILE("reduce_sum");
     if (dim < 0) dim += raw.ndim(); require(dim >= 0 && dim < raw.ndim(), "reduce dimension invalid"); const DType dtype = raw.device() == DeviceId::accelerator() && (raw.dtype() == DType::F32 || raw.dtype() == DType::BF16) ? raw.dtype() : execution_dtype(); Tensor input = copy_to_device(raw, dtype); std::vector<int64_t> shape = input.shape();
     if (keepdim) shape[dim] = 1; else shape.erase(shape.begin() + dim); Tensor output = impl_->temporary(shape, dtype);
@@ -4449,6 +4783,7 @@ Tensor CudaBackend::reduce_sum(const Tensor& raw, int64_t dim, bool keepdim) {
 }
 
 Tensor CudaBackend::softmax(const Tensor& raw, int64_t axis) {
+    require_active_session();
     VRHINO_PROFILE("softmax");
     if (axis < 0) axis += raw.ndim();
     require(axis >= 0 && axis < raw.ndim(), "softmax axis invalid");
@@ -4474,6 +4809,7 @@ Tensor CudaBackend::softmax(const Tensor& raw, int64_t axis) {
 }
 
 Tensor CudaBackend::group_norm(const Tensor& raw, int groups, const Tensor* weight_raw, const Tensor* bias_raw, float eps) {
+    require_active_session();
     VRHINO_PROFILE("norm.group");
     require(raw.ndim() >= 3 && groups > 0 && raw.dim(1) % groups == 0,
             "group norm shape/groups mismatch");
@@ -4564,6 +4900,7 @@ Tensor CudaBackend::group_norm(const Tensor& raw, int groups, const Tensor* weig
 }
 
 Tensor CudaBackend::interpolate_nearest(const Tensor& raw, const std::vector<double>& factors) {
+    require_active_session();
     VRHINO_PROFILE("interpolate_nearest");
     require(factors.size() <= static_cast<size_t>(raw.ndim() - 2), "interpolate factor rank mismatch"); const DType dtype = raw.device() == DeviceId::accelerator() && (raw.dtype() == DType::F32 || raw.dtype() == DType::BF16) ? raw.dtype() : execution_dtype(); Tensor input = copy_to_device(raw, dtype); std::vector<int64_t> shape = input.shape(); const int start = raw.ndim() - factors.size();
     for (size_t index = 0; index < factors.size(); ++index) { require(factors[index] > 0, "Invalid interpolation factor"); shape[start + index] = static_cast<int64_t>(std::floor(shape[start + index] * factors[index])); }
@@ -4573,6 +4910,7 @@ Tensor CudaBackend::interpolate_nearest(const Tensor& raw, const std::vector<dou
 Tensor CudaBackend::interpolate_bilinear_2d(
         const Tensor& raw, int64_t output_height, int64_t output_width,
         bool align_corners) {
+    require_active_session();
     VRHINO_PROFILE("interpolate_bilinear_2d");
     require(raw.ndim() == 4 && output_height > 0 && output_width > 0,
             "bilinear resize requires NCHW and positive output size");
@@ -4600,6 +4938,7 @@ Tensor CudaBackend::interpolate_bilinear_2d(
 }
 
 Tensor CudaBackend::pixel_norm(const Tensor& raw, int64_t dim, float eps) {
+    require_active_session();
     VRHINO_PROFILE("norm.pixel");
     if (dim < 0) dim += raw.ndim(); require(dim >= 0 && dim < raw.ndim(), "pixel norm dim invalid");
     const char* bf16_output_text = std::getenv("VRHINO_BF16_NORM_OUTPUT");
@@ -4639,6 +4978,7 @@ Tensor CudaBackend::pixel_norm(const Tensor& raw, int64_t dim, float eps) {
 }
 
 Tensor CudaBackend::l2_normalize(const Tensor& raw, int64_t dim, float eps) {
+    require_active_session();
     VRHINO_PROFILE("norm.l2");
     if (dim < 0) dim += raw.ndim();
     require(dim >= 0 && dim < raw.ndim() && eps >= 0.0f,
@@ -4662,6 +5002,7 @@ Tensor CudaBackend::l2_normalize(const Tensor& raw, int64_t dim, float eps) {
 }
 
 Tensor CudaBackend::pixel_shuffle_nd(const Tensor& raw, const std::vector<int64_t>& factors) {
+    require_active_session();
     VRHINO_PROFILE("pixel_shuffle");
     require(raw.ndim() == 5 && factors.size() == 3, "pixel_shuffle_nd requires 5D and 3 factors"); const int64_t product = factors[0] * factors[1] * factors[2]; require(raw.dim(1) % product == 0, "pixel shuffle channel mismatch");
     const DType dtype = raw.device() == DeviceId::accelerator() && (raw.dtype() == DType::F32 || raw.dtype() == DType::BF16) ? raw.dtype() : execution_dtype(); Tensor input = copy_to_device(raw, dtype); std::vector<int64_t> shape = {raw.dim(0), raw.dim(1) / product, raw.dim(2) * factors[0], raw.dim(3) * factors[1], raw.dim(4) * factors[2]}; Tensor output = impl_->temporary(shape, dtype);
@@ -4669,6 +5010,7 @@ Tensor CudaBackend::pixel_shuffle_nd(const Tensor& raw, const std::vector<int64_
 }
 
 Tensor CudaBackend::rng_normal(RngState& state, const std::vector<int64_t>& shape, DType dtype) {
+    require_active_session();
     VRHINO_PROFILE("rng_normal");
     require(state.algorithm_id == "pytorch_compat.v1", "Unsupported RNG algorithm"); require(dtype == DType::F32 || dtype == DType::BF16, "rng_normal dtype unsupported");
     Tensor fp32 = impl_->temporary(shape, DType::F32); const int grid = static_cast<int>((fp32.numel() + 255) / 256);
@@ -4676,12 +5018,14 @@ Tensor CudaBackend::rng_normal(RngState& state, const std::vector<int64_t>& shap
 }
 
 Tensor CudaBackend::clamp(const Tensor& raw, float minimum, float maximum) {
+    require_active_session();
     VRHINO_PROFILE("clamp");
     require(minimum <= maximum, "Invalid clamp bounds"); const DType dtype = raw.device() == DeviceId::accelerator() && (raw.dtype() == DType::F32 || raw.dtype() == DType::BF16) ? raw.dtype() : execution_dtype(); Tensor input = copy_to_device(raw, dtype), output = impl_->temporary(input.shape(), dtype);
     if (dtype == DType::BF16) clamp_kernel<<<blocks(input.numel()), kThreads>>>(input.data_as<__nv_bfloat16>(), output.data_as<__nv_bfloat16>(), input.numel(), minimum, maximum); else clamp_kernel<<<blocks(input.numel()), kThreads>>>(input.data_as<float>(), output.data_as<float>(), input.numel(), minimum, maximum); CUDA_CHECK(cudaGetLastError()); impl_->record(); return output;
 }
 
 Tensor CudaBackend::exp(const Tensor& raw) {
+    require_active_session();
     VRHINO_PROFILE("exp");
     const DType dtype = raw.device() == DeviceId::accelerator() &&
         (raw.dtype() == DType::F32 || raw.dtype() == DType::BF16)
@@ -4701,6 +5045,7 @@ Tensor CudaBackend::exp(const Tensor& raw) {
 }
 
 Tensor CudaBackend::sqrt(const Tensor& raw) {
+    require_active_session();
     VRHINO_PROFILE("sqrt");
     const DType dtype = raw.device() == DeviceId::accelerator() &&
         (raw.dtype() == DType::F32 || raw.dtype() == DType::BF16)

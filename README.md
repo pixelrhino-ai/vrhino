@@ -34,7 +34,12 @@ comparable to llama.cpp today.
 
 ## Release status
 
-The current release is **v0.8.0-alpha**, the first release line with a
+v0.9.0-alpha is in preparation for Linux CUDA, with Wan2.2 native video
+generation through `vrhino evaluate` and configurable weight-cache budgets.
+See the [v0.9 alpha notes](docs/release/v0.9.0-alpha.md) and
+[Wan2.2 tested setup](docs/release/v0.9-wan2.2-known-limitations.md).
+
+The current published release is **v0.8.0-alpha**, the first release line with a
 qualified native Windows x64 CUDA package. The Linux and Windows assets were
 built from `d460de0a152c9ff92553b17ca37e4b5554c8c766`. Published v0.7.0-alpha
 remains immutable and Linux-scoped.

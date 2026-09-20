@@ -1,7 +1,10 @@
 #include "vrhino/loader.h"
+#include "vrhino/package_declaration.h"
 
 #include <array>
 #include <chrono>
+#include <cerrno>
+#include <vector>
 #include <cmath>
 #include <cstring>
 #include <fcntl.h>
@@ -165,17 +168,59 @@ void compress(std::array<uint64_t, 8>& h, const uint8_t block[128], uint64_t low
     for (int index = 0; index < 8; ++index) h[index] ^= v[index] ^ v[index + 8];
 }
 
-std::array<uint8_t, 16> blake2b128(const uint8_t* data, size_t length) {
+// Hash through the retained descriptor, never through the full tensor mapping.
+// This bounds checksum working memory independently of model size. The mmap is
+// still used for metadata and borrowed tensor views after integrity succeeds.
+std::array<uint8_t, 16> blake2b128(int descriptor, uint64_t offset, uint64_t length) {
+    constexpr size_t kChunkBytes = 8 * 1024 * 1024; // a multiple of the 128-byte block
+    std::vector<uint8_t> buffer(static_cast<size_t>(std::min<uint64_t>(length, kChunkBytes)));
+#ifdef _WIN32
+    struct Event {
+        HANDLE value = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+        ~Event() { if (value) CloseHandle(value); }
+    } event;
+    require(event.value != nullptr, "Cannot create checksum read event");
+    const HANDLE file = reinterpret_cast<HANDLE>(_get_osfhandle(descriptor));
+#endif
     std::array<uint64_t, 8> h = kIv;
     h[0] ^= 0x01010000U ^ 16U;
-    uint64_t low = 0, high = 0;
-    while (length > 128) {
-        const uint64_t before = low; low += 128; if (low < before) ++high;
-        compress(h, data, low, high, false); data += 128; length -= 128;
-    }
-    uint8_t block[128]{}; if (length) std::memcpy(block, data, length);
-    const uint64_t before = low; low += length; if (low < before) ++high;
-    compress(h, block, low, high, true);
+    uint64_t low = 0, high = 0, consumed = 0;
+    do {
+        const size_t chunk = static_cast<size_t>(std::min<uint64_t>(length - consumed, kChunkBytes));
+        size_t filled = 0;
+        while (filled < chunk) {
+#ifdef _WIN32
+            OVERLAPPED operation{};
+            const uint64_t position = offset + consumed + filled;
+            operation.Offset = static_cast<DWORD>(position);
+            operation.OffsetHigh = static_cast<DWORD>(position >> 32);
+            operation.hEvent = event.value;
+            ResetEvent(event.value);
+            DWORD count = 0;
+            BOOL ok = ReadFile(file, buffer.data() + filled, static_cast<DWORD>(chunk - filled), &count, &operation);
+            if (!ok && GetLastError() == ERROR_IO_PENDING)
+                ok = GetOverlappedResult(file, &operation, &count, TRUE);
+            require(ok && count > 0, "Truncated or unreadable VRM checksum range");
+#else
+            ssize_t count;
+            do { count = pread(descriptor, buffer.data() + filled, chunk - filled,
+                               static_cast<off_t>(offset + consumed + filled)); }
+            while (count < 0 && errno == EINTR);
+            require(count > 0, "Truncated or unreadable VRM checksum range");
+#endif
+            filled += static_cast<size_t>(count);
+        }
+        size_t position = 0;
+        do {
+            const size_t bytes = std::min<size_t>(128, chunk - position);
+            uint8_t block[128]{};
+            if (bytes) std::memcpy(block, buffer.data() + position, bytes);
+            const uint64_t before = low; low += bytes; if (low < before) ++high;
+            compress(h, block, low, high, consumed + position + bytes == length);
+            position += bytes;
+        } while (position < chunk);
+        consumed += chunk;
+    } while (consumed < length);
     std::array<uint8_t, 16> output{};
     for (int word = 0; word < 2; ++word)
         for (int byte = 0; byte < 8; ++byte) output[word * 8 + byte] = (h[word] >> (8 * byte)) & 0xff;
@@ -269,7 +314,7 @@ VrmModel::VrmModel(const int owned_descriptor, bool verify_checksum)
             "Invalid VRM section layout");
     if (verify_checksum) {
         const auto checksum_started = std::chrono::steady_clock::now();
-        const auto digest = blake2b128(bytes + kHeaderSize, mapping_size_ - kHeaderSize);
+        const auto digest = blake2b128(owned_descriptor, kHeaderSize, mapping_size_ - kHeaderSize);
         require(std::equal(digest.begin(), digest.end(), bytes + 112), "VRM payload checksum mismatch");
         checksum_seconds_ = std::chrono::duration<double>(std::chrono::steady_clock::now() - checksum_started).count();
     }
@@ -278,7 +323,9 @@ VrmModel::VrmModel(const int owned_descriptor, bool verify_checksum)
     const Json table = Json::parse(std::string(reinterpret_cast<const char*>(bytes + table_offset), table_length));
     graph_ = Json::parse(std::string(reinterpret_cast<const char*>(bytes + graph_offset), graph_length));
     require(table.at("schema_version").integer() == 1, "Unsupported tensor table schema");
-    require(graph_.at("schema_version").integer() == 1, "Unsupported graph schema");
+    const auto graph_version = graph_.at("schema_version").integer();
+    require(graph_version == 1 || graph_version == 2, "Unsupported graph schema");
+    if (graph_version == 2) (void)PackageDeclaration::parse(graph_);
     size_t expected_relative = 0;
     std::string previous_name;
     struct PendingQuantization { std::string name; Json metadata; };
@@ -461,6 +508,7 @@ VrmModel::VrmModel(const int owned_descriptor, bool verify_checksum)
     }
     require(data_offset + expected_relative == file_size_, "Tensor table does not cover data section");
     require(metadata_.at("architecture").string() == architecture_id_, "Metadata/header architecture mismatch");
+    if (graph_version == 2) PackageDeclaration::parse(graph_).validate_tensor_references(*this);
     metadata_parse_seconds_ = std::chrono::duration<double>(std::chrono::steady_clock::now() - parse_started).count();
         load_seconds_ = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
     } catch (...) {

@@ -395,9 +395,15 @@ ProductFrozenProfile parse_product_frozen_profile(const Json& value) {
 
     if (const Json* sampling = value.find("sampling")) {
         require_exact_keys(*sampling,
-            {"eta", "guidance_scale", "method", "prediction", "steps"},
+            {"eta", "guidance_scale", "method", "prediction", "steps", "program_artifact"},
             "frozen_profile.sampling");
         ProductFrozenSampling parsed;
+        if (const Json* program = sampling->find("program_artifact")) {
+            if (sampling->object().size() != 1 || !program->is_string() ||
+                !safe_name(program->string()))
+                fail("sampling program_artifact must be the sole sampling declaration and a safe resource ID");
+            parsed.program_artifact = program->string();
+        }
         if (const Json* method = sampling->find("method")) {
             if (!method->is_string() || method->string().empty())
                 fail("frozen_profile.sampling.method must be a non-empty string");
@@ -441,6 +447,12 @@ void validate_product_contract_for_family(
         const ProductInputSchema& schema,
         const ProductFrozenProfile& frozen_profile) {
     require_common_seed_and_output(schema);
+    if (frozen_profile.sampling && frozen_profile.sampling->program_artifact) {
+        const auto& sampling = *frozen_profile.sampling;
+        if (!safe_name(*sampling.program_artifact) || sampling.method || sampling.prediction ||
+            sampling.steps || sampling.guidance_scale || sampling.eta)
+            fail("program-backed sampling cannot contain legacy scalar declarations");
+    }
     if (family == "text_to_video") {
         if (schema.inputs.size() != 1)
             fail("text_to_video requires exactly one Product input");
@@ -453,13 +465,16 @@ void validate_product_contract_for_family(
             frozen_profile.output.fps.denominator != 1 ||
             frozen_profile.output.duration != "fixed" ||
             frozen_profile.output.audio != "none" ||
-            !frozen_profile.sampling || !frozen_profile.sampling->steps ||
-            !frozen_profile.sampling->guidance_scale ||
+            !frozen_profile.sampling ||
+            (!frozen_profile.sampling->program_artifact &&
+                (!frozen_profile.sampling->steps || !frozen_profile.sampling->guidance_scale)) ||
             frozen_profile.temporal)
             fail("text_to_video frozen profile is incomplete or over-broad");
         return;
     }
     if (family != "lip_sync") fail("unsupported Product family: " + family);
+    if (frozen_profile.sampling && frozen_profile.sampling->program_artifact)
+        fail("this workflow does not consume a declared sampling program");
     if (schema.inputs.size() != 2)
         fail("lip_sync requires exactly video and audio Product inputs");
     const ProductFieldDeclaration* video = schema.find_input("video");
@@ -505,6 +520,8 @@ void validate_product_execution_consistency(
         const Json* workflow) {
     validate_product_contract_for_family(
         family, workflow_identity, schema, frozen_profile);
+    if (frozen_profile.sampling && frozen_profile.sampling->program_artifact)
+        fail("program-backed profile requires canonical package admission, not legacy execution consistency");
     require_object(execution, "execution");
     const ProductFieldDeclaration* seed = schema.find_parameter("seed");
     const uint64_t schema_seed = std::get<uint64_t>(seed->default_value);

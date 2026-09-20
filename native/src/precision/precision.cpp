@@ -1,12 +1,25 @@
 #include "vrhino/precision.h"
 
 #include <array>
+#include <cmath>
 
+#include "vrhino/backend.h"
 #include "vrhino/error.h"
 #include "vrhino/json.h"
+#include "vrhino/tensor_util.h"
 
 namespace vrhino {
 namespace {
+
+constexpr std::array<const char*, 7> kScalarRoles = {
+    "GUIDANCE_COEFFICIENT", "SOLVER_COEFFICIENT", "TIMESTEP_SCALE", "SIGMA",
+    "MODULATION_COEFFICIENT", "NORMALIZATION_PARAMETER", "DATA_OPERAND"};
+
+size_t scalar_index(PrecisionScalarRole role) {
+    const size_t index = static_cast<size_t>(role);
+    require(index < kScalarRoles.size(), "Unknown precision scalar role");
+    return index;
+}
 
 size_t operation_index(PrecisionOperation operation) {
     require(static_cast<size_t>(operation) < 13,
@@ -102,7 +115,8 @@ PrecisionPolicy PrecisionPolicy::fp32() {
 }
 
 PrecisionPolicy PrecisionPolicy::from_json(const Json& document) {
-    require(document.at("schema").string() == "vrhino.precision.policy.v1",
+    const auto& schema = document.at("schema").string();
+    require(schema == "vrhino.precision.policy.v1" || schema == "vrhino.precision.policy.v2",
             "Precision policy schema mismatch");
     require(document.at("requested_mode").string() == "bf16",
             "Qualification policy requested mode must be bf16");
@@ -132,7 +146,80 @@ PrecisionPolicy PrecisionPolicy::from_json(const Json& document) {
             }
         }
     }
+    const Json* scalar_roles = effective.find("scalar_roles");
+    if (schema == "vrhino.precision.policy.v1") {
+        require(!scalar_roles, "Semantic scalar declarations require precision policy v2");
+    } else {
+        require(scalar_roles && scalar_roles->is_object(), "Missing scalar contract declaration");
+        require(scalar_roles->object().size() == 2 &&
+                scalar_roles->at("contract").string() == "semantic-scalar.v1",
+                "Unsupported scalar contract");
+        const auto& names = scalar_roles->at("roles").array();
+        require(!names.empty(), "Empty scalar role declaration");
+        std::vector<PrecisionScalarRole> roles;
+        for (const auto& name : names) {
+            bool found = false;
+            for (size_t i = 0; i < kScalarRoles.size(); ++i)
+                if (name.string() == kScalarRoles[i]) {
+                    roles.push_back(static_cast<PrecisionScalarRole>(i)); found = true; break;
+                }
+            require(found, "Unknown precision scalar role declaration");
+        }
+        policy = policy.with_scalar_roles(roles);
+    }
     return policy;
+}
+
+PrecisionPolicy PrecisionPolicy::with_scalar_roles(const std::vector<PrecisionScalarRole>& roles) const {
+    PrecisionPolicy result = *this;
+    for (const auto role : roles) {
+        const auto index = scalar_index(role);
+        require(!result.scalar_roles_[index], "Duplicate precision scalar role");
+        result.scalar_roles_[index] = true;
+    }
+    return result;
+}
+
+bool PrecisionPolicy::has_scalar_role(PrecisionScalarRole role) const {
+    return scalar_roles_[scalar_index(role)];
+}
+
+PrecisionScalarContract PrecisionPolicy::scalar_contract(PrecisionScalarRole role, DType storage) const {
+    require(storage == DType::F32 || storage == DType::BF16, "Scalar arithmetic requires floating storage");
+    const bool data = role == PrecisionScalarRole::DataOperand;
+    const DType output = role == PrecisionScalarRole::TimestepScale ||
+        role == PrecisionScalarRole::ModulationCoefficient ? DType::F32 : storage;
+    return {has_scalar_role(role), data ? storage : DType::F32,
+            data ? storage : DType::F32, output};
+}
+
+Tensor precision_scalar_binary(Backend& backend, const PrecisionPolicy& policy,
+        PrecisionScalarRole role, ScalarBinaryOperation operation,
+        const Tensor& value, const Tensor& scalar) {
+    auto apply = [&](const Tensor& a, const Tensor& b) {
+        switch (operation) {
+            case ScalarBinaryOperation::Add: return backend.add(a, b);
+            case ScalarBinaryOperation::Multiply: return backend.mul(a, b);
+            case ScalarBinaryOperation::Divide: return backend.div(a, b);
+        }
+        throw Error("Unknown scalar arithmetic operation");
+    };
+    if (!policy.has_scalar_role(role)) return apply(value, scalar);
+    const auto contract = policy.scalar_contract(role, value.dtype());
+    require(role != PrecisionScalarRole::TimestepScale || value.dtype() == DType::F32,
+            "Timestep coordinates must reach scalar lowering as F32");
+    require(scalar.numel() == 1 && scalar.ndim() <= 1 && scalar.dtype() == contract.source_dtype,
+            "Semantic scalar source shape/dtype mismatch");
+    const Tensor host = scalar.device() == Device::CPU ? scalar : backend.copy_to_host(scalar);
+    const Tensor host_f32_value = host.dtype() == DType::F32 ? host : backend.copy_to_host(backend.cast(host, DType::F32));
+    const float coefficient = *host_f32_value.data_as<float>();
+    require(std::isfinite(coefficient), "Nonfinite semantic scalar");
+    require(operation != ScalarBinaryOperation::Divide || coefficient != 0.0f,
+            "Zero semantic scalar divisor");
+    const Tensor input = backend.copy_to_device(value, contract.compute_dtype);
+    const Tensor operand = backend.copy_to_device(scalar, contract.compute_dtype);
+    Tensor result = apply(input, operand);
+    return result.dtype() == contract.output_dtype ? result : backend.cast(result, contract.output_dtype);
 }
 
 DType PrecisionPolicy::requested_dtype() const {

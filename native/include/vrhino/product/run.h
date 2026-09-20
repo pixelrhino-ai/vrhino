@@ -9,6 +9,7 @@
 
 #include "vrhino/product/model_package.h"
 #include "vrhino/product/run_event.h"
+#include "vrhino/product/run_resources.h"
 
 namespace vrhino::product {
 
@@ -50,6 +51,7 @@ struct RunOptions {
     bool debug = false;
     std::filesystem::path encoder_path;
     std::function<bool()> cancellation_requested;
+    RunResources resources;
 };
 
 struct RunResult {

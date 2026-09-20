@@ -228,7 +228,7 @@ void ensure_required_reference(const std::map<std::string, bool>& artifact_requi
 }
 
 void validate_compatibility(const ModelPackageManifest& manifest) {
-    if (manifest.schema_version != kModelPackageSchemaVersion) {
+    if (manifest.schema_version != kModelPackageSchemaVersion && manifest.schema_version != 2) {
         fail(ModelPackageErrorCode::PackageVersionUnsupported,
              "unsupported model package schema: " + std::to_string(manifest.schema_version));
     }
@@ -321,6 +321,8 @@ ModelPackageManifest load_model_package_manifest(const fs::path& path) {
         if (!root.is_object()) fail(ModelPackageErrorCode::PackageInvalid,
                                     "manifest root must be an object");
         manifest.schema_version = integer_field(root, "schema_version");
+        if (manifest.schema_version != 1 && manifest.schema_version != 2)
+            fail(ModelPackageErrorCode::PackageVersionUnsupported, "Unsupported model package schema");
 
         const Json& identity = object_field(root, "identity");
         manifest.identity.name_space = string_field(identity, "namespace");
@@ -623,6 +625,65 @@ ModelPackageManifest load_model_package_manifest(const fs::path& path) {
         ensure_reference_exists(artifact_ids, manifest.license_artifact_id, "license");
         ensure_required_reference(artifact_required, manifest.license_artifact_id, "license");
 
+        const auto& frozen_profile = manifest.product.frozen_profile;
+        const auto* program_profile = frozen_profile && frozen_profile->sampling &&
+            frozen_profile->sampling->program_artifact
+                ? &*frozen_profile->sampling->program_artifact : nullptr;
+        if (program_profile && manifest.schema_version != 2)
+            fail(ModelPackageErrorCode::PackageInvalid, "Program-backed Product profile requires schema2");
+        if (manifest.product.family == "text_to_video") {
+            const auto* product = root.find("product");
+            if (product && product->find("execution_artifact")) {
+                if (!program_profile)
+                    fail(ModelPackageErrorCode::PackageInvalid, "Text execution artifact requires a program-backed Product profile");
+                manifest.product.execution_artifact_id = string_field(*product, "execution_artifact");
+                ensure_reference_exists(artifact_ids, manifest.product.execution_artifact_id, "text Product run");
+                ensure_required_reference(artifact_required, manifest.product.execution_artifact_id, "text Product run");
+            }
+        }
+        if (manifest.schema_version == 2) {
+            const Json& admission = object_field(root, "admission");
+            const std::set<std::string> fields{"graph_artifact", "programs_artifact", "metadata_artifact",
+                "source_manifest_artifact", "required_capabilities", "resources", "structural_only"};
+            if (admission.object().size() != fields.size() + (admission.find("request_artifact") ? 1 : 0))
+                fail(ModelPackageErrorCode::PackageInvalid, "schema2 admission field set mismatch");
+            for (const auto& [key, value] : admission.object()) {
+                (void)value;
+                if (!fields.contains(key) && key != "request_artifact") fail(ModelPackageErrorCode::PackageInvalid, "Unknown admission field");
+            }
+            if (!bool_field(admission, "structural_only"))
+                fail(ModelPackageErrorCode::PackageInvalid, "schema2 numerical qualification is not available");
+            if (program_profile && *program_profile != string_field(admission, "programs_artifact"))
+                fail(ModelPackageErrorCode::PackageInvalid, "Product profile must reference the admitted program artifact");
+            for (const auto* key : {"graph_artifact", "programs_artifact", "metadata_artifact", "source_manifest_artifact"}) {
+                const auto id = string_field(admission, key);
+                ensure_reference_exists(artifact_ids, id, key);
+                ensure_required_reference(artifact_required, id, key);
+            }
+            if (const auto* request = admission.find("request_artifact")) {
+                ensure_reference_exists(artifact_ids, request->string(), "request wiring");
+                ensure_required_reference(artifact_required, request->string(), "request wiring");
+            }
+            std::set<std::string> caps;
+            const std::set<std::string> supported{"binding_catalog.v1", "execution.per_step.v1", "sampling.flow_sigma_cfg.v1"};
+            for (const auto& cap : array_field(admission, "required_capabilities").array()) {
+                if (!supported.contains(cap.string()) || !caps.insert(cap.string()).second)
+                    fail(ModelPackageErrorCode::PackageVersionUnsupported, "Unsupported or duplicate admission capability");
+            }
+            if (caps != supported) fail(ModelPackageErrorCode::PackageInvalid, "Missing admission capability");
+            const auto& resources = object_field(admission, "resources");
+            const std::set<std::string> roles{"conditioning_declaration", "conditioning_index", "conditioning_weights", "tokenizer"};
+            if (resources.object().size() != roles.size()) fail(ModelPackageErrorCode::PackageInvalid, "Incomplete resource roles");
+            for (const auto& [role, id] : resources.object()) {
+                if (!roles.contains(role)) fail(ModelPackageErrorCode::PackageInvalid, "Unsupported resource role");
+                ensure_reference_exists(artifact_ids, id.string(), role);
+                ensure_required_reference(artifact_required, id.string(), role);
+            }
+            if (manifest.product.family != "text_to_video")
+                fail(ModelPackageErrorCode::PackageVersionUnsupported, "Product family has no schema2 adapter");
+        } else if (root.find("admission")) {
+            fail(ModelPackageErrorCode::PackageInvalid, "Admission declaration requires schema2");
+        }
         validate_compatibility(manifest);
     } catch (const ModelPackageError&) {
         throw;
@@ -630,6 +691,12 @@ ModelPackageManifest load_model_package_manifest(const fs::path& path) {
         fail(ModelPackageErrorCode::PackageInvalid, error.what());
     }
     return manifest;
+}
+
+void require_numerical_product_admission(const ModelPackageManifest& manifest) {
+    if (manifest.schema_version != 1)
+        fail(ModelPackageErrorCode::PackageVersionUnsupported,
+             "Package numerical qualification is HOLD; use structural preflight");
 }
 
 LocalModelCache::LocalModelCache(fs::path root) : layout_(cache_layout(root)) {

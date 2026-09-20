@@ -642,6 +642,9 @@ public:
                 else if (error.code() == product::ModelPackageErrorCode::PackageInvalid)
                     set_error(response, 400, "invalid_request",
                               "model reference is invalid");
+                else if (error.code() == product::ModelPackageErrorCode::PackageVersionUnsupported)
+                    set_error(response, 503, "model_unavailable",
+                              "model package is not supported for numerical execution");
                 else
                     set_error(response, 500, "internal", "internal server error");
             } catch (const product::RunRequestError& error) {

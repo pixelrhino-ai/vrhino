@@ -172,11 +172,25 @@ void qualify(Backend& b,const std::vector<Tensor>& p,int s,int m,const std::stri
 }
 int main(int argc,char** argv) {
     try {
-        require(argc==3,"usage: ltx-graph-first-cuda-tests MODEL EVIDENCE_DIRECTORY");
+        require(argc==3,"usage: ltx-graph-first-cuda-tests MODEL|--synthetic EVIDENCE_DIRECTORY");
         std::cout<<std::setprecision(17);
         const std::string dir=argv[2];
-        VrmModel model(argv[1]);
-        require(model.architecture_id()=="ltx_v0_9_1","fixture architecture identity");
+        std::unique_ptr<VrmModel> model;
+        TensorBundle synthetic;
+        if(std::string(argv[1])=="--synthetic") {
+            const auto g=ltx::self_attention_graph(1,3,1);
+            const auto& declaration=g.description();
+            for(size_t i=0;i<std::size(ltx::self_attention_parameters);++i) {
+                const std::string name=ltx::self_attention_parameters[i];
+                auto t=Tensor::host(declaration.values[declaration.parameters[i]].shape,DType::F32);
+                const float base=name.find("norm.weight")!=std::string::npos?1.0f:0.0f;
+                for(int64_t j=0;j<t.numel();++j)t.data_as<float>()[j]=base+0.005f*std::sin(float((j*13+i*7)%127));
+                synthetic.emplace(name,std::move(t));
+            }
+        } else {
+            model=std::make_unique<VrmModel>(argv[1]);
+            require(model->architecture_id()=="ltx_v0_9_1","fixture architecture identity");
+        }
         CudaBackend b; b.set_execution_dtype(DType::F32);
         std::cout<<"BACKEND\t"<<b.name()<<"\n";
         std::vector<Tensor> parameters;
@@ -186,7 +200,7 @@ int main(int argc,char** argv) {
         size_t elements=0;
         for(const auto* name:ltx::self_attention_parameters) {
             const auto key="denoiser.transformer_blocks.0."+std::string(name);
-            const auto& source=model.tensor(key);
+            const auto& source=model?model->tensor(key):synthetic.at(name);
             auto t=b.copy_to_device(source,DType::F32);
             bindings<<parameters.size()+4<<'\t'<<parameters.size()<<'\t'<<key<<'\t'
                 <<dtype_name(source.dtype())<<'\t'<<shape(t)<<"\tF32\n";

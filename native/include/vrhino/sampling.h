@@ -16,10 +16,18 @@
 
 namespace vrhino {
 
+struct StepExecutionContext;
+class ExecutionContext;
+class ExecutionProgram;
+
 class Denoiser {
 public:
     virtual ~Denoiser() = default;
     virtual std::vector<Tensor> evaluate(const Tensor& latent, const Tensor& timestep) = 0;
+    // The default bridge preserves existing bound denoisers. Selection belongs
+    // to ExecutionProgram, never to this numerical endpoint.
+    virtual std::vector<Tensor> evaluate_step(
+        const Tensor& latent, const StepExecutionContext& context);
     // Optional architecture instrumentation consumed by the shared sampling
     // runtime. Production execution leaves this empty.
     virtual std::map<std::string, Tensor> take_trace() { return {}; }
@@ -96,6 +104,35 @@ struct SamplingContract {
     ScheduleContract schedule;
 };
 
+struct GuidanceParameters {
+    GuidanceMode mode = GuidanceMode::CFG;
+    float scale = 1.0f;
+    std::vector<float> coefficients;
+    static GuidanceParameters cfg(float scale) { return {GuidanceMode::CFG, scale, {}}; }
+    static GuidanceParameters linear(std::vector<float> coefficients) {
+        return {GuidanceMode::Linear, 0.0f, std::move(coefficients)};
+    }
+};
+
+class GuidanceSchedule {
+public:
+    static GuidanceSchedule constant(GuidanceParameters value) {
+        return GuidanceSchedule(true, {std::move(value)});
+    }
+    static GuidanceSchedule per_step(std::vector<GuidanceParameters> values) {
+        return GuidanceSchedule(false, std::move(values));
+    }
+    void validate(size_t steps) const;
+    const GuidanceParameters& at(size_t step) const {
+        return values_.at(constant_ ? 0 : step);
+    }
+private:
+    GuidanceSchedule(bool constant, std::vector<GuidanceParameters> values)
+        : constant_(constant), values_(std::move(values)) {}
+    bool constant_;
+    std::vector<GuidanceParameters> values_;
+};
+
 struct SamplingProgram {
     std::vector<int64_t> latent_shape;
     uint64_t seed = 0;
@@ -111,11 +148,16 @@ struct SamplingProgram {
     std::vector<float> update_deltas;
     bool subtract_prediction = false;
     bool zero_is_frozen = false;
+    // Absent: consume the legacy fields verbatim. Present: this is the sole
+    // guidance declaration; it never changes branch or arithmetic ordering.
+    std::optional<GuidanceSchedule> guidance_schedule;
 
     const Tensor& model_timestep_at(int step) const;
 };
 
 struct SamplingResult {
+    int completed_steps = 0;
+    bool program_complete = false;
     Tensor initial_noise;
     Tensor final_latent;
     std::map<std::string, Tensor> trace;
@@ -128,7 +170,10 @@ struct SamplingResult {
 
 class SamplingPrimitives {
 public:
-    explicit SamplingPrimitives(Backend& backend) : backend_(backend) {}
+    explicit SamplingPrimitives(Backend& backend)
+        : SamplingPrimitives(backend, PrecisionPolicy::unqualified_default(backend.execution_dtype())) {}
+    SamplingPrimitives(Backend& backend, const PrecisionPolicy& policy)
+        : backend_(backend), policy_(policy) {}
     Tensor rng_normal(RngState& state, const std::vector<int64_t>& shape, DType dtype);
     std::vector<float> linear_schedule(float start, float stop, int count);
     std::vector<float> rational_time_shift(const std::vector<float>& values, float shift);
@@ -157,11 +202,14 @@ public:
     const std::map<std::string, uint64_t>& calls() const { return calls_; }
 
 private:
+    Tensor multiply_coefficient(const Tensor& value, float coefficient,
+        PrecisionScalarRole role = PrecisionScalarRole::SolverCoefficient);
     Tensor unipc_update(bool corrector, const Tensor& sample, const Tensor& this_sample,
                         const std::vector<Tensor>& model_outputs, const Tensor& model_t,
                         const std::vector<float>& sigmas, int step_index, int order);
     void use(const std::string& name) { ++calls_[name]; }
     Backend& backend_;
+    PrecisionPolicy policy_;
     std::map<std::string, uint64_t> calls_;
 };
 
@@ -171,12 +219,20 @@ public:
         : SamplingRuntime(backend,
             PrecisionPolicy::unqualified_default(backend.execution_dtype())) {}
     SamplingRuntime(Backend& backend, PrecisionPolicy policy)
-        : backend_(backend), policy_(policy), primitives_(backend) {}
+        : backend_(backend), policy_(policy), primitives_(backend, policy) {}
     // Observation-only product hook. It runs after a completed scheduler
     // transition and cannot alter tensors or sampling declarations.
     void set_step_observer(std::function<void(int, int)> observer) {
         step_observer_ = std::move(observer);
     }
+    // Opt-in qualification snapshots of actual solver state. Default off:
+    // no extra transfers, allocations or trace keys in existing executions.
+    // This only observes admitted requests and state; it cannot select a
+    // component, derive guidance or mutate the numerical recurrence.
+    void set_solver_trace_enabled(bool enabled) { solver_trace_enabled_ = enabled; }
+    // Observation only. Legacy callers retain snapshots; bounded Product
+    // evaluation can omit transfers/storage without changing the recurrence.
+    void set_tensor_trace_enabled(bool enabled) { tensor_trace_enabled_ = enabled; }
     // Generic bounded cancellation hook. It is checked before initialization
     // and before every denoiser iteration; Product layers map the failure to
     // their established cancellation status.
@@ -184,6 +240,17 @@ public:
         cancellation_requested_ = std::move(requested);
     }
     SamplingResult run(Denoiser& denoiser, const SamplingProgram& program);
+    SamplingResult run(const ExecutionContext& context, const ExecutionProgram& execution,
+                       const SamplingProgram& program);
+    // Bounded qualification: admit the entire original program, initialize
+    // normally, and execute only its prefix. Does not shorten the schedule,
+    // alter solver order, decode, or provide a resumable solver checkpoint.
+    SamplingResult run_prefix(const ExecutionContext& context,
+        const ExecutionProgram& execution, const SamplingProgram& program,
+        int completed_step_limit);
+    SamplingResult run_with_initial_state(
+        const ExecutionContext& context, const ExecutionProgram& execution,
+        const SamplingProgram& program, const Tensor& initial_state);
     // Executes the same generic program from an explicit caller-owned initial
     // latent. This is the deterministic boundary for structured initial state.
     SamplingResult run_with_initial_state(
@@ -197,12 +264,16 @@ public:
     const SamplingPrimitives& primitives() const { return primitives_; }
 
 private:
-    SamplingResult run_impl(Denoiser& denoiser, const SamplingProgram& program,
-                            const Tensor* external_initial_state);
+    SamplingResult run_impl(const ExecutionContext& context,
+                            const ExecutionProgram& execution, const SamplingProgram& program,
+                            const Tensor* external_initial_state,
+                            int completed_step_limit = 0);
     Backend& backend_;
     PrecisionPolicy policy_;
     SamplingPrimitives primitives_;
     std::function<void(int, int)> step_observer_;
+    bool solver_trace_enabled_ = false;
+    bool tensor_trace_enabled_ = true;
     std::function<bool()> cancellation_requested_;
 };
 

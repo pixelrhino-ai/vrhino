@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <functional>
 #include <map>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -48,6 +49,10 @@ public:
     uint64_t file_size() const noexcept { return file_size_; }
     uint64_t header_bytes() const noexcept { return header_bytes_; }
     const Json& metadata() const noexcept { return metadata_; }
+    // Verify the already-open file, not a second pathname lookup. The caller
+    // must keep its source artifact immutable for this reader's lifetime.
+    void verify_identity(uint64_t expected_size, const std::string& sha256,
+                         const WorkProgressCallback& progress = {}) const;
     const std::map<std::string, SourceTensorDescriptor>& tensors() const noexcept override {
         return tensors_;
     }
@@ -64,6 +69,31 @@ private:
     std::map<std::string, SourceTensorDescriptor> tensors_;
 };
 
+struct IndexedSourceArtifact {
+    std::filesystem::path path;
+    uint64_t size;
+    std::string sha256;
+};
+
+// Converter-only logical source. Index names are resolved exclusively through
+// the supplied immutable artifact catalog, never relative to an upstream path.
+// Owns stable-open readers; no mmap or tensor payload materialization. Strict
+// coverage: every supplied shard and every header tensor must be indexed.
+class IndexedTensorSource final : public TensorSource {
+public:
+    IndexedTensorSource(const std::string& index_json,
+                        const std::map<std::string, IndexedSourceArtifact>& artifacts,
+                        const WorkProgressCallback& verification_progress = {});
+    const std::map<std::string, SourceTensorDescriptor>& tensors() const noexcept override {
+        return tensors_;
+    }
+    void read_tensor(const SourceTensorDescriptor&, uint64_t relative_offset,
+                     void* destination, size_t bytes) const override;
+private:
+    std::vector<std::unique_ptr<SafeTensorReader>> readers_;
+    std::map<std::string, SourceTensorDescriptor> tensors_;
+};
+
 // Streaming source for a fixed, checksum-verified upstream representation.
 // Tensor ranges are declarative converter data; the production path never
 // imports or executes the upstream serialization framework.
@@ -74,6 +104,11 @@ public:
     ~FrozenTensorSource();
     FrozenTensorSource(const FrozenTensorSource&) = delete;
     FrozenTensorSource& operator=(const FrozenTensorSource&) = delete;
+
+    // Verify the same owned descriptor subsequently used for streaming ranges.
+    void verify_identity(size_t source_index, uint64_t expected_size,
+                         const std::string& sha256,
+                         const WorkProgressCallback& progress = {}) const;
 
     const std::map<std::string, SourceTensorDescriptor>& tensors() const noexcept override {
         return tensors_;

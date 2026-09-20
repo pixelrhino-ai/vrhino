@@ -170,7 +170,12 @@ int main() {
             cache.install(make_package(source, "missing", 1, true));
         });
         expect_error(product::ModelPackageErrorCode::PackageVersionUnsupported, [&] {
-            cache.install(make_package(source, "schema-two", 2));
+            cache.install(make_package(source, "unsupported-schema", 99));
+        });
+        // Schema2 is supported, but a schema1 envelope relabelled as schema2
+        // has no admission/capability declaration and must still fail closed.
+        expect_error(product::ModelPackageErrorCode::PackageInvalid, [&] {
+            cache.install(make_package(source, "incomplete-schema-two", 2));
         });
         require_test(cache.list().size() == 2,
                      "failed install published an incomplete package version");

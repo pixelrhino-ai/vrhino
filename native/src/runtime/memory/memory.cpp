@@ -5,6 +5,23 @@
 #include <stdexcept>
 
 namespace vrhino {
+size_t ResourceEstimate::device_peak() const {
+    size_t total=0;
+    for(auto bytes:{persistent_weights,resident_cache,activations,workspace,upload_temporary,
+                    sampling_state,component_allocations,prepared})
+        total=checked_memory_add(total,bytes,"Resource device estimate overflow");
+    return total;
+}
+size_t ResourceEstimate::host_peak() const {
+    return checked_memory_add(source_backing,host_staging,"Resource host estimate overflow");
+}
+void ResourceAdmissionRequest::validate() const {
+    require(budget.estimated_device_peak_limit>0 && budget.estimated_host_peak_limit>0,
+            "Resource admission requires explicit positive estimate limits");
+    require(estimate.device_peak()<=budget.estimated_device_peak_limit,"Estimated device resources exceed admission budget");
+    require(estimate.host_peak()<=budget.estimated_host_peak_limit,"Estimated host resources exceed admission budget");
+}
+
 
 namespace {
 void check(bool condition, const char* message) {
@@ -111,11 +128,14 @@ void MemoryBudget::validate() const {
           "reserved device workspace exceeds device budget");
     check(safety_margin_bytes <= device_budget_bytes - reserved_device_workspace_bytes,
           "device safety margin exceeds remaining device budget");
+    check(weight_cache_budget_bytes <= device_budget_bytes - reserved_device_workspace_bytes - safety_margin_bytes,
+          "weight cache budget exceeds remaining device budget");
 }
 
 size_t MemoryBudget::device_weight_budget_bytes() const {
     validate();
-    return device_budget_bytes - reserved_device_workspace_bytes - safety_margin_bytes;
+    return weight_cache_budget_bytes ? weight_cache_budget_bytes :
+        device_budget_bytes - reserved_device_workspace_bytes - safety_margin_bytes;
 }
 
 size_t MemoryAccounting::peak_physical_bytes(

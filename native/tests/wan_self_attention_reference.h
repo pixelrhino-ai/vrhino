@@ -2,7 +2,13 @@
 // Test-only producer and imperative self-attention reference.
 // Production code is included for shared helpers and Graph block comparisons.
 #define make_wan_architecture make_wan_test_architecture
+#define bound_denoiser bound_reference_test_denoiser
+#define realize realize_reference_test_graph
+#define ExecutionDefinition ReferenceTestExecutionDefinition
 #include "../src/architectures/wan.cpp"
+#undef ExecutionDefinition
+#undef realize
+#undef bound_denoiser
 #undef make_wan_architecture
 namespace vrhino::wan_test {
 inline TensorBundle producer(Backend& backend, const PrecisionPolicy& policy,

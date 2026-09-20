@@ -114,16 +114,48 @@ after exactly one transport decode.
 }
 ```
 
-`model` is required. `inputs`, `parameters`, and `outputs` are optional and
+`model` is required. `inputs`, `parameters`, `outputs`, and `resources` are optional and
 default to empty objects. Unknown top-level or group fields are rejected.
 
-The resolved package's exact `vrhino.product.input-schema.v1` declaration is
+For `inputs`, `parameters`, and `outputs`, the resolved package's exact `vrhino.product.input-schema.v1` declaration is
 the sole source for admitted names, types, required fields, validation, and
 defaults. The HTTP layer has no model-name, architecture-name, seed-default,
 or frozen-profile parameter table. Clients must inspect the model detail and
 construct a request from its `product.input_schema`; they must not infer
 undocumented parameters. Legacy packages with `input_schema=null` remain
 readable but are not executable through Native API v1.
+
+A valid input schema does not grant numerical admission. Before a Job ID or
+output reservation is created, JobManager applies the same Product numerical
+admission check as ordinary CLI execution. A package rejected by numerical
+admission returns HTTP 503 `model_unavailable` without a queued job or
+`Location` header. Packages lacking an input schema retain the earlier HTTP
+400 rejection. Structural preflight remains available; rejection does not
+change the package's qualification status.
+
+### Local resource constraints
+
+The optional `resources` object is a machine-local execution constraint,
+independent of the package's model inputs and numerical qualification:
+
+```json
+{"resources":{"weight_cache_budget_bytes":32212254720}}
+```
+
+`weight_cache_budget_bytes` must be a positive integer or canonical decimal
+string within the host size domain. It may only tighten the package's existing
+weight budget. It does not alter the device envelope, workspace, precision,
+or numerical route, and is not a total GPU memory guarantee. Omission preserves
+legacy behavior; explicit zero is rejected. Unknown resource fields are rejected.
+Currently text-to-video workflows consume this control. Workflows without this
+cache configuration reject an explicit cap rather than ignoring it. Compatibility
+with the package memory budget is checked before Backend configuration.
+
+The normal CLI accepts the same object in a local JSON file:
+`vrhino run MODEL --prompt TEXT --resources /path/run-resources.json`.
+This file contains the resource object itself, not an API request envelope.
+It is limited to 64 KiB. The same parsing rules apply to CLI and API.
+Neither interface bypasses numerical admission for a package on HOLD.
 
 JSON integers are exact signed 64-bit values and never pass through `double`.
 A Product `uint64` value above `INT64_MAX` uses a canonical unsigned decimal
@@ -287,7 +319,7 @@ semantics.
 | 414 | `invalid_request` | request target exceeds the transport bound | reduce target |
 | 429 | `overloaded` | Product FIFO/registry or event-subscriber capacity reached | bounded backoff/retry |
 | 500 | `internal` | unexpected sanitized server failure | retry only by policy |
-| 503 | `model_unavailable` | Product execution is unavailable in this build or admission is shutting down | retry after server availability changes |
+| 503 | `model_unavailable` | Product execution is unavailable, the package lacks numerical admission, or admission is shutting down | retry only after the relevant availability or qualification changes |
 
 Execution failures after HTTP 202 are terminal Job state, not later HTTP
 errors. A failed snapshot may contain `invalid_input`, `backend_unavailable`,

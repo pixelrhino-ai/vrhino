@@ -2,12 +2,27 @@
 
 #include <array>
 #include <string>
+#include <vector>
 
 #include "vrhino/tensor.h"
 
 namespace vrhino {
 
 class Json;
+class Backend;
+
+// Explicit operand roles; never inferred from tensor shape or model identity.
+enum class PrecisionScalarRole {
+    GuidanceCoefficient, SolverCoefficient, TimestepScale, Sigma,
+    ModulationCoefficient, NormalizationParameter, DataOperand,
+};
+enum class ScalarBinaryOperation { Add, Multiply, Divide };
+struct PrecisionScalarContract {
+    bool declared;
+    DType source_dtype;
+    DType compute_dtype;
+    DType output_dtype;
+};
 
 // Internal names intentionally map one-to-one to the canonical vocabulary in
 // tests/precision/roles.py. Architecture/model identity is not representable.
@@ -88,6 +103,9 @@ public:
     // The document contains only operation and semantic-role dtype decisions;
     // architecture/model identity is neither accepted nor representable.
     static PrecisionPolicy from_json(const Json& document);
+    PrecisionPolicy with_scalar_roles(const std::vector<PrecisionScalarRole>& roles) const;
+    bool has_scalar_role(PrecisionScalarRole role) const;
+    PrecisionScalarContract scalar_contract(PrecisionScalarRole role, DType input_storage) const;
 
     PrecisionMode requested_mode() const { return requested_mode_; }
     DType requested_dtype() const;
@@ -117,7 +135,15 @@ private:
     std::array<DType, kSemanticCount> semantic_dtype_;
     std::array<DType, kSemanticCount> producer_output_;
     std::array<bool, kSemanticCount> producer_output_override_;
+    std::array<bool, 7> scalar_roles_{};
 };
+
+// One elementary operation, with an explicit consumer boundary. Undeclared
+// roles dispatch exactly as before; declared coefficients retain their source
+// F32 value through arithmetic and round only the result to the contract dtype.
+Tensor precision_scalar_binary(Backend& backend, const PrecisionPolicy& policy,
+    PrecisionScalarRole role, ScalarBinaryOperation operation,
+    const Tensor& value, const Tensor& scalar);
 
 std::string precision_semantic_name(PrecisionSemantic semantic);
 

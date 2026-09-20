@@ -1,7 +1,15 @@
 // Compile the actual private production implementation, without exporting a Native API.
 #define make_wan_architecture make_wan_optin_test_architecture
+#define make_wan_package_architecture make_wan_optin_test_package_architecture
+#define bound_denoiser bound_optin_test_denoiser
+#define realize realize_optin_test_graph
+#define ExecutionDefinition OptinTestExecutionDefinition
 #include "../src/architectures/wan.cpp"
+#undef ExecutionDefinition
+#undef realize
+#undef bound_denoiser
 #undef make_wan_architecture
+#undef make_wan_package_architecture
 #include "neural_graph_test_backend.h"
 #include <cstring>
 #include <fstream>

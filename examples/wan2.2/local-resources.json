@@ -1,0 +1,24 @@
+{
+  "schema": "vrhino.local-resources.v1",
+  "resources": {
+    "resource-0": "assets/package/conditioning-index.json",
+    "resource-1": "assets/package/conditioning.json",
+    "resource-2": "assets/package/conditioning.safetensors",
+    "resource-3": "assets/package/conversion-result.json",
+    "resource-4": "assets/package/graph.json",
+    "resource-5": "assets/package/metadata.json",
+    "runtime": "assets/package/model.vrm",
+    "resource-7": "assets/package/programs.json",
+    "resource-8": "assets/package/source-contract.json",
+    "resource-9": "assets/package/source-manifest.tsv",
+    "resource-10": "assets/package/tensor-mapping.tsv",
+    "resource-11": "assets/package/tokenizer/special_tokens_map.json",
+    "resource-12": "assets/package/tokenizer/spiece.model",
+    "resource-13": "assets/package/tokenizer/tokenizer.json",
+    "resource-14": "assets/package/tokenizer/tokenizer_config.json",
+    "profile": "declarations/structural-profile.json",
+    "license-evidence": "assets/source/README.md",
+    "request-wiring": "declarations/request-wiring.json",
+    "qualification-precision": "declarations/qualification-precision.json"
+  }
+}

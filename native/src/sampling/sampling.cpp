@@ -1,4 +1,5 @@
 #include "vrhino/sampling.h"
+#include "vrhino/execution.h"
 
 #include <algorithm>
 #include <chrono>
@@ -129,20 +130,32 @@ int SamplingPrimitives::schedule_lookup(const std::vector<float>& schedule, floa
     return result;
 }
 
+Tensor SamplingPrimitives::multiply_coefficient(const Tensor& value, float coefficient,
+        PrecisionScalarRole role) {
+    return precision_scalar_binary(backend_, policy_, role, ScalarBinaryOperation::Multiply,
+                                   value, scalar_f32(coefficient));
+}
+
 Tensor SamplingPrimitives::linear_combine(const std::vector<Tensor>& values, const std::vector<float>& coefficients) {
     use("linear_combine"); require(!values.empty() && values.size() == coefficients.size(), "linear combine arity mismatch");
-    Tensor result = backend_.mul(values[0], scalar_f32(coefficients[0]));
+    Tensor result = multiply_coefficient(values[0], coefficients[0], PrecisionScalarRole::GuidanceCoefficient);
     for (size_t index = 1; index < values.size(); ++index)
-        result = backend_.add(result, backend_.mul(values[index], scalar_f32(coefficients[index])));
+        result = backend_.add(result, multiply_coefficient(values[index], coefficients[index], PrecisionScalarRole::GuidanceCoefficient));
     return result;
 }
 
 Tensor SamplingPrimitives::cfg_combine(const Tensor& unconditional, const Tensor& conditional, float scale) {
-    use("cfg_combine"); return backend_.add(unconditional, backend_.mul(backend_.add(conditional, backend_.mul(unconditional, scalar_f32(-1.0f))), scalar_f32(scale)));
+    use("cfg_combine"); return backend_.add(unconditional, multiply_coefficient(backend_.add(conditional, multiply_coefficient(unconditional, -1.0f, PrecisionScalarRole::GuidanceCoefficient)), scale, PrecisionScalarRole::GuidanceCoefficient));
 }
 
 Tensor SamplingPrimitives::euler_update(const Tensor& sample, const Tensor& prediction, const Tensor& delta, bool subtract_prediction) {
-    use("euler_update"); return backend_.add(sample, backend_.mul(prediction, backend_.mul(delta, scalar_f32(subtract_prediction ? -1.0f : 1.0f))));
+    use("euler_update");
+    if (policy_.has_scalar_role(PrecisionScalarRole::SolverCoefficient)) {
+        const Tensor coefficient = multiply_coefficient(delta, subtract_prediction ? -1.0f : 1.0f);
+        return backend_.add(sample, precision_scalar_binary(backend_, policy_,
+            PrecisionScalarRole::SolverCoefficient, ScalarBinaryOperation::Multiply, prediction, coefficient));
+    }
+    return backend_.add(sample, backend_.mul(prediction, backend_.mul(delta, scalar_f32(subtract_prediction ? -1.0f : 1.0f))));
 }
 
 Tensor SamplingPrimitives::tensor_where(const Tensor& condition, const Tensor& when_true, const Tensor& when_false) {
@@ -151,7 +164,7 @@ Tensor SamplingPrimitives::tensor_where(const Tensor& condition, const Tensor& w
 }
 
 Tensor SamplingPrimitives::flow_to_x0(const Tensor& sample, const Tensor& model_output, float sigma) {
-    use("flow_to_x0"); return backend_.add(sample, backend_.mul(model_output, scalar_f32(-sigma)));
+    use("flow_to_x0"); return backend_.add(sample, multiply_coefficient(model_output, -sigma, PrecisionScalarRole::Sigma));
 }
 
 Tensor SamplingPrimitives::v_to_x0(const Tensor& sample, const Tensor& model_output,
@@ -162,8 +175,8 @@ Tensor SamplingPrimitives::v_to_x0(const Tensor& sample, const Tensor& model_out
             "V prediction alpha_cumprod is outside [0, 1]");
     const float signal = std::sqrt(alpha_cumprod);
     const float noise = std::sqrt(1.0f - alpha_cumprod);
-    return backend_.add(backend_.mul(sample, scalar_f32(signal)),
-                        backend_.mul(model_output, scalar_f32(-noise)));
+    return backend_.add(multiply_coefficient(sample, signal),
+                        multiply_coefficient(model_output, -noise));
 }
 
 Tensor SamplingPrimitives::epsilon_to_x0(
@@ -175,10 +188,8 @@ Tensor SamplingPrimitives::epsilon_to_x0(
             "Epsilon prediction alpha_cumprod is outside (0, 1]");
     const float signal = std::sqrt(alpha_cumprod);
     const float noise = std::sqrt(1.0f - alpha_cumprod);
-    return backend_.mul(
-        backend_.add(sample,
-            backend_.mul(model_output, scalar_f32(-noise))),
-        scalar_f32(1.0f / signal));
+    return multiply_coefficient(
+        backend_.add(sample, multiply_coefficient(model_output, -noise)), 1.0f / signal);
 }
 
 Tensor SamplingPrimitives::affine_first_order(
@@ -189,8 +200,8 @@ Tensor SamplingPrimitives::affine_first_order(
                 std::isfinite(prediction_coefficient),
             "Affine first-order coefficients must be finite");
     return backend_.add(
-        backend_.mul(current_state, scalar_f32(state_coefficient)),
-        backend_.mul(x0, scalar_f32(prediction_coefficient)));
+        multiply_coefficient(current_state, state_coefficient),
+        multiply_coefficient(x0, prediction_coefficient));
 }
 
 Tensor SamplingPrimitives::unipc_update(bool corrector, const Tensor& sample, const Tensor& this_sample,
@@ -205,28 +216,28 @@ Tensor SamplingPrimitives::unipc_update(bool corrector, const Tensor& sample, co
     const float lambda_s0 = std::log(alpha_s0) - std::log(sigma_s0_raw);
     const float h = lambda_t - lambda_s0, hh = -h, h_phi_1 = std::expm1(hh), bh = std::expm1(hh);
     const Tensor& m0 = model_outputs.back();
-    Tensor base = backend_.add(backend_.mul(sample, scalar_f32(sigma_t_raw / sigma_s0_raw)), backend_.mul(m0, scalar_f32(-alpha_t * h_phi_1)));
+    Tensor base = backend_.add(multiply_coefficient(sample, sigma_t_raw / sigma_s0_raw), multiply_coefficient(m0, -alpha_t * h_phi_1));
     if (corrector && order == 1) {
-        Tensor residual = backend_.mul(backend_.add(model_t, backend_.mul(m0, scalar_f32(-1))), scalar_f32(0.5f));
-        return backend_.add(base, backend_.mul(residual, scalar_f32(-alpha_t * bh)));
+        Tensor residual = multiply_coefficient(backend_.add(model_t, multiply_coefficient(m0, -1)), 0.5f);
+        return backend_.add(base, multiply_coefficient(residual, -alpha_t * bh));
     }
     if (!corrector && order == 1) return base;
     const int history_index = corrector ? step_index - 2 : step_index - 1;
     const float sigma_si = sigmas[history_index], alpha_si = 1.0f - sigma_si;
     const float rk = (std::log(alpha_si) - std::log(sigma_si) - lambda_s0) / h;
-    Tensor difference = backend_.mul(backend_.add(model_outputs[model_outputs.size() - 2], backend_.mul(m0, scalar_f32(-1))), scalar_f32(1.0f / rk));
+    Tensor difference = multiply_coefficient(backend_.add(model_outputs[model_outputs.size() - 2], multiply_coefficient(m0, -1)), 1.0f / rk);
     Tensor residual;
     const float phi2 = h_phi_1 / hh - 1.0f, b1 = phi2 / bh;
     // The frozen UniPC order-2 predictor uses an explicit midpoint
     // coefficient.  It is intentionally not the first
     // element of the corrector's linear system.
-    if (!corrector) residual = backend_.mul(difference, scalar_f32(0.5f));
+    if (!corrector) residual = multiply_coefficient(difference, 0.5f);
     else {
         const float phi3 = phi2 / hh - 0.5f, b2 = phi3 * 2.0f / bh;
         const float determinant = 1.0f - rk, c0 = (b1 - b2) / determinant, c1 = (b2 - b1 * rk) / determinant;
-        residual = backend_.add(backend_.mul(difference, scalar_f32(c0)), backend_.mul(backend_.add(model_t, backend_.mul(m0, scalar_f32(-1))), scalar_f32(c1)));
+        residual = backend_.add(multiply_coefficient(difference, c0), multiply_coefficient(backend_.add(model_t, multiply_coefficient(m0, -1)), c1));
     }
-    return backend_.add(base, backend_.mul(residual, scalar_f32(-alpha_t * bh)));
+    return backend_.add(base, multiply_coefficient(residual, -alpha_t * bh));
 }
 
 Tensor SamplingPrimitives::multistep_predictor(const Tensor& sample, const std::vector<Tensor>& model_outputs,
@@ -244,13 +255,24 @@ Tensor SamplingPrimitives::multistep_corrector(const Tensor& sample, const Tenso
 void SamplingPrimitives::state_advance() { use("state_advance"); }
 
 SamplingResult SamplingRuntime::run(Denoiser& denoiser, const SamplingProgram& program) {
-    return run_impl(denoiser, program, nullptr);
+    return run(ExecutionContext::legacy(denoiser), ExecutionProgram::uniform({0}), program);
+}
+
+SamplingResult SamplingRuntime::run(const ExecutionContext& context,
+        const ExecutionProgram& execution, const SamplingProgram& program) {
+    return run_impl(context, execution, program, nullptr);
+}
+
+SamplingResult SamplingRuntime::run_with_initial_state(const ExecutionContext& context,
+        const ExecutionProgram& execution, const SamplingProgram& program, const Tensor& initial_state) {
+    return run_impl(context, execution, program, &initial_state);
 }
 
 SamplingResult SamplingRuntime::run_with_initial_state(
         Denoiser& denoiser, const SamplingProgram& program,
         const Tensor& initial_state) {
-    return run_impl(denoiser, program, &initial_state);
+    return run_with_initial_state(ExecutionContext::legacy(denoiser),
+                                  ExecutionProgram::uniform({0}), program, initial_state);
 }
 
 SamplingResult SamplingRuntime::run_with_external_initial_state_for_test(
@@ -259,14 +281,24 @@ SamplingResult SamplingRuntime::run_with_external_initial_state_for_test(
     return run_with_initial_state(denoiser, program, external_initial_state);
 }
 
-SamplingResult SamplingRuntime::run_impl(Denoiser& denoiser,
+SamplingResult SamplingRuntime::run_prefix(const ExecutionContext& context,
+    const ExecutionProgram& execution, const SamplingProgram& program,
+    int completed_step_limit) {
+    require(completed_step_limit > 0 && completed_step_limit <= program.steps,
+            "Invalid sampling prefix bound");
+    return run_impl(context, execution, program, nullptr, completed_step_limit);
+}
+
+SamplingResult SamplingRuntime::run_impl(const ExecutionContext& context,
+                                         const ExecutionProgram& execution,
                                          const SamplingProgram& program,
-                                         const Tensor* external_initial_state) {
+                                         const Tensor* external_initial_state,
+                                         int completed_step_limit) {
+    backend_.admit_execution_resources();
     constexpr int kMaximumDeclaredSamplingSteps = 10000;
     const auto started = std::chrono::steady_clock::now();
     require(program.steps >= 2 && program.steps <= kMaximumDeclaredSamplingSteps,
             "Sampling steps outside generic declared bound");
-    require(!program.guidance_coefficients.empty(), "Sampling guidance is empty");
     require(!(cancellation_requested_ && cancellation_requested_()),
             "sampling cancelled");
     const SamplingContract* contract = program.contract ? &*program.contract : nullptr;
@@ -307,102 +339,164 @@ SamplingResult SamplingRuntime::run_impl(Denoiser& denoiser,
         require(program.update_deltas.size() == static_cast<size_t>(program.steps),
                 "Euler update count mismatch");
     }
-    auto trace_tensor = [&](const Tensor& tensor) {
-        return tensor.device().is_host() ? tensor : backend_.copy_to_host(tensor);
-    };
-    RngState rng{program.seed, 0, "pytorch_compat.v1"};
-    const DType state_dtype = effective_sampling_state_dtype(policy_);
-    Tensor latent;
-    if (external_initial_state) {
-        require(external_initial_state->defined(), "External initial state is undefined");
-        require(external_initial_state->shape() == program.latent_shape,
-                "External initial state shape mismatch");
-        require(external_initial_state->dtype() == state_dtype,
-                "External initial state dtype mismatch");
-        latent = external_initial_state->device().is_host()
-            ? backend_.copy_to_device(*external_initial_state, state_dtype)
-            : *external_initial_state;
-    } else {
-        latent = primitives_.rng_normal(rng, program.latent_shape, state_dtype);
-    }
-    SamplingResult result; result.initial_noise = latent; result.trace["initial_noise"] = trace_tensor(latent); result.rng_after_initialization = rng;
-    std::vector<Tensor> model_outputs; Tensor last_sample; int lower_order = 0, previous_order = 1;
-    for (int step = 0; step < program.steps; ++step) {
-        require(!(cancellation_requested_ && cancellation_requested_()),
-                "sampling cancelled");
-        const Tensor& timestep = program.model_timestep_at(step);
-        result.trace["step." + std::to_string(step) + ".input_latent"] =
-            trace_tensor(latent);
-        if (backend_.profiling_enabled()) backend_.synchronize();
-        const auto denoiser_started = std::chrono::steady_clock::now();
-        std::vector<Tensor> predictions;
-        {
-            BackendProfileRegion region(
-                backend_, "sampling.denoiser.step." + std::to_string(step));
-            predictions = denoiser.evaluate(latent, timestep);
-            const DType output_dtype = effective_denoiser_output_dtype(policy_);
-            for (Tensor& prediction : predictions)
-                prediction = backend_.cast(prediction, output_dtype);
+    const auto selected = execution.admit(context, program, effective_sampling_state_dtype(policy_));
+    // Publish opaque backing leases before RNG, transfer, or device evaluation.
+    // The Backend session retains them even after the execution context dies.
+    std::vector<std::shared_ptr<const void>> owners;
+    for(const auto& instance:context.instances())
+        owners.insert(owners.end(),instance.resource_owners().begin(),instance.resource_owners().end());
+    backend_.retain_resource_owners(owners);
+    try {
+        auto trace_tensor = [&](const Tensor& tensor) {
+            return tensor.device().is_host() ? tensor : backend_.copy_to_host(tensor);
+        };
+        RngState rng{program.seed, 0, "pytorch_compat.v1"};
+        const DType state_dtype = effective_sampling_state_dtype(policy_);
+        Tensor latent;
+        if (external_initial_state) {
+            require(external_initial_state->defined(), "External initial state is undefined");
+            require(external_initial_state->shape() == program.latent_shape,
+                    "External initial state shape mismatch");
+            require(external_initial_state->dtype() == state_dtype,
+                    "External initial state dtype mismatch");
+            latent = external_initial_state->device().is_host()
+                ? backend_.copy_to_device(*external_initial_state, state_dtype)
+                : *external_initial_state;
+        } else {
+            latent = primitives_.rng_normal(rng, program.latent_shape, state_dtype);
         }
-        for (auto& [name, tensor] : denoiser.take_trace())
-            result.trace["step." + std::to_string(step) + "." + name] = trace_tensor(tensor);
-        if (backend_.profiling_enabled()) backend_.synchronize();
-        result.denoiser_call_seconds.push_back(std::chrono::duration<double>(
-            std::chrono::steady_clock::now() - denoiser_started).count());
-        const auto scheduler_started = std::chrono::steady_clock::now();
-        Tensor guided, next;
-        {
-            BackendProfileRegion region(
-                backend_, "sampling.scheduler.step." + std::to_string(step));
-            if (program.guidance_mode == GuidanceMode::CFG) { require(predictions.size() == 2, "CFG requires two predictions"); guided = primitives_.cfg_combine(predictions[0], predictions[1], program.guidance_coefficients.at(1)); }
-            else guided = primitives_.linear_combine(predictions, program.guidance_coefficients);
-            for (size_t branch = 0; branch < predictions.size(); ++branch) result.trace["step." + std::to_string(step) + ".prediction." + std::to_string(branch)] = trace_tensor(predictions[branch]);
-            result.trace["step." + std::to_string(step) + ".guidance"] = trace_tensor(guided);
-            if (!contract) next = primitives_.euler_update(latent, guided, scalar_f32(program.update_deltas.at(step)), program.subtract_prediction);
-            else if (contract->solver.semantic ==
-                        SolverSemantic::MultistepPredictorCorrector) {
-                const FlowScheduleTransition& transition =
-                    contract->schedule.flow_at(static_cast<size_t>(step));
-                Tensor converted = primitives_.flow_to_x0(
-                    latent, guided, transition.sigma);
-                if (step > 0 && last_sample.defined()) latent = primitives_.multistep_corrector(latent, latent, model_outputs, converted, solver_sigmas, step, previous_order, last_sample);
-                if (model_outputs.size() == 2) model_outputs.erase(model_outputs.begin());
-                model_outputs.push_back(converted);
-                const int maximum_order = contract->solver.maximum_order;
-                const int remaining = program.steps - step;
-                const int order = std::min(
-                    std::min(maximum_order, remaining), lower_order + 1);
-                last_sample = latent; next = primitives_.multistep_predictor(latent, model_outputs, converted, solver_sigmas, step, order); previous_order = order; lower_order = std::min(maximum_order, lower_order + 1);
-            } else {
-                const AlphaCumprodScheduleTransition& transition =
-                    contract->schedule.alpha_cumprod_at(static_cast<size_t>(step));
-                Tensor converted = contract->prediction.semantic ==
-                        PredictionSemantic::Epsilon
-                    ? primitives_.epsilon_to_x0(
-                        latent, guided, transition.alpha_cumprod)
-                    : primitives_.v_to_x0(
-                        latent, guided, transition.alpha_cumprod);
-                result.trace["step." + std::to_string(step) +
-                    ".predicted_x0"] = trace_tensor(converted);
-                const float state_coefficient = std::sqrt(
-                    (1.0f - transition.previous_alpha_cumprod) /
-                    (1.0f - transition.alpha_cumprod));
-                const float prediction_coefficient =
-                    std::sqrt(transition.previous_alpha_cumprod) -
-                    std::sqrt(transition.alpha_cumprod) * state_coefficient;
-                next = primitives_.affine_first_order(
-                    latent, converted, state_coefficient, prediction_coefficient);
+        SamplingResult result; result.initial_noise = latent; if (tensor_trace_enabled_) result.trace["initial_noise"] = trace_tensor(latent); result.rng_after_initialization = rng;
+        std::vector<Tensor> model_outputs; Tensor last_sample; int lower_order = 0, previous_order = 1;
+        const int execution_steps = completed_step_limit ? completed_step_limit : program.steps;
+        for (int step = 0; step < execution_steps; ++step) {
+            require(!(cancellation_requested_ && cancellation_requested_()),
+                    "sampling cancelled");
+            const Tensor& timestep = program.model_timestep_at(step);
+            const ComponentInstance& instance = *selected.at(static_cast<size_t>(step));
+            Denoiser& denoiser = instance.denoiser();
+            const StepExecutionContext step_context{static_cast<size_t>(step), timestep, instance};
+            const auto solver_prefix = solver_trace_enabled_
+                ? "step." + std::to_string(step) + ".solver." : std::string{};
+            if (tensor_trace_enabled_ && solver_trace_enabled_) {
+                auto& trace = result.trace;
+                // Invocation-local opaque identity: all steps in this result
+                // belong to this one run, irrespective of selected instance.
+                trace[solver_prefix+"state_id"] = scalar_i64(0);
+                trace[solver_prefix+"step"] = scalar_i64(step);
+                trace[solver_prefix+"instance_id"] = scalar_i64(instance.id().value);
+                trace[solver_prefix+"timestep"] = trace_tensor(timestep);
+                trace[solver_prefix+"rng_seed"] = scalar_i64(rng.seed);
+                trace[solver_prefix+"rng_offset"] = scalar_i64(rng.offset);
+                trace[solver_prefix+"history_before"] = scalar_i64(model_outputs.size());
+                trace[solver_prefix+"warmup_before"] = scalar_i64(lower_order);
+                trace[solver_prefix+"previous_order"] = scalar_i64(previous_order);
+                for (size_t i = 0; i < model_outputs.size(); ++i)
+                    trace[solver_prefix+"history_before."+std::to_string(i)] = trace_tensor(model_outputs[i]);
             }
-            primitives_.state_advance(); result.trace["step." + std::to_string(step) + ".latent"] = trace_tensor(next); latent = next;
+            if (tensor_trace_enabled_) result.trace["step." + std::to_string(step) + ".input_latent"] =
+                trace_tensor(latent);
+            if (backend_.profiling_enabled()) backend_.synchronize();
+            const auto denoiser_started = std::chrono::steady_clock::now();
+            std::vector<Tensor> predictions;
+            {
+                BackendProfileRegion region(
+                    backend_, "sampling.denoiser.step." + std::to_string(step));
+                predictions = denoiser.evaluate_step(latent, step_context);
+                validate_component_predictions(instance, predictions);
+                const DType output_dtype = effective_denoiser_output_dtype(policy_);
+                for (Tensor& prediction : predictions)
+                    prediction = backend_.cast(prediction, output_dtype);
+            }
+            for (auto& [name, tensor] : denoiser.take_trace())
+                if (tensor_trace_enabled_) result.trace["step." + std::to_string(step) + "." + name] = trace_tensor(tensor);
+            if (backend_.profiling_enabled()) backend_.synchronize();
+            result.denoiser_call_seconds.push_back(std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - denoiser_started).count());
+            const auto scheduler_started = std::chrono::steady_clock::now();
+            Tensor guided, next;
+            {
+                BackendProfileRegion region(
+                    backend_, "sampling.scheduler.step." + std::to_string(step));
+                const GuidanceParameters* guidance = program.guidance_schedule
+                    ? &program.guidance_schedule->at(static_cast<size_t>(step)) : nullptr;
+                const GuidanceMode mode = guidance ? guidance->mode : program.guidance_mode;
+                if (tensor_trace_enabled_ && solver_trace_enabled_ && mode == GuidanceMode::CFG)
+                    result.trace[solver_prefix+"guidance_scale"] = scalar_f32(
+                        guidance ? guidance->scale : program.guidance_coefficients.at(1));
+                if (mode == GuidanceMode::CFG) {
+                    require(predictions.size() == 2, "CFG requires two predictions");
+                    guided = primitives_.cfg_combine(predictions[0], predictions[1],
+                        guidance ? guidance->scale : program.guidance_coefficients.at(1));
+                } else guided = primitives_.linear_combine(predictions,
+                    guidance ? guidance->coefficients : program.guidance_coefficients);
+                for (size_t branch = 0; tensor_trace_enabled_ && branch < predictions.size(); ++branch) result.trace["step." + std::to_string(step) + ".prediction." + std::to_string(branch)] = trace_tensor(predictions[branch]);
+                if (tensor_trace_enabled_) result.trace["step." + std::to_string(step) + ".guidance"] = trace_tensor(guided);
+                if (!contract) next = primitives_.euler_update(latent, guided, scalar_f32(program.update_deltas.at(step)), program.subtract_prediction);
+                else if (contract->solver.semantic ==
+                            SolverSemantic::MultistepPredictorCorrector) {
+                    const FlowScheduleTransition& transition =
+                        contract->schedule.flow_at(static_cast<size_t>(step));
+                    Tensor converted = primitives_.flow_to_x0(
+                        latent, guided, transition.sigma);
+                    if (step > 0 && last_sample.defined()) latent = primitives_.multistep_corrector(latent, latent, model_outputs, converted, solver_sigmas, step, previous_order, last_sample);
+                    if (model_outputs.size() == 2) model_outputs.erase(model_outputs.begin());
+                    model_outputs.push_back(converted);
+                    const int maximum_order = contract->solver.maximum_order;
+                    const int remaining = program.steps - step;
+                    const int order = std::min(
+                        std::min(maximum_order, remaining), lower_order + 1);
+                    last_sample = latent; next = primitives_.multistep_predictor(latent, model_outputs, converted, solver_sigmas, step, order); previous_order = order; lower_order = std::min(maximum_order, lower_order + 1);
+                    if (tensor_trace_enabled_ && solver_trace_enabled_) {
+                        auto& trace = result.trace;
+                        trace[solver_prefix+"sigma"] = scalar_f32(transition.sigma);
+                        trace[solver_prefix+"next_sigma"] = scalar_f32(transition.next_sigma);
+                        trace[solver_prefix+"converted"] = trace_tensor(converted);
+                        trace[solver_prefix+"last_sample"] = trace_tensor(last_sample);
+                        trace[solver_prefix+"order"] = scalar_i64(order);
+                        trace[solver_prefix+"warmup_after"] = scalar_i64(lower_order);
+                        trace[solver_prefix+"history_after"] = scalar_i64(model_outputs.size());
+                        for (size_t i = 0; i < model_outputs.size(); ++i)
+                            trace[solver_prefix+"history_after."+std::to_string(i)] = trace_tensor(model_outputs[i]);
+                    }
+                } else {
+                    const AlphaCumprodScheduleTransition& transition =
+                        contract->schedule.alpha_cumprod_at(static_cast<size_t>(step));
+                    Tensor converted = contract->prediction.semantic ==
+                            PredictionSemantic::Epsilon
+                        ? primitives_.epsilon_to_x0(
+                            latent, guided, transition.alpha_cumprod)
+                        : primitives_.v_to_x0(
+                            latent, guided, transition.alpha_cumprod);
+                    if (tensor_trace_enabled_) result.trace["step." + std::to_string(step) +
+                        ".predicted_x0"] = trace_tensor(converted);
+                    const float state_coefficient = std::sqrt(
+                        (1.0f - transition.previous_alpha_cumprod) /
+                        (1.0f - transition.alpha_cumprod));
+                    const float prediction_coefficient =
+                        std::sqrt(transition.previous_alpha_cumprod) -
+                        std::sqrt(transition.alpha_cumprod) * state_coefficient;
+                    next = primitives_.affine_first_order(
+                        latent, converted, state_coefficient, prediction_coefficient);
+                }
+                primitives_.state_advance(); if (tensor_trace_enabled_) result.trace["step." + std::to_string(step) + ".latent"] = trace_tensor(next); latent = next;
+            }
+            if (backend_.profiling_enabled()) backend_.synchronize();
+            result.scheduler_seconds += std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - scheduler_started).count();
+            result.completed_steps = step + 1;
+            if (step_observer_) step_observer_(step + 1, program.steps);
         }
-        if (backend_.profiling_enabled()) backend_.synchronize();
-        result.scheduler_seconds += std::chrono::duration<double>(
-            std::chrono::steady_clock::now() - scheduler_started).count();
-        if (step_observer_) step_observer_(step + 1, program.steps);
+        result.program_complete = result.completed_steps == program.steps;
+        result.final_latent = latent; if (tensor_trace_enabled_) result.trace["final_latent"] = trace_tensor(latent);
+        result.prepared_tensors = context.prepared_tensor_stats();
+        result.elapsed_seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count(); return result;
+    } catch (...) {
+        // Do not replace the primary failure or dispatch a fallback component.
+        // If completion itself fails, the caller must retire the Backend session
+        // before releasing the source-owner leases (see execution.h).
+        try { backend_.synchronize(); } catch (...) {}
+        throw;
     }
-    result.final_latent = latent; result.trace["final_latent"] = trace_tensor(latent);
-    result.prepared_tensors = denoiser.prepared_tensor_stats();
-    result.elapsed_seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count(); return result;
 }
 
 ScheduleContract make_scaled_linear_ddim_schedule(

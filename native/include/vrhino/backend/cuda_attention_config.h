@@ -41,6 +41,16 @@ inline constexpr std::size_t ordered_workspace_bytes(
            2ULL * rows * sizeof(float);
 }
 
+// F32 ordered attention retains one correction per denominator and per
+// output lane across tiles. Output storage itself is not scratch.
+inline constexpr std::size_t ordered_f32_workspace_bytes(
+    int64_t batch, int64_t query_tokens, int64_t heads, int64_t head_dimension,
+    int64_t key_tile) {
+    const std::size_t rows = static_cast<std::size_t>(batch * query_tokens * heads);
+    return ordered_workspace_bytes(batch, query_tokens, heads, key_tile) +
+           rows * (static_cast<std::size_t>(head_dimension) + 1ULL) * sizeof(float);
+}
+
 inline constexpr std::size_t ordered_bf16_workspace_bytes(
     int64_t batch, int64_t query_tokens, int64_t heads, int64_t head_dimension,
     int64_t key_tile) {
