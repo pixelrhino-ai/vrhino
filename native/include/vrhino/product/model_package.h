@@ -7,6 +7,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "vrhino/product/input_schema.h"
@@ -133,6 +134,9 @@ struct ModelPackageManifest {
     uint64_t logical_size() const;
 };
 
+// Structural admission never grants numerical execution permission.
+void require_numerical_product_admission(const ModelPackageManifest& manifest);
+
 struct ResolvedArtifact {
     ArtifactDeclaration declaration;
     std::filesystem::path path;
@@ -174,6 +178,8 @@ struct BlobAdmissionResult {
 CacheLayout cache_layout(const std::filesystem::path& explicit_root = {});
 PackageIdentity parse_package_reference(const std::string& reference);
 ModelPackageManifest load_model_package_manifest(const std::filesystem::path& path);
+// Hash exactly the bytes that will be parsed, without reopening a pathname.
+std::string sha256_bytes(std::string_view bytes);
 std::string sha256_file(const std::filesystem::path& path,
                         const WorkProgressCallback& progress = {});
 std::string sha256_file_descriptor(int descriptor, uint64_t size,

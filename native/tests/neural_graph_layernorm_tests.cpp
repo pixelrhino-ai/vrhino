@@ -224,6 +224,40 @@ void synthetic(DType type){
         }
     }
 }
+// Finite, nearly constant rows can expose a rounded-mean second-moment
+// cancellation that balanced large-offset fixtures do not cover. Use the
+// existing independent population-variance oracle and unchanged F32 gate.
+void offset_rows(){
+    CudaBackend b;b.set_execution_dtype(f32);
+    const float low=1000.f;
+    const float high=std::nextafter(low,std::numeric_limits<float>::infinity());
+    int failures=0,cases=0;
+    for(int width:{16,128,1536,4096,5120})for(float eps:{1e-6f,1e-5f}){
+        for(int pattern=0;pattern<4;++pattern){
+            std::vector<float> values(width);
+            for(int column=0;column<width;++column){
+                const int lane=column%4;
+                if(pattern==0)values[column]=lane==0?low:high;
+                else if(pattern==1)values[column]=lane==3?high:low;
+                else if(pattern==2){
+                    constexpr float centered[]={-.25f,.25f,.5f,-.5f};
+                    values[column]=centered[lane];
+                }else values[column]=low;
+            }
+            const std::string name="offset_width_"+std::to_string(width)+
+                "_pattern_"+std::to_string(pattern)+"_epsilon_"+std::to_string(eps);
+            ++cases;
+            try{
+                qualify(b,name,host_f32({1,width},values),{},eps);
+            }catch(const std::exception& e){
+                ++failures;
+                std::cerr<<"WITNESS\t"<<name<<"\tFAIL\t"<<e.what()<<'\n';
+            }
+        }
+    }
+    std::cout<<"SUMMARY\t"<<cases<<" cases\t"<<failures<<" failures\n";
+    check(failures==0,"finite-offset LayerNorm regression");
+}
 void real(const std::string& family,const std::string& path,const std::string& outdir){
     auto data=read_bundle(path);CudaBackend b;
     if(family=="hunyuan"){
@@ -272,6 +306,7 @@ int main(int argc,char**argv){try{
 #ifdef VRHINO_TEST_CUDA
     if(argc==2&&std::string(argv[1])=="f32"){synthetic(f32);return 0;}
     if(argc==2&&std::string(argv[1])=="bf16"){synthetic(bf16);return 0;}
+    if(argc==2&&std::string(argv[1])=="f32-offset"){offset_rows();return 0;}
     if(argc==4){real(argv[1],argv[2],argv[3]);return 0;}
 #else
     (void)argc;(void)argv;

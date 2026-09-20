@@ -1,0 +1,243 @@
+{
+  "schema_version": 2,
+  "identity": {
+    "namespace": "vrhino",
+    "name": "wan2.2-t2v-a14b",
+    "version": "0.9.0-structural",
+    "architecture": "wan",
+    "publisher": "VRhino"
+  },
+  "compatibility": {
+    "runtime_contract": "cuda-v1",
+    "vrm_schema": {
+      "format_major": 0,
+      "format_minor": 1,
+      "metadata_schema": 1
+    }
+  },
+  "artifacts": [
+    {
+      "id": "resource-0",
+      "role": "package.resource",
+      "path": "conditioning-index.json",
+      "sha256": "55029f36322b2e1a2283087db5f1f8b8138c1e62a4310e1cdc6f8700dc36be2e",
+      "size": 13271,
+      "required": true
+    },
+    {
+      "id": "resource-1",
+      "role": "package.resource",
+      "path": "conditioning.json",
+      "sha256": "5b5577ff8d7c127ca5539aa607dc67b914bb630b6172f518a6f118ff37d52308",
+      "size": 30615,
+      "required": true
+    },
+    {
+      "id": "resource-2",
+      "role": "package.resource",
+      "path": "conditioning.safetensors",
+      "sha256": "1c137395973a8a717bd5d467fec816e77af973474c6d4afd2cb83c78cc489bd6",
+      "size": 11361845560,
+      "required": true
+    },
+    {
+      "id": "resource-3",
+      "role": "package.resource",
+      "path": "conversion-result.json",
+      "sha256": "e28d3165be037cc8d18feb475a00f3612a3a9d6eef8ad8ac0184c40b1ed631d1",
+      "size": 439,
+      "required": true
+    },
+    {
+      "id": "resource-4",
+      "role": "package.resource",
+      "path": "graph.json",
+      "sha256": "0d2e7d12360e82c5119c9c9ec47b73b384695996d0a0fc0a7ca162ea501368a1",
+      "size": 158154,
+      "required": true
+    },
+    {
+      "id": "resource-5",
+      "role": "package.resource",
+      "path": "metadata.json",
+      "sha256": "798a5158b9f2a70ada5d067c139ec3ed43935d7aa045767ba30233e35bb831f9",
+      "size": 42075,
+      "required": true
+    },
+    {
+      "id": "runtime",
+      "role": "runtime.model",
+      "path": "model.vrm",
+      "sha256": "61b1195c9738cab83f035f061ac51b2df374ffcb8f9de5b18c850dfae0be91e0",
+      "size": 114816482368,
+      "required": true
+    },
+    {
+      "id": "resource-7",
+      "role": "package.resource",
+      "path": "programs.json",
+      "sha256": "c6e70fd93f1c091c3a73738c65ba93575511230da33e4887c0906e2c451b85ae",
+      "size": 4516,
+      "required": true
+    },
+    {
+      "id": "resource-8",
+      "role": "package.resource",
+      "path": "source-contract.json",
+      "sha256": "e7448cb74705615e8a213e7206760075fafb238025e4c0088e5fba157dd409b9",
+      "size": 15160,
+      "required": true
+    },
+    {
+      "id": "resource-9",
+      "role": "package.resource",
+      "path": "source-manifest.tsv",
+      "sha256": "4ea6995c08502841565b9dd2e612af0dd97ddfb49ab17721339fc5c077338911",
+      "size": 6340,
+      "required": true
+    },
+    {
+      "id": "resource-10",
+      "role": "package.resource",
+      "path": "tensor-mapping.tsv",
+      "sha256": "efde769a8520e55afcba33979a2c7f76f6f4a41fbf4e2b1f40d425063c6908a4",
+      "size": 257711,
+      "required": true
+    },
+    {
+      "id": "resource-11",
+      "role": "package.resource",
+      "path": "tokenizer/special_tokens_map.json",
+      "sha256": "7b8a9f5040adb67b5805abdfd42c1f8d0f3d0e711f10726580eb3789cd0ad61d",
+      "size": 6623,
+      "required": true
+    },
+    {
+      "id": "resource-12",
+      "role": "package.resource",
+      "path": "tokenizer/spiece.model",
+      "sha256": "e3909a67b780650b35cf529ac782ad2b6b26e6d1f849d3fbb6a872905f452458",
+      "size": 4548313,
+      "required": true
+    },
+    {
+      "id": "resource-13",
+      "role": "package.resource",
+      "path": "tokenizer/tokenizer.json",
+      "sha256": "6e197b4d3dbd71da14b4eb255f4fa91c9c1f2068b20a2de2472967ca3d22602b",
+      "size": 16837417,
+      "required": true
+    },
+    {
+      "id": "resource-14",
+      "role": "package.resource",
+      "path": "tokenizer/tokenizer_config.json",
+      "sha256": "ed9a3a8b0faa71a70a32847e0435fe036e6e112d4df4edb7bb48a921e344dc05",
+      "size": 61728,
+      "required": true
+    },
+    {
+      "id": "profile",
+      "role": "execution.profile",
+      "path": "structural-profile.json",
+      "size": 46,
+      "sha256": "2f7cac9bfc2173350ea9c7c3172e3677b256fec267a0123d5c6d1c8eff017fff",
+      "required": true
+    },
+    {
+      "id": "license-evidence",
+      "role": "legal.license",
+      "path": "README.md",
+      "size": 17227,
+      "sha256": "20a3e71f525195253c9927ad0ed87f1f3a63d9c0c8cc0c26ec226f3a1725bb57",
+      "required": true
+    },
+    {
+      "id": "request-wiring",
+      "role": "product.request",
+      "path": "request-wiring.json",
+      "size": 602,
+      "sha256": "52ee6e290f38d6160b0991f7ddb34b022b8564527df6634434644ddfc2bcf0c4",
+      "required": true
+    },
+    {
+      "id": "qualification-precision",
+      "role": "precision.policy",
+      "path": "qualification-precision.json",
+      "size": 3939,
+      "sha256": "8720d74bc9c72a6f8e8c2b370e7af7ae9368da6babd4c275614e26f5297117f2",
+      "required": true
+    }
+  ],
+  "entrypoint": {
+    "runtime_artifact": "runtime",
+    "components": [
+      {
+        "id": "positive-conditioning",
+        "kind": "conditioning.text_encoder",
+        "artifacts": [
+          "resource-1",
+          "resource-0",
+          "resource-2",
+          "resource-13"
+        ]
+      },
+      {
+        "id": "negative-conditioning",
+        "kind": "conditioning.text_encoder",
+        "artifacts": [
+          "resource-1",
+          "resource-0",
+          "resource-2",
+          "resource-13"
+        ]
+      }
+    ],
+    "default_preset": "structural"
+  },
+  "defaults": {
+    "default_preset": "structural",
+    "presets": {
+      "structural": {
+        "profile_artifact": "profile"
+      }
+    }
+  },
+  "hardware": {
+    "presets": {
+      "structural": {
+        "minimum_vram_bytes": null,
+        "recommended_vram_bytes": null
+      }
+    }
+  },
+  "source": {
+    "repository": "https://modelscope.cn/models/Wan-AI/Wan2.2-T2V-A14B",
+    "revision": "3f42affa3a1f1c6bd1f14f4cd01cdb90373af3d7",
+    "converter_version": "wan_family.structural.v1"
+  },
+  "license": {
+    "identifier": "Apache-2.0",
+    "artifact": "license-evidence",
+    "upstream_notice": "https://modelscope.cn/models/Wan-AI/Wan2.2-T2V-A14B @ 3f42affa3a1f1c6bd1f14f4cd01cdb90373af3d7 README.md documented license"
+  },
+  "admission": {
+    "graph_artifact": "resource-4",
+    "metadata_artifact": "resource-5",
+    "programs_artifact": "resource-7",
+    "source_manifest_artifact": "resource-9",
+    "required_capabilities": [
+      "binding_catalog.v1",
+      "execution.per_step.v1",
+      "sampling.flow_sigma_cfg.v1"
+    ],
+    "structural_only": true,
+    "resources": {
+      "conditioning_declaration": "resource-1",
+      "conditioning_index": "resource-0",
+      "conditioning_weights": "resource-2",
+      "tokenizer": "resource-13"
+    },
+    "request_artifact": "request-wiring"
+  }
+}

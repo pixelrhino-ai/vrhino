@@ -1,0 +1,29 @@
+{
+  "schema": "vrhino.text-product-wiring.v1",
+  "tokenizer_spec": {
+    "format": "huggingface_json",
+    "max_length": 512,
+    "pad_id": 0,
+    "suffix_ids": [
+      1
+    ]
+  },
+  "tokenizer_config_artifact": "resource-14",
+  "geometry": {
+    "spatial_scale": 8,
+    "temporal_scale": 4,
+    "temporal_origin": 1
+  },
+  "conditioning_bindings": [
+    {
+      "component_id": "positive-conditioning",
+      "text_source": "prompt",
+      "target": "positive"
+    },
+    {
+      "component_id": "negative-conditioning",
+      "text_source": "negative_prompt",
+      "target": "negative"
+    }
+  ]
+}

@@ -313,6 +313,9 @@ JobManager::~JobManager() = default;
 
 JobSnapshot JobManager::submit(product::ResolvedRunnableModel model,
                                product::RunOptions options) {
+    // Numerical admission precedes job identity/output reservation and the
+    // executor seam. A structural package must never be accepted as queued.
+    product::require_numerical_product_admission(model.manifest);
     const bool managed = options.output.empty();
     fs::path explicit_output;
     if (!managed) explicit_output = normalized_absolute_output(options.output);

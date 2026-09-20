@@ -86,6 +86,7 @@ int main() {
             const product::RunOptions options =
                 product::map_product_run_options(runnable, request(body));
             require_test(options.seed == fixture.seed &&
+                             !options.resources.weight_cache_budget_bytes &&
                              options.output.empty() && !options.overwrite &&
                              (fixture.lip_sync
                                   ? (!options.video.empty() && !options.audio.empty() &&
@@ -98,6 +99,56 @@ int main() {
 
         const product::ResolvedRunnableModel ltx = model(
             specs / "ltx_v0_9_1/successors/1.1.1/vrhino-model.json");
+        const std::string resource_request =
+            "{\"model\":\"vrhino/ltx-video-v0.9.1:1.1.1\","
+            "\"inputs\":{\"prompt\":\"x\"},"
+            "\"resources\":{\"weight_cache_budget_bytes\":\"4096\"}}";
+        const auto resource_options = product::map_product_run_options(
+            ltx, request(resource_request));
+        const vrhino::MemoryBudget declared{16384, 0, 32768, 1024, 1024};
+        const auto constrained = product::constrain_run_memory(
+            declared, resource_options.resources);
+        require_test(constrained.device_weight_budget_bytes() == 4096 &&
+                         constrained.device_budget_bytes == declared.device_budget_bytes &&
+                         constrained.host_total_budget_bytes == declared.host_total_budget_bytes &&
+                         constrained.reserved_device_workspace_bytes == declared.reserved_device_workspace_bytes &&
+                         constrained.safety_margin_bytes == declared.safety_margin_bytes &&
+                         product::constrain_run_memory(declared, {}).weight_cache_budget_bytes == 0,
+                     "cache constraint changed the device/workspace envelope or legacy default");
+        const fs::path resource_file = temporary / "run-resources.json";
+        std::ofstream(resource_file) << "{\"weight_cache_budget_bytes\":4096}";
+        require_test(product::load_run_resources(resource_file).weight_cache_budget_bytes ==
+                         resource_options.resources.weight_cache_budget_bytes,
+                     "local CLI and API resource declaration differ");
+        for (const char* resources : {"null", "[]", "{\"unknown\":1}",
+                 "{\"weight_cache_budget_bytes\":0}",
+                 "{\"weight_cache_budget_bytes\":-1}",
+                 "{\"weight_cache_budget_bytes\":1.5}",
+                 "{\"weight_cache_budget_bytes\":true}",
+                 "{\"weight_cache_budget_bytes\":\"01\"}",
+                 "{\"weight_cache_budget_bytes\":\"+1\"}",
+                 "{\"weight_cache_budget_bytes\":\"18446744073709551616\"}"}) {
+            rejects([&] {
+                (void)request(std::string("{\"model\":\"x/y:1\",\"resources\":") + resources + "}");
+            }, product::RunRequestErrorCode::InvalidRequest, "invalid resource declaration");
+        }
+        for (const size_t cap : {size_t{0}, size_t{4097}, size_t{16385}}) {
+            bool rejected = false;
+            try { (void)product::constrain_run_memory(constrained, {{cap}}); }
+            catch (const product::ModelPackageError&) { rejected = true; }
+            require_test(rejected, "local resource cap widened an existing bound");
+        }
+        for (const fs::path& bad_file : {temporary / "missing.json", temporary}) {
+            bool rejected = false;
+            try { (void)product::load_run_resources(bad_file); }
+            catch (const product::ModelPackageError&) { rejected = true; }
+            require_test(rejected, "non-file run resources accepted");
+        }
+        std::ofstream(resource_file) << std::string(65537, ' ');
+        bool oversized_rejected = false;
+        try { (void)product::load_run_resources(resource_file); }
+        catch (const product::ModelPackageError&) { oversized_rejected = true; }
+        require_test(oversized_rejected, "oversized resource file accepted");
         product::RunOptions exact = product::map_product_run_options(
             ltx, request("{\"model\":\"vrhino/ltx-video-v0.9.1:1.1.1\","
                          "\"inputs\":{\"prompt\":\"x\"},"
@@ -129,6 +180,12 @@ int main() {
         const product::ResolvedRunnableModel lip = model(
             specs /
             "public_musetalk_v15/successors/1.0.1/vrhino-model.json");
+        rejects([&] {
+            (void)product::map_product_run_options(lip, request(
+                "{\"model\":\"vrhino/musetalk-v1.5:1.0.1\",\"inputs\":{\"video\":\"" +
+                video.string() + "\",\"audio\":\"" + audio.string() +
+                "\"},\"resources\":{\"weight_cache_budget_bytes\":4096}}"));
+        }, product::RunRequestErrorCode::InvalidRequest, "unsupported workflow ignored cache control");
         for (const std::string& body : {
                  "{\"model\":\"vrhino/musetalk-v1.5:1.0.1\",\"inputs\":{\"audio\":\"" + audio.string() + "\"}}",
                  "{\"model\":\"vrhino/musetalk-v1.5:1.0.1\",\"inputs\":{\"video\":\"relative.mp4\",\"audio\":\"" + audio.string() + "\"}}",

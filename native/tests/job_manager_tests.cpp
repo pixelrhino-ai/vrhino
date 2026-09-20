@@ -186,9 +186,28 @@ int main() {
         application::JobManager manager(
             root / "runs", fake.callback(), 0x123456789abcdef0ULL);
 
+        // Structural declarations cannot reserve output paths or enter the
+        // numerical job queue, even with an injected executor.
+        const auto held_output = root / "held.mp4";
+        for (const int schema : {2, 3}) {
+            auto held = fake_model();
+            held.manifest.schema_version = schema;
+            bool rejected = false;
+            try {
+                (void)manager.submit(held, options("held", held_output));
+            } catch (const product::ModelPackageError& error) {
+                rejected = error.code() ==
+                    product::ModelPackageErrorCode::PackageVersionUnsupported;
+            }
+            require_test(rejected, "unqualified schema entered Product queue");
+        }
+        require_test(!fake.called("held") && !fs::exists(held_output),
+                     "qualification rejection had execution side effects");
+
         const application::JobSnapshot active =
             manager.submit(fake_model(), options("active"));
         require_test(application::JobManager::valid_job_id(active.id) &&
+                         active.id == "r123456789abcdef0-0000000000000001" &&
                          active.output_managed &&
                          active.output_path ==
                              root / "runs" / active.id / "output.mp4",

@@ -9,6 +9,7 @@
 #include "vrhino/loader.h"
 #include "vrhino/precision.h"
 #include "vrhino/sampling.h"
+#include "vrhino/execution.h"
 
 namespace vrhino {
 
@@ -33,6 +34,9 @@ public:
                                                        const PrecisionPolicy& policy,
                                                        const TensorBundle& input) = 0;
     virtual SamplingProgram create_program(const TensorBundle& input) = 0;
+    // Default singleton bridge preserves create_denoiser's existing side effects.
+    virtual ExecutionSetup create_execution_setup(Backend& backend,
+        const PrecisionPolicy& policy, const TensorBundle& input);
     virtual Tensor decode(Backend& backend, const PrecisionPolicy& policy,
                           const Tensor& latent,
                           const TensorBundle& input) = 0;
@@ -41,6 +45,9 @@ public:
 };
 
 std::unique_ptr<Architecture> create_architecture(const VrmModel& model);
+// Managed package admission retains mmap backing through bindings and endpoints.
+std::unique_ptr<Architecture> create_architecture(std::shared_ptr<const VrmModel> model);
+std::unique_ptr<Architecture> make_wan_package_architecture(std::shared_ptr<const VrmModel> model);
 Tensor operation_linear(Backend& backend, const PrecisionPolicy& policy,
                         PrecisionOperation operation, PrecisionSemantic output_semantic,
                         const Tensor& input, const Tensor& weight,

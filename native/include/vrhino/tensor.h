@@ -86,6 +86,9 @@ public:
     size_t storage_bytes() const { return storage_ ? storage_->bytes : 0; }
     size_t byte_offset() const { return byte_offset_; }
     bool owns_storage() const { return storage_ && storage_->owner; }
+    // Retains owned storage through asynchronous use. For borrowed storage this
+    // retains only the descriptor: register its external source owner separately.
+    std::shared_ptr<const void> storage_lease() const { return storage_; }
     bool is_view() const { return storage_ && (byte_offset_ != 0 || bytes() != storage_->bytes); }
     size_t alignment() const;
     int64_t dim(int64_t index) const;

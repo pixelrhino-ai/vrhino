@@ -83,7 +83,19 @@ if(BUILD_TESTING)
     vrhino_public_test(vrhino-neural-graph-cuda-tests cuda)
     vrhino_public_test(vrhino-neural-graph-extension-cuda-tests cuda)
     vrhino_public_test(vrhino-neural-graph-bf16-cuda-tests cuda)
-    vrhino_public_test(vrhino-neural-graph-layernorm-cuda-tests cuda)
+    # This executable defaults to host admission tests; pass a mode to
+    # actually exercise native CUDA normalization in the public CUDA profile.
+    vrhino_public_test(vrhino-neural-graph-layernorm-cuda-tests cuda f32)
+    if(TARGET vrhino-neural-graph-layernorm-cuda-tests)
+        foreach(mode bf16 f32-offset)
+            add_test(NAME vrhino-neural-graph-layernorm-${mode}-cuda-tests
+                COMMAND vrhino-neural-graph-layernorm-cuda-tests ${mode})
+            set_tests_properties(vrhino-neural-graph-layernorm-${mode}-cuda-tests
+                PROPERTIES LABELS "public;cuda"
+                WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+                TIMEOUT 300 RUN_SERIAL TRUE)
+        endforeach()
+    endif()
     vrhino_public_test(vrhino-neural-graph-ltx-cuda-tests cuda)
     vrhino_public_test(vrhino-native-tests cuda)
     vrhino_public_test(vrhino-windows-cuda-smoke-tests cuda)

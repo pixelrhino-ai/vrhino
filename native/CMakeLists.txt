@@ -107,7 +107,8 @@ endif()
 
 # Standalone loader ownership validation without Product or Runtime linkage.
 add_executable(vrhino-file-mapping-tests
-    tests/file_mapping_tests.cpp src/loader.cpp src/tensor.cpp src/json.cpp)
+    tests/file_mapping_tests.cpp src/loader.cpp src/tensor.cpp src/json.cpp
+    src/representation/package_declaration.cpp)
 target_include_directories(vrhino-file-mapping-tests PRIVATE include)
 if(MSVC)
     target_compile_options(vrhino-file-mapping-tests PRIVATE /W4 /WX /utf-8)
@@ -120,7 +121,8 @@ if(WIN32)
     add_executable(vrhino-stable-file-verification-tests
         tests/stable_file_verification_tests.cpp
         src/product/vrm_verification.cpp src/product/sha256.cpp
-        src/product/model_package_error.cpp src/loader.cpp src/tensor.cpp src/json.cpp)
+        src/product/model_package_error.cpp src/loader.cpp src/tensor.cpp src/json.cpp
+        src/representation/package_declaration.cpp)
     target_include_directories(vrhino-stable-file-verification-tests PRIVATE include)
     target_link_libraries(vrhino-stable-file-verification-tests PRIVATE Threads::Threads)
     target_compile_definitions(vrhino-stable-file-verification-tests PRIVATE
@@ -194,10 +196,18 @@ add_library(vrhino_native_common
     src/components/pose_estimator.cpp
     src/components/semantic_segmenter.cpp
     src/sampling/sampling.cpp
+    src/runtime/execution.cpp
     src/runtime/runtime.cpp
     src/runtime/prepared_tensor.cpp
     src/runtime/memory/memory.cpp
     src/architectures/common.cpp
+    src/architectures/binding.cpp
+    src/architectures/wan_family.cpp
+    src/representation/canonical_architecture.cpp
+    src/representation/package_declaration.cpp
+    src/product/program_declaration.cpp
+    src/representation/package_admission.cpp
+    src/representation/legacy_vrm_architecture.cpp
     src/architectures/registry.cpp
     src/architectures/wan.cpp
     src/architectures/hunyuan_video.cpp
@@ -243,6 +253,23 @@ target_link_libraries(vrhino-component-executor-identity-tests PRIVATE
     vrhino_native_common)
 target_compile_options(vrhino-component-executor-identity-tests PRIVATE
     -Wall -Wextra -Werror)
+
+add_executable(vrhino-step-execution-tests tests/step_execution_tests.cpp)
+add_executable(vrhino-family-lowering-tests tests/family_lowering_tests.cpp)
+add_executable(vrhino-canonical-architecture-tests tests/canonical_architecture_tests.cpp)
+target_link_libraries(vrhino-canonical-architecture-tests PRIVATE vrhino_native_common)
+target_compile_options(vrhino-canonical-architecture-tests PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+target_compile_definitions(vrhino-canonical-architecture-tests PRIVATE
+    VRHINO_FAMILY_SPEC="${CMAKE_CURRENT_SOURCE_DIR}/specs/wan2_1_t2v_1_3b/graph.json")
+target_link_libraries(vrhino-family-lowering-tests PRIVATE vrhino_native_common)
+target_compile_options(vrhino-family-lowering-tests PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+target_compile_definitions(vrhino-family-lowering-tests PRIVATE
+    VRHINO_FAMILY_SPEC="${CMAKE_CURRENT_SOURCE_DIR}/specs/wan2_1_t2v_1_3b/graph.json")
+target_link_libraries(vrhino-step-execution-tests PRIVATE vrhino_native_common)
+target_compile_options(vrhino-step-execution-tests PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+add_executable(vrhino-step-execution-legacy-snapshot tests/step_execution_legacy_snapshot.cpp)
+target_link_libraries(vrhino-step-execution-legacy-snapshot PRIVATE vrhino_native_common)
+target_compile_options(vrhino-step-execution-legacy-snapshot PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
 
 add_executable(vrhino-neural-graph-tests tests/neural_graph_tests.cpp)
 target_include_directories(vrhino-neural-graph-tests PRIVATE src/runtime)
@@ -428,6 +455,9 @@ if(VRHINO_ENABLE_TOKENIZERS)
     target_link_libraries(vrhino-tokenizer-probe PRIVATE vrhino_native_tokenizer)
 endif()
 
+add_executable(vrhino-resource-contract-tests tests/resource_contract_tests.cpp)
+target_link_libraries(vrhino-resource-contract-tests PRIVATE vrhino_native_common)
+target_compile_options(vrhino-resource-contract-tests PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
 add_executable(vrhino-memory-runtime-tests tests/memory_runtime_tests.cpp)
 target_link_libraries(vrhino-memory-runtime-tests PRIVATE vrhino_native_common)
 
@@ -498,10 +528,19 @@ endif()
 
 # Canonical ProductInputSchema-v1 request validation and RunOptions mapping.
 # This remains transport-neutral and contains no HTTP or job policy.
+add_library(vrhino_product_run_resources src/product/run_resources.cpp src/product/declared_run.cpp src/product/qualification_precision.cpp)
+target_include_directories(vrhino_product_run_resources PUBLIC include)
+target_link_libraries(vrhino_product_run_resources PUBLIC vrhino_model_package)
+if(MSVC)
+    target_compile_options(vrhino_product_run_resources PRIVATE /W4 /utf-8)
+else()
+    target_compile_options(vrhino_product_run_resources PRIVATE -Wall -Wextra -Werror)
+endif()
+
 add_library(vrhino_product_run_request src/product/run_request.cpp)
 target_include_directories(vrhino_product_run_request PUBLIC include)
 target_link_libraries(vrhino_product_run_request PUBLIC
-    vrhino_model_package vrhino_product_run_session)
+    vrhino_model_package vrhino_product_run_session vrhino_product_run_resources)
 if(MSVC)
     target_compile_options(vrhino_product_run_request PRIVATE /W4 /utf-8)
     target_compile_definitions(vrhino_product_run_request PRIVATE _CRT_SECURE_NO_WARNINGS)
@@ -583,9 +622,11 @@ endif()
 # PyTorch. Architecture-specific checkpoint mapping lives behind this target.
 add_library(vrhino_converter
     src/product/converter.cpp
+    src/product/indexed_tensor_source.cpp
     src/product/pytorch_zip.cpp
     src/product/converter_ltx.cpp
     src/product/converter_wan.cpp
+    src/product/converter_wan_family.cpp
     src/product/converter_mochi.cpp)
 target_sources(vrhino_converter PRIVATE src/product/converter_whisper.cpp)
 target_sources(vrhino_converter PRIVATE src/product/converter_openai_whisper.cpp)
@@ -613,8 +654,28 @@ else()
     target_compile_options(vrhino_converter PRIVATE -Wall -Wextra -Werror)
 endif()
 
+add_executable(vrhino-indexed-source-package-tests tests/indexed_source_package_tests.cpp)
+target_link_libraries(vrhino-indexed-source-package-tests PRIVATE vrhino_converter)
+target_compile_options(vrhino-indexed-source-package-tests PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+
 add_executable(vrhino-native-converter-tests tests/native_converter_tests.cpp)
 target_link_libraries(vrhino-native-converter-tests PRIVATE vrhino_converter)
+
+add_executable(vrhino-wan-family-convert tools/wan_family_convert.cpp)
+target_link_libraries(vrhino-wan-family-convert PRIVATE vrhino_converter)
+add_executable(vrhino-wan-family-conversion-tests tests/wan_family_conversion_tests.cpp)
+target_link_libraries(vrhino-wan-family-conversion-tests PRIVATE vrhino_converter)
+add_executable(vrhino-native-load-qualification tests/native_load_qualification.cpp
+    src/product/safetensors.cpp)
+target_link_libraries(vrhino-native-load-qualification PRIVATE vrhino_converter)
+
+add_library(vrhino_product_preflight src/product/package_preflight.cpp src/product/safetensors.cpp)
+target_include_directories(vrhino_product_preflight PUBLIC include)
+target_link_libraries(vrhino_product_preflight PUBLIC vrhino_model_package)
+target_compile_options(vrhino_product_preflight PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+
+add_executable(vrhino-wan-structure-reproduction tests/wan_structure_reproduction.cpp)
+target_link_libraries(vrhino-wan-structure-reproduction PRIVATE vrhino_converter)
 
 add_executable(vrhino-preconditioned-int8-tests
     tests/preconditioned_int8_tests.cpp)
@@ -1094,6 +1155,47 @@ if(VRHINO_ENABLE_CUDA)
         target_compile_options(vrhino-windows-cuda-smoke-tests PRIVATE /W4 /WX /utf-8)
     endif()
 
+    add_executable(vrhino-f32-attention-accumulation-tests tests/f32_attention_accumulation_tests.cu)
+    target_link_libraries(vrhino-f32-attention-accumulation-tests PRIVATE vrhino_cuda_backend)
+    target_compile_options(vrhino-f32-attention-accumulation-tests PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
+
+    option(VRHINO_BUILD_BF16_TRACE_TEST "Build research-only BF16 stage observer" OFF)
+    if(VRHINO_BUILD_BF16_TRACE_TEST)
+        find_package(Python3 COMPONENTS Interpreter REQUIRED)
+        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/bf16_attention_observer.generated.cuh
+            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/generate_bf16_attention_observer.py
+                ${CMAKE_CURRENT_SOURCE_DIR}/src/backend/cuda/cuda_backend.cu
+                ${CMAKE_CURRENT_BINARY_DIR}/bf16_attention_observer.generated.cuh
+            DEPENDS tests/generate_bf16_attention_observer.py src/backend/cuda/cuda_backend.cu)
+        add_executable(vrhino-bf16-attention-trace tests/bf16_attention_trace.cu
+            ${CMAKE_CURRENT_BINARY_DIR}/bf16_attention_observer.generated.cuh)
+        target_include_directories(vrhino-bf16-attention-trace PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+        target_link_libraries(vrhino-bf16-attention-trace PRIVATE vrhino_cuda_backend)
+        target_compile_options(vrhino-bf16-attention-trace PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
+    endif()
+
+    add_executable(vrhino-mixed-scalar-solver-probe tests/mixed_scalar_solver_probe.cpp)
+    target_link_libraries(vrhino-mixed-scalar-solver-probe PRIVATE vrhino_cuda_backend vrhino_converter)
+    target_compile_options(vrhino-mixed-scalar-solver-probe PRIVATE -Wall -Wextra -Werror -ffp-contract=off)
+    add_executable(vrhino-semantic-scalar-chain-probe tests/semantic_scalar_chain_probe.cpp)
+    target_link_libraries(vrhino-semantic-scalar-chain-probe PRIVATE vrhino_cuda_backend vrhino_converter)
+    target_compile_options(vrhino-semantic-scalar-chain-probe PRIVATE -Wall -Wextra -Werror -ffp-contract=off)
+    add_executable(vrhino-semantic-scalar-tests tests/semantic_scalar_tests.cpp)
+    target_link_libraries(vrhino-semantic-scalar-tests PRIVATE vrhino_cuda_backend)
+    target_compile_options(vrhino-semantic-scalar-tests PRIVATE -Wall -Wextra -Werror -ffp-contract=off)
+    add_executable(vrhino-wan-numerical-probe tests/wan_numerical_probe.cpp)
+    target_link_libraries(vrhino-wan-numerical-probe PRIVATE vrhino_neural_graph vrhino_cuda_backend vrhino_converter)
+    target_compile_options(vrhino-wan-numerical-probe PRIVATE -Wall -Wextra -Werror -ffp-contract=off)
+    add_executable(vrhino-f32-propagation-probe tests/f32_propagation_probe.cpp)
+    add_executable(vrhino-bf16-operator-probe tests/bf16_operator_probe.cpp)
+    add_executable(vrhino-rng-replay-probe tests/rng_replay_probe.cpp)
+    target_link_libraries(vrhino-rng-replay-probe PRIVATE vrhino_cuda_backend)
+    target_compile_options(vrhino-rng-replay-probe PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+    target_link_libraries(vrhino-bf16-operator-probe PRIVATE vrhino_cuda_backend vrhino_converter)
+    target_compile_options(vrhino-bf16-operator-probe PRIVATE -Wall -Wextra -Werror -ffp-contract=off)
+    target_link_libraries(vrhino-f32-propagation-probe PRIVATE vrhino_cuda_backend vrhino_converter)
+    target_compile_options(vrhino-f32-propagation-probe PRIVATE -Wall -Wextra -Werror -ffp-contract=off)
+
     add_executable(vrhino-neural-graph-cuda-tests tests/neural_graph_cuda_tests.cpp)
     add_executable(vrhino-wan-graph-dual-path-cuda-tests tests/wan_graph_dual_path_tests.cpp)
     add_executable(vrhino-wan-graph-optin-cuda-tests tests/wan_graph_optin_tests.cpp)
@@ -1332,6 +1434,25 @@ if(VRHINO_ENABLE_CUDA)
     add_executable(vrhino-phase9-batch tests/phase9_batch.cpp)
     target_link_libraries(vrhino-phase9-batch PRIVATE vrhino_cuda_backend)
 
+    if(UNIX AND NOT APPLE)
+        add_executable(vrhino-resource-transaction-cuda-tests tests/resource_transaction_cuda_tests.cpp)
+        target_link_libraries(vrhino-resource-transaction-cuda-tests PRIVATE vrhino_cuda_backend)
+        target_compile_options(vrhino-resource-transaction-cuda-tests PRIVATE -Wall -Wextra -Werror)
+        foreach(resource_call cudaMalloc cudaFree cudaMallocFromPoolAsync cudaFreeAsync
+                cudaHostAlloc cudaFreeHost cudaEventCreate cudaEventCreateWithFlags cudaEventDestroy
+                cudaEventRecord cudaMemcpyAsync cudaStreamWaitEvent cudaStreamCreateWithFlags
+                cudaStreamDestroy cudaMemPoolCreate cudaMemPoolDestroy cudaDeviceSynchronize
+                cublasCreate_v2 cublasDestroy_v2 cublasLtCreate cublasLtDestroy cudnnCreate cudnnDestroy)
+            target_link_options(vrhino-resource-transaction-cuda-tests PRIVATE "-Wl,--wrap=${resource_call}")
+        endforeach()
+        add_executable(vrhino-resource-binding-cuda-tests tests/resource_binding_cuda_tests.cpp)
+        target_link_libraries(vrhino-resource-binding-cuda-tests PRIVATE vrhino_cuda_backend)
+        target_compile_options(vrhino-resource-binding-cuda-tests PRIVATE -Wall -Wextra -Werror)
+        target_link_options(vrhino-resource-binding-cuda-tests PRIVATE
+            -Wl,--wrap=cudaMalloc -Wl,--wrap=cudaMemcpyAsync
+            -Wl,--wrap=cudaEventCreate -Wl,--wrap=cudaEventDestroy)
+    endif()
+
     add_executable(vrhino-phase10-cuda-memory-tests tests/phase10_cuda_memory_tests.cpp)
     target_link_libraries(vrhino-phase10-cuda-memory-tests PRIVATE vrhino_cuda_backend)
 
@@ -1398,13 +1519,14 @@ if(VRHINO_ENABLE_CUDA)
         # every component; this layer contains no architecture-name dispatch.
         add_library(vrhino_product_run
             src/product/run.cpp
+            src/product/declared_run_execution.cpp
             src/product/run_media.cpp
             src/product/lip_sync_product.cpp
             src/product/lip_sync_diffusion_product.cpp
             src/product/safetensors.cpp)
         target_include_directories(vrhino_product_run PUBLIC include)
         target_link_libraries(vrhino_product_run PUBLIC
-            vrhino_product_run_session vrhino_cuda_backend vrhino_native_tokenizer
+            vrhino_product_run_session vrhino_product_run_resources vrhino_cuda_backend vrhino_native_tokenizer
             vrhino_audio_conditioning vrhino_face_roi vrhino_pose_geometry
             vrhino_face_mask vrhino_lip_sync_workflow
             vrhino_lip_sync_diffusion_workflow)
@@ -1490,6 +1612,8 @@ if(VRHINO_ENABLE_CUDA)
 endif()
 include(cmake/PublicTests.cmake)
 if(BUILD_TESTING)
+    vrhino_public_test(vrhino-indexed-source-package-tests host
+        "${CMAKE_CURRENT_BINARY_DIR}/indexed-source-package-fixtures")
     vrhino_public_test(vrhino-safetensors-asset-tests host)
     add_test(NAME vrhino-tokenizer-source-portability-tests
         COMMAND "${CMAKE_COMMAND}"
@@ -1498,4 +1622,92 @@ if(BUILD_TESTING)
             -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/tokenizer_source_portability_tests.cmake")
     set_tests_properties(vrhino-tokenizer-source-portability-tests PROPERTIES
         LABELS "public;host" TIMEOUT 60)
+endif()
+
+if(TARGET vrhino)
+    target_link_libraries(vrhino PRIVATE vrhino_product_preflight)
+endif()
+
+add_executable(vrhino-schema2-product-admission-tests tests/schema2_product_admission_tests.cpp)
+target_link_libraries(vrhino-schema2-product-admission-tests PRIVATE vrhino_product_preflight vrhino_converter vrhino_product_run_request)
+target_compile_options(vrhino-schema2-product-admission-tests PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+
+add_library(vrhino_product_request_wiring src/product/request_wiring.cpp)
+target_include_directories(vrhino_product_request_wiring PUBLIC include)
+target_link_libraries(vrhino_product_request_wiring PUBLIC vrhino_product_preflight vrhino_product_run_request)
+target_compile_options(vrhino_product_request_wiring PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+if(VRHINO_ENABLE_TOKENIZERS)
+    target_compile_definitions(vrhino_product_request_wiring PRIVATE VRHINO_PRODUCT_TOKENIZERS=1)
+    target_link_libraries(vrhino_product_request_wiring PUBLIC vrhino_native_tokenizer)
+endif()
+
+add_library(vrhino_product_component_preparation src/product/component_preparation.cpp src/product/prepared_execution.cpp)
+add_library(vrhino_product_evaluation_scope src/product/evaluation_scope.cpp src/product/evaluation_supervisor.cpp)
+target_link_libraries(vrhino_product_evaluation_scope PUBLIC vrhino_native_common)
+target_compile_options(vrhino_product_evaluation_scope PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+add_executable(vrhino-product-evaluation-tests tests/product_evaluation_tests.cpp)
+target_link_libraries(vrhino-product-evaluation-tests PRIVATE vrhino_product_evaluation_scope)
+target_compile_options(vrhino-product-evaluation-tests PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+if(BUILD_TESTING)
+    vrhino_public_test(vrhino-product-evaluation-tests host "${CMAKE_CURRENT_BINARY_DIR}/evaluation-fixture")
+endif()
+target_link_libraries(vrhino_product_component_preparation PUBLIC vrhino_product_request_wiring)
+target_compile_options(vrhino_product_component_preparation PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+add_executable(vrhino-product-qualification-precision-tests tests/product_qualification_precision_tests.cpp)
+target_link_libraries(vrhino-product-qualification-precision-tests PRIVATE vrhino_product_component_preparation)
+target_compile_options(vrhino-product-qualification-precision-tests PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+if(BUILD_TESTING)
+    vrhino_public_test(vrhino-product-qualification-precision-tests host
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/precision/bf16-semantic-scalar-v2.json"
+        "${CMAKE_CURRENT_BINARY_DIR}/qualification-precision-fixture")
+endif()
+if(VRHINO_ENABLE_CUDA AND VRHINO_ENABLE_TOKENIZERS)
+    target_sources(vrhino_product_run PRIVATE src/product/component_check.cpp)
+    target_sources(vrhino_product_run PRIVATE src/product/evaluation.cpp)
+    target_link_libraries(vrhino_product_run PUBLIC vrhino_product_evaluation_scope ${CMAKE_DL_LIBS})
+    target_link_libraries(vrhino_product_run PUBLIC vrhino_product_component_preparation)
+    add_executable(vrhino-product-component-preparation-tests tests/product_component_preparation_tests.cpp)
+    target_link_libraries(vrhino-product-component-preparation-tests PRIVATE vrhino_product_component_preparation vrhino_cuda_backend)
+    target_compile_options(vrhino-product-component-preparation-tests PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+    add_executable(vrhino-prepared-product-execution-tests tests/prepared_product_execution_tests.cpp)
+    target_link_libraries(vrhino-prepared-product-execution-tests PRIVATE vrhino_product_component_preparation vrhino_cuda_backend)
+    target_compile_options(vrhino-prepared-product-execution-tests PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+    if(BUILD_TESTING)
+        vrhino_public_test(vrhino-prepared-product-execution-tests cuda
+            "${CMAKE_CURRENT_BINARY_DIR}/prepared-product-execution-fixture")
+        add_test(NAME vrhino-prepared-product-bf16-execution-tests
+            COMMAND vrhino-prepared-product-execution-tests
+                "${CMAKE_CURRENT_BINARY_DIR}/prepared-product-bf16-execution-fixture"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/precision/bf16-semantic-scalar-v2.json")
+        set_tests_properties(vrhino-prepared-product-bf16-execution-tests PROPERTIES
+            LABELS "public;cuda" TIMEOUT 300 RUN_SERIAL TRUE)
+    endif()
+endif()
+if(TARGET vrhino)
+    target_link_libraries(vrhino PRIVATE vrhino_product_request_wiring)
+endif()
+if(VRHINO_ENABLE_TOKENIZERS)
+    add_executable(vrhino-schema2-request-wiring-tests tests/schema2_request_wiring_tests.cpp)
+    target_link_libraries(vrhino-schema2-request-wiring-tests PRIVATE vrhino_product_component_preparation vrhino_converter)
+    target_compile_options(vrhino-schema2-request-wiring-tests PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+endif()
+if(BUILD_TESTING AND TARGET vrhino AND TARGET vrhino-schema2-request-wiring-tests AND VRHINO_ENABLE_CUDA)
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME vrhino-product-evaluation-cli-tests
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/product_evaluation_cli_tests.py"
+            --cli $<TARGET_FILE:vrhino> --output "${CMAKE_CURRENT_BINARY_DIR}/evaluation-cli-fixture")
+    set_tests_properties(vrhino-product-evaluation-cli-tests PROPERTIES LABELS "public;host;product" TIMEOUT 60)
+    add_test(NAME vrhino-schema2-cache-admission-cli-tests
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/schema2_cache_admission_cli_tests.py"
+            --binary $<TARGET_FILE:vrhino>
+            --fixture-builder $<TARGET_FILE:vrhino-schema2-request-wiring-tests>
+            --specs "${CMAKE_CURRENT_SOURCE_DIR}/specs")
+    set_tests_properties(vrhino-schema2-cache-admission-cli-tests PROPERTIES
+        LABELS "public;host" TIMEOUT 300 RUN_SERIAL TRUE)
+    add_test(NAME vrhino-product-sampling-video-cli-tests
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/product_sampling_video_cli_tests.py"
+            --cli $<TARGET_FILE:vrhino>
+            --output "${CMAKE_CURRENT_BINARY_DIR}/sampling-video-cli-fixture")
+    set_tests_properties(vrhino-product-sampling-video-cli-tests PROPERTIES
+        LABELS "public;host" TIMEOUT 300 RUN_SERIAL TRUE)
 endif()

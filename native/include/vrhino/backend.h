@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <exception>
 #include <map>
 #include <string>
 #include <vector>
@@ -92,6 +93,9 @@ public:
     virtual void wait_fence(TransferFence fence) = 0;
     virtual bool query_fence(TransferFence fence) = 0;
     virtual void destroy_fence(TransferFence fence) = 0;
+    // Borrowed cacheable inputs require immutable backing for the whole session:
+    // register actual backing owners via retain_resource_owners (managed path),
+    // or obey the explicit legacy CallerRetained lifetime invariant.
     virtual Tensor copy_to_device(const Tensor& input, DType dtype) = 0;
     virtual Tensor copy_to_host(const Tensor& input) = 0;
     virtual void synchronize() = 0;
@@ -201,7 +205,13 @@ public:
     BackendProfileRegion(Backend& backend, std::string name) : backend_(backend) {
         backend_.profile_region_begin(name);
     }
-    ~BackendProfileRegion() { backend_.profile_region_end(); }
+    ~BackendProfileRegion() noexcept {
+        try { backend_.profile_region_end(); }
+        catch (...) {
+            backend_.retire_resource_session();
+            try { backend_.synchronize(); } catch (...) { std::terminate(); }
+        }
+    }
     BackendProfileRegion(const BackendProfileRegion&) = delete;
     BackendProfileRegion& operator=(const BackendProfileRegion&) = delete;
 private:

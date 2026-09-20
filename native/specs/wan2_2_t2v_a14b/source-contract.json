@@ -1,0 +1,353 @@
+{
+  "contract_kind": "B10_qualified_source_inventory_evidence",
+  "qualification_status": "PASS",
+  "scope": "content identity and source provenance; no converter implementation or inference qualification",
+  "source_roots": {
+    "model": {
+      "local_root": "/root/autodl-tmp/wan22-download/Wan2.2-T2V-A14B",
+      "repository": "https://modelscope.cn/models/Wan-AI/Wan2.2-T2V-A14B",
+      "git_repository": "https://modelscope.cn/Wan-AI/Wan2.2-T2V-A14B.git",
+      "revision": "3f42affa3a1f1c6bd1f14f4cd01cdb90373af3d7",
+      "verification": "fixed revision ModelScope file SHA256 and size vs local streaming SHA256"
+    },
+    "official_source": {
+      "local_root": "/root/autodl-tmp/Wan2.2",
+      "repository": "https://github.com/Wan-Video/Wan2.2",
+      "revision": "42bf4cfaa384bc21833865abc2f9e6c0e67233dc",
+      "verification": "clean git checkout and selected file Git blob/SHA256 match"
+    }
+  },
+  "manifest_path": "/tmp/WAN22_T2V_A14B_SOURCE_MANIFEST.tsv",
+  "manifest_sha256": "4ea6995c08502841565b9dd2e612af0dd97ddfb49ab17721339fc5c077338911",
+  "expected_huggingface_reference": {
+    "repository": "https://huggingface.co/Wan-AI/Wan2.2-T2V-A14B",
+    "revision": "c8c270b13ee05bfa474194ac9fb07a5868a97cea",
+    "verified_core_paths": [
+      "Wan2.1_VAE.pth",
+      "google/umt5-xxl/special_tokens_map.json",
+      "google/umt5-xxl/spiece.model",
+      "google/umt5-xxl/tokenizer.json",
+      "google/umt5-xxl/tokenizer_config.json",
+      "high_noise_model/config.json",
+      "high_noise_model/diffusion_pytorch_model-00001-of-00006.safetensors",
+      "high_noise_model/diffusion_pytorch_model-00002-of-00006.safetensors",
+      "high_noise_model/diffusion_pytorch_model-00003-of-00006.safetensors",
+      "high_noise_model/diffusion_pytorch_model-00004-of-00006.safetensors",
+      "high_noise_model/diffusion_pytorch_model-00005-of-00006.safetensors",
+      "high_noise_model/diffusion_pytorch_model-00006-of-00006.safetensors",
+      "high_noise_model/diffusion_pytorch_model.safetensors.index.json",
+      "low_noise_model/config.json",
+      "low_noise_model/diffusion_pytorch_model-00001-of-00006.safetensors",
+      "low_noise_model/diffusion_pytorch_model-00002-of-00006.safetensors",
+      "low_noise_model/diffusion_pytorch_model-00003-of-00006.safetensors",
+      "low_noise_model/diffusion_pytorch_model-00004-of-00006.safetensors",
+      "low_noise_model/diffusion_pytorch_model-00005-of-00006.safetensors",
+      "low_noise_model/diffusion_pytorch_model-00006-of-00006.safetensors",
+      "low_noise_model/diffusion_pytorch_model.safetensors.index.json",
+      "models_t5_umt5-xxl-enc-bf16.pth"
+    ],
+    "different_provider_metadata_paths": [
+      "README.md",
+      "configuration.json"
+    ],
+    "whole_directory_identical": false
+  },
+  "license": {
+    "model_documented_license": "Apache-2.0",
+    "evidence_path": "model/README.md",
+    "evidence_repository": "https://modelscope.cn/models/Wan-AI/Wan2.2-T2V-A14B",
+    "evidence_revision": "3f42affa3a1f1c6bd1f14f4cd01cdb90373af3d7",
+    "scope": "documented terms identification, not comprehensive legal opinion"
+  },
+  "required_consumer_checks": [
+    "Require PASS qualification and exact approved manifest digest",
+    "Bind each artifact to its declared repository and immutable revision",
+    "Verify every required local file size and full SHA256 before conversion",
+    "Reject missing, mismatched or substituted inputs; no fallback",
+    "Hold stable immutable source owners/FDs for the conversion lifetime",
+    "Do not import upstream Python or hosting metadata into Architecture/Runtime",
+    "No undeclared source dependencies; requalify any inventory change"
+  ],
+  "artifacts": [
+    {
+      "role": "model.card_license_reference",
+      "relative_path": "model/README.md",
+      "size_bytes": "17227",
+      "sha256": "20a3e71f525195253c9927ad0ed87f1f3a63d9c0c8cc0c26ec226f3a1725bb57",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "decoder.checkpoint",
+      "relative_path": "model/Wan2.1_VAE.pth",
+      "size_bytes": "507609880",
+      "sha256": "38071ab59bd94681c686fa51d75a1968f64e470262043be31f7a094e442fd981",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "model.repository_metadata",
+      "relative_path": "model/configuration.json",
+      "size_bytes": "1087",
+      "sha256": "8f960f1740890064598d022e3c7c1e839aa64ee9a7fe380b7f4de60d58e03de7",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "tokenizer.asset",
+      "relative_path": "model/google/umt5-xxl/special_tokens_map.json",
+      "size_bytes": "6623",
+      "sha256": "7b8a9f5040adb67b5805abdfd42c1f8d0f3d0e711f10726580eb3789cd0ad61d",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "tokenizer.asset",
+      "relative_path": "model/google/umt5-xxl/spiece.model",
+      "size_bytes": "4548313",
+      "sha256": "e3909a67b780650b35cf529ac782ad2b6b26e6d1f849d3fbb6a872905f452458",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "tokenizer.asset",
+      "relative_path": "model/google/umt5-xxl/tokenizer.json",
+      "size_bytes": "16837417",
+      "sha256": "6e197b4d3dbd71da14b4eb255f4fa91c9c1f2068b20a2de2472967ca3d22602b",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "tokenizer.asset",
+      "relative_path": "model/google/umt5-xxl/tokenizer_config.json",
+      "size_bytes": "61728",
+      "sha256": "ed9a3a8b0faa71a70a32847e0435fe036e6e112d4df4edb7bb48a921e344dc05",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "transformer.config",
+      "relative_path": "model/high_noise_model/config.json",
+      "size_bytes": "250",
+      "sha256": "691a47e123c3dd41f134836fd9a00e744110c6a812a11b3d95ca70e9485ffe11",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "transformer.shard",
+      "relative_path": "model/high_noise_model/diffusion_pytorch_model-00001-of-00006.safetensors",
+      "size_bytes": "9992481544",
+      "sha256": "cb58f36df7e604c6e7b0df80a3f6f9b72c77695e581e19985fc3a0e6732ba1e2",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "transformer.shard",
+      "relative_path": "model/high_noise_model/diffusion_pytorch_model-00002-of-00006.safetensors",
+      "size_bytes": "9943937936",
+      "sha256": "6719620a0feb4553d0306296ba4fad7d6d3b70b666fcbd02ad41fd21df3ab6af",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "transformer.shard",
+      "relative_path": "model/high_noise_model/diffusion_pytorch_model-00003-of-00006.safetensors",
+      "size_bytes": "9943979184",
+      "sha256": "0eb7864481499e65698ab94ddfad00e1289960b9f1a45aed6530ba6701859513",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "transformer.shard",
+      "relative_path": "model/high_noise_model/diffusion_pytorch_model-00004-of-00006.safetensors",
+      "size_bytes": "9839059744",
+      "sha256": "8646c9af94dbb2917380dbb6c2ba7fa34332566f2f9f0f508750e377fdad8e0a",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "transformer.shard",
+      "relative_path": "model/high_noise_model/diffusion_pytorch_model-00005-of-00006.safetensors",
+      "size_bytes": "9839059744",
+      "sha256": "743ca2839d8339eeac1419de9bcfb6f02d4eab4264b01db6d4970047ae9385d0",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "transformer.shard",
+      "relative_path": "model/high_noise_model/diffusion_pytorch_model-00006-of-00006.safetensors",
+      "size_bytes": "7595559224",
+      "sha256": "78e445e6ca232fb2b8669673b8f7e2f607f84b12e0489429577e8aea624ad7c1",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "transformer.index",
+      "relative_path": "model/high_noise_model/diffusion_pytorch_model.safetensors.index.json",
+      "size_bytes": "96805",
+      "sha256": "f0d2171c391bb73944c3ff3b279b09c599b20bbba62bb45ac3e56282b840a9a6",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "transformer.config",
+      "relative_path": "model/low_noise_model/config.json",
+      "size_bytes": "250",
+      "sha256": "691a47e123c3dd41f134836fd9a00e744110c6a812a11b3d95ca70e9485ffe11",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "transformer.shard",
+      "relative_path": "model/low_noise_model/diffusion_pytorch_model-00001-of-00006.safetensors",
+      "size_bytes": "9992481544",
+      "sha256": "f2a6df8981742260b3f2cd8b51a276eb0ffa0332c9bbbadc3d625f269096f01c",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "transformer.shard",
+      "relative_path": "model/low_noise_model/diffusion_pytorch_model-00002-of-00006.safetensors",
+      "size_bytes": "9943937936",
+      "sha256": "ea3998b0b394ede1df6c8cb9ea44f1bed0d3d7018bd8113baca9ff74e100b5d9",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "transformer.shard",
+      "relative_path": "model/low_noise_model/diffusion_pytorch_model-00003-of-00006.safetensors",
+      "size_bytes": "9943979184",
+      "sha256": "e1222162ecdc5a8bb4815f78ae42951cdc3e50a3fe41d8f592462d28f8638681",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "transformer.shard",
+      "relative_path": "model/low_noise_model/diffusion_pytorch_model-00004-of-00006.safetensors",
+      "size_bytes": "9839059744",
+      "sha256": "9fdd1165fe0c5efd87036b3722e69f1d2004bd27396905a997afb7ddf7f22edf",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "transformer.shard",
+      "relative_path": "model/low_noise_model/diffusion_pytorch_model-00005-of-00006.safetensors",
+      "size_bytes": "9839059744",
+      "sha256": "04909e9fa1f15de79851230c7f223a0c96fcfd629bdd914b21c9344cec63c78a",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "transformer.shard",
+      "relative_path": "model/low_noise_model/diffusion_pytorch_model-00006-of-00006.safetensors",
+      "size_bytes": "7595559224",
+      "sha256": "7a481d5adcc53ed3ae8b3222b4c4ee63bac6703dae9ff6c62a7d52e546c88809",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "transformer.index",
+      "relative_path": "model/low_noise_model/diffusion_pytorch_model.safetensors.index.json",
+      "size_bytes": "96805",
+      "sha256": "f0d2171c391bb73944c3ff3b279b09c599b20bbba62bb45ac3e56282b840a9a6",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "text_encoder.checkpoint",
+      "relative_path": "model/models_t5_umt5-xxl-enc-bf16.pth",
+      "size_bytes": "11361920418",
+      "sha256": "7cace0da2b446bbbbc57d031ab6cf163a3d59b366da94e5afe36745b746fd81d",
+      "required": "yes",
+      "provenance_status": "MODELSCOPE_REVISION_SHA256_VERIFIED"
+    },
+    {
+      "role": "source.license",
+      "relative_path": "official_source/LICENSE.txt",
+      "size_bytes": "11357",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "required": "yes",
+      "provenance_status": "GIT_REVISION_VERIFIED"
+    },
+    {
+      "role": "source.readme",
+      "relative_path": "official_source/README.md",
+      "size_bytes": "35345",
+      "sha256": "c04923dc9c509fe56b7f08a958b815dc62eb741a3969ad9d7a7586460b504ab5",
+      "required": "no",
+      "provenance_status": "GIT_REVISION_VERIFIED"
+    },
+    {
+      "role": "source.semantic_reference",
+      "relative_path": "official_source/wan/configs/shared_config.py",
+      "size_bytes": "945",
+      "sha256": "3ae102e029d4d0e3436ebbaa9f8fd32c10e8468ae8be07facdca2e20ec1858fe",
+      "required": "yes",
+      "provenance_status": "GIT_REVISION_VERIFIED"
+    },
+    {
+      "role": "source.semantic_reference",
+      "relative_path": "official_source/wan/configs/wan_t2v_A14B.py",
+      "size_bytes": "1023",
+      "sha256": "a1f3a70472aece6d7a3cfe83ed39be829e957484db23069c13c7a3c35ac07a48",
+      "required": "yes",
+      "provenance_status": "GIT_REVISION_VERIFIED"
+    },
+    {
+      "role": "source.semantic_reference",
+      "relative_path": "official_source/wan/modules/model.py",
+      "size_bytes": "18097",
+      "sha256": "8b39115298ca7322806c19b3165b3f435a94fe4a58f0624aec24f8e7f4997432",
+      "required": "yes",
+      "provenance_status": "GIT_REVISION_VERIFIED"
+    },
+    {
+      "role": "source.semantic_reference",
+      "relative_path": "official_source/wan/modules/t5.py",
+      "size_bytes": "16910",
+      "sha256": "8b0cebf3192c542f92a344255a06c203df3ba24160715899a055cc8de0cd930f",
+      "required": "yes",
+      "provenance_status": "GIT_REVISION_VERIFIED"
+    },
+    {
+      "role": "source.semantic_reference",
+      "relative_path": "official_source/wan/modules/tokenizers.py",
+      "size_bytes": "2431",
+      "sha256": "cf5b189c1ae017326efadab2fc6380ba223fa7a59d0be6464bd264db53c76934",
+      "required": "yes",
+      "provenance_status": "GIT_REVISION_VERIFIED"
+    },
+    {
+      "role": "source.semantic_reference",
+      "relative_path": "official_source/wan/modules/vae2_1.py",
+      "size_bytes": "23171",
+      "sha256": "d0dfe9eccd0cdbcb37ffde9887579be58f4c1bb6fc2dbb1b72e8916e170df180",
+      "required": "yes",
+      "provenance_status": "GIT_REVISION_VERIFIED"
+    },
+    {
+      "role": "source.semantic_reference",
+      "relative_path": "official_source/wan/text2video.py",
+      "size_bytes": "14679",
+      "sha256": "2f212e1f6d7ba4408a25998091b70ee35dde8bcaaeaedd3ba03d6cdab84dc683",
+      "required": "yes",
+      "provenance_status": "GIT_REVISION_VERIFIED"
+    },
+    {
+      "role": "source.semantic_reference",
+      "relative_path": "official_source/wan/utils/fm_solvers.py",
+      "size_bytes": "40142",
+      "sha256": "b870bdc7253593b75097896b2351e74f747f76d756f58f1b4b0008d6821ae811",
+      "required": "yes",
+      "provenance_status": "GIT_REVISION_VERIFIED"
+    },
+    {
+      "role": "source.semantic_reference",
+      "relative_path": "official_source/wan/utils/fm_solvers_unipc.py",
+      "size_bytes": "32558",
+      "sha256": "0dec8c7ed17f6f2049275c6848113314da6ccec1c8db5bdc89df43c05c6038d9",
+      "required": "yes",
+      "provenance_status": "GIT_REVISION_VERIFIED"
+    }
+  ]
+}

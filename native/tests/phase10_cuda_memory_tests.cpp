@@ -92,6 +92,16 @@ int main() {
         std::vector<vrhino::MemoryAccess> trace = high.end_memory_trace();
         std::vector<float> expected_values = host_values(high, expected);
 
+        // Isolate the optional weight cap from workspace/pool/transfer policy.
+        vrhino::CudaBackend capped;
+        capped.set_execution_dtype(DType::BF16);
+        capped.configure_memory_runtime({64 * MiB, 8 * MiB, 128 * MiB, 8 * MiB, 8 * MiB, 3 * MiB}, high_options);
+        check_close(expected_values, host_values(capped, run(capped, x, weights)));
+        const auto cap_stats = capped.memory_runtime_stats();
+        if (cap_stats.evictions == 0 || cap_stats.accounting.peak_device_resident_weight_bytes > 3 * MiB)
+            throw std::runtime_error("independent BF16 weight-cache cap did not enforce residency");
+        std::cout << "independent BF16 cache cap exact=pass evictions=" << cap_stats.evictions << "\n";
+
         vrhino::MemoryRuntimeOptions options;
         options.enabled = true;
         options.prefetch = true;

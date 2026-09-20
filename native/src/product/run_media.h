@@ -16,6 +16,7 @@ struct EncodeResult {
 void check_output_destination(const std::filesystem::path& requested, bool overwrite);
 void check_media_encoder(const std::filesystem::path& requested);
 std::filesystem::path product_encoder_path();
-EncodeResult encode_mp4(const Tensor&, int64_t, const std::filesystem::path&,
-    const std::filesystem::path&, bool, const std::function<bool()>&, float, float);
+EncodeResult encode_mp4(const Tensor& video, int64_t fps, const std::filesystem::path& encoder,
+    const std::filesystem::path& output, bool overwrite, const std::function<bool()>& cancelled,
+    float declared_minimum, float declared_maximum);
 }

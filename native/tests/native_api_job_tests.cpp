@@ -307,6 +307,30 @@ int main() {
         };
         const product::PackageIdentity legacy = publish_fixture(
             cache_root, specs / "wan2_1_t2v_1_3b/vrhino-model.json");
+        // A parseable structural package with a complete public request
+        // declaration must still be rejected before queuing any executor.
+        // As with the other API fixtures, payloads are sparse placeholders;
+        // this exercises admission, not graph or numerical qualification.
+        const auto base = product::load_model_package_manifest(
+            specs / "ltx_v0_9_1/successors/1.1.1/vrhino-model.json");
+        auto held_root = vrhino::Json::parse(base.raw_json).object();
+        auto held_identity = held_root.at("identity").object();
+        held_identity["name"] = vrhino::Json(std::string("structural-catalog"));
+        held_root["identity"] = vrhino::Json(std::move(held_identity));
+        held_root["schema_version"] = vrhino::Json(int64_t(2));
+        const vrhino::Json resource(base.runtime_artifact_id);
+        held_root["admission"] = vrhino::Json(vrhino::Json::Object{
+            {"graph_artifact", resource}, {"programs_artifact", resource},
+            {"metadata_artifact", resource}, {"source_manifest_artifact", resource},
+            {"structural_only", vrhino::Json(true)},
+            {"required_capabilities", vrhino::Json::parse(
+                R"(["binding_catalog.v1","execution.per_step.v1","sampling.flow_sigma_cfg.v1"])")},
+            {"resources", vrhino::Json(vrhino::Json::Object{
+                {"conditioning_declaration", resource}, {"conditioning_index", resource},
+                {"conditioning_weights", resource}, {"tokenizer", resource}})}});
+        const auto held_manifest = root / "held-manifest.json";
+        write_text(held_manifest, vrhino::Json(std::move(held_root)).serialize());
+        const auto held = publish_fixture(cache_root, held_manifest);
         const fs::path video = root / "input.mp4";
         const fs::path audio = root / "input.wav";
         write_text(video, "video");
@@ -322,6 +346,15 @@ int main() {
         require_test(server->bind() == config.port, "Job API bind failed");
         bool listened = false;
         listener = std::thread([&] { listened = server->listen(); });
+
+        const auto held_output = root / "held-must-not-exist.mp4";
+        const auto held_response = request(config.port, "POST", "/api/v1/runs",
+            ttv_body(held.reference(), "UNQUALIFIED", held_output));
+        const auto held_error = json(held_response, 503);
+        require_test(held_error.at("error").at("code").string() == "model_unavailable" &&
+                         !held_response.headers.contains("Location") &&
+                         !fake.called_with("UNQUALIFIED") && !fs::exists(held_output),
+                     "unqualified package was accepted as an executable job");
 
         const std::map<std::string, uint64_t> defaults = {
             {models[0].reference(), 5703}, {models[1].reference(), 5701},

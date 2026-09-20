@@ -9,6 +9,7 @@
 
 #include "vrhino/error.h"
 #include "vrhino/product/run.h"
+#include "vrhino/product/declared_run.h"
 
 namespace fs = std::filesystem;
 namespace product = vrhino::product;
@@ -187,8 +188,24 @@ int main() {
         run_options.output = parent_file / "never-start.mp4";
         run_options.encoder_path = encoder;
         int progress_events = 0;
+        // These ordering fixtures exercise legacy product behavior. A default
+        // schema=0 object is not an admitted schema1 manifest.
+        product::ResolvedRunnableModel legacy_model;
+        legacy_model.manifest.schema_version = 1;
+        product::ResolvedRunnableModel held_catalog;
+        held_catalog.manifest.schema_version = 2;
+        expect_code(product::ModelPackageErrorCode::PackageVersionUnsupported, [&] {
+            (void)product::run_runnable_model(held_catalog, run_options,
+                [&](const product::RunEvent&) { ++progress_events; });
+        }, "held catalog rejected before output or numerical work");
+        require_test(progress_events == 0, "Held catalog emitted runtime progress");
+        expect_code(product::ModelPackageErrorCode::PackageVersionUnsupported, [&] {
+            (void)product::run_declared_text_product(held_catalog, run_options,
+                [&](const product::RunEvent&) { ++progress_events; });
+        }, "direct declared executor cannot bypass numerical admission");
+        require_test(progress_events == 0, "Direct held executor emitted runtime progress");
         expect_code(product::ModelPackageErrorCode::OutputInvalid, [&] {
-            (void)product::run_runnable_model({}, run_options,
+            (void)product::run_runnable_model(legacy_model, run_options,
                 [&](const product::RunEvent&) { ++progress_events; });
         }, "run output preflight ordering");
         require_test(progress_events == 0,
@@ -197,7 +214,7 @@ int main() {
         run_options.output = root / "encoder-ordering.mp4";
         run_options.encoder_path = root / "missing-encoder";
         expect_code(product::ModelPackageErrorCode::VideoEncodingFailed, [&] {
-            (void)product::run_runnable_model({}, run_options,
+            (void)product::run_runnable_model(legacy_model, run_options,
                 [&](const product::RunEvent&) { ++progress_events; });
         }, "run encoder preflight ordering");
         require_test(progress_events == 0,
@@ -206,6 +223,7 @@ int main() {
                      "failed run preflight left output files");
 
         product::ResolvedRunnableModel lip_sync_model;
+        lip_sync_model.manifest.schema_version = 1;
         lip_sync_model.manifest.product.family = "lip_sync";
         lip_sync_model.manifest.product.status = "technical_private";
         lip_sync_model.manifest.product.workflow_identity = "lip_sync_workflow_v1";
@@ -224,6 +242,7 @@ int main() {
         }, "lip-sync invalid output before component execution");
 
         product::ResolvedRunnableModel diffusion_model;
+        diffusion_model.manifest.schema_version = 1;
         diffusion_model.manifest.product.family = "lip_sync";
         diffusion_model.manifest.product.status = "technical_private";
         diffusion_model.manifest.product.workflow_identity =

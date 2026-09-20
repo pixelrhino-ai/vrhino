@@ -351,6 +351,12 @@ std::string file_digest(const std::filesystem::path& path,
 
 }  // namespace sha256_testing
 
+std::string sha256_bytes(std::string_view bytes) {
+    Sha256 hash;
+    hash.update(reinterpret_cast<const uint8_t*>(bytes.data()), bytes.size());
+    return hex_digest(hash.finish());
+}
+
 std::string sha256_file(const std::filesystem::path& path,
                         const WorkProgressCallback& progress) {
     std::ifstream input(path, std::ios::binary);

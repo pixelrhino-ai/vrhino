@@ -15,6 +15,10 @@ struct JsonParseLimits {
     size_t maximum_container_entries = 1024;
     size_t maximum_total_values = 4096;
     size_t maximum_string_bytes = 32 * 1024;
+    // Opt-in for external descriptive metadata containing unbounded numeric
+    // sentinels. Such values become doubles; integer() still rejects them.
+    // Package, shape, identity and request parsing remain strict by default.
+    bool oversized_integer_as_float = false;
 };
 
 class Json {

@@ -21,6 +21,68 @@ void require_finite(const vrhino::Tensor& value, const std::string& name) {
                         name + " contains non-finite value");
 }
 
+void require_rope_product_boundaries(vrhino::CudaBackend& backend) {
+    using namespace vrhino;
+    // Analytic cancellation: (1+2^-23)*(1-2^-23) rounds to 1 in F32.
+    // Separate product/add therefore gives zero; contraction gives -2^-46.
+    const float u = std::ldexp(1.0f, -23);
+    const Tensor x = backend.copy_to_device(
+        host_f32({1, 1, 1, 2}, {1.0f + u, 1.0f}), DType::F32);
+    const Tensor c = backend.copy_to_device(
+        host_f32({1, 1, 1, 2}, {1.0f - u, 0.0f}), DType::F32);
+    const Tensor s = backend.copy_to_device(
+        host_f32({1, 1, 1, 2}, {1.0f, 0.0f}), DType::F32);
+    const Tensor result = backend.copy_to_host(backend.rope_nd(x, c, s));
+    require(result.dtype() == DType::F32 && result.data_as<float>()[0] == 0.0f,
+            "RoPE contracted an F32 product across the addition boundary");
+
+    // Cover broadcasting, pair orientation, tails and all input/frequency dtype
+    // combinations. Volatile stores make the host oracle's rounding explicit.
+    for (const int64_t width : {6, 64, 128}) {
+        std::vector<float> values(3 * 2 * width), cosine(3 * width), sine(3 * width);
+        for (size_t i = 0; i < values.size(); ++i)
+            values[i] = std::sin(static_cast<float>(i + 1) * 0.173f);
+        for (size_t i = 0; i < cosine.size(); ++i) {
+            const float phase = static_cast<float>(i / 2 + 1) * 0.137f;
+            cosine[i] = std::cos(phase);
+            sine[i] = std::sin(phase);
+        }
+        for (const auto input_dtype : {DType::F32, DType::BF16}) {
+            for (const auto frequency_dtype : {DType::F32, DType::BF16}) {
+                const Tensor input = backend.copy_to_device(
+                    host_f32({1, 3, 2, width}, values), input_dtype);
+                const Tensor co = backend.copy_to_device(
+                    host_f32({1, 3, 1, width}, cosine), frequency_dtype);
+                const Tensor si = backend.copy_to_device(
+                    host_f32({1, 3, 1, width}, sine), frequency_dtype);
+                const Tensor ih = backend.copy_to_host(backend.cast(input, DType::F32));
+                const Tensor ch = backend.copy_to_host(backend.cast(co, DType::F32));
+                const Tensor sh = backend.copy_to_host(backend.cast(si, DType::F32));
+                std::vector<float> expected(values.size());
+                for (int64_t i = 0; i < input.numel(); ++i) {
+                    const int64_t column = i % width;
+                    const int64_t pair = i - column + (column ^ 1);
+                    const int64_t frequency = (i / (2 * width)) * width + column;
+                    const float rotated = (column & 1) ? ih.data_as<float>()[pair]
+                                                      : -ih.data_as<float>()[pair];
+                    volatile float first = ih.data_as<float>()[i] * ch.data_as<float>()[frequency];
+                    volatile float second = rotated * sh.data_as<float>()[frequency];
+                    expected[i] = first + second;
+                }
+                const Tensor actual = backend.rope_nd(input, co, si);
+                require(actual.dtype() == input_dtype && actual.shape() == input.shape(),
+                        "RoPE changed its storage dtype or shape");
+                const Tensor ah = backend.copy_to_host(backend.cast(actual, DType::F32));
+                const Tensor eh = backend.copy_to_host(backend.cast(backend.copy_to_device(
+                    host_f32(input.shape(), expected), input_dtype), DType::F32));
+                for (int64_t i = 0; i < actual.numel(); ++i)
+                    require(ah.data_as<float>()[i] == eh.data_as<float>()[i],
+                            "RoPE pair/broadcast/product-rounding contract mismatch");
+            }
+        }
+    }
+}
+
 }  // namespace
 
 int main() {
@@ -28,6 +90,7 @@ int main() {
         using namespace vrhino;
         CudaBackend backend;
         backend.set_execution_dtype(DType::BF16);
+        require_rope_product_boundaries(backend);
         const PrecisionPolicy policy = PrecisionPolicy::unqualified_default(DType::BF16);
 
         // Non-tile-aligned widths deliberately exercise tail/layout handling.

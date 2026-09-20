@@ -29,6 +29,7 @@ struct ProductRunDocument {
     Json::Object inputs;
     Json::Object parameters;
     Json::Object outputs;
+    RunResources resources;
 };
 
 // Parses only the stable Product request envelope. Model-specific field

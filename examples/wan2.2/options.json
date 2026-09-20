@@ -1,0 +1,19 @@
+{
+  "schema": "vrhino.product-evaluation.v1",
+  "precision": "bf16",
+  "precision_policy_artifact": "qualification-precision",
+  "mode": "video",
+  "max_steps": 40,
+  "device_budget_bytes": 81604378624,
+  "host_budget_bytes": 214748364800,
+  "max_output_bytes": 1073741824,
+  "max_latent_elements": 2096640,
+  "max_video_elements": 97044480,
+  "timeout_seconds": 1800,
+  "fps": 16,
+  "media_range": [
+    -1,
+    1
+  ],
+  "weight_cache_budget_bytes": 32212254720
+}

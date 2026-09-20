@@ -80,6 +80,9 @@ struct ProductFrozenSampling {
     std::optional<uint64_t> steps;
     std::optional<double> guidance_scale;
     std::optional<double> eta;
+    // Alternative to legacy scalar sampling fields. The package admission
+    // validates this reference against its canonical program artifact.
+    std::optional<std::string> program_artifact;
 };
 
 struct ProductFrozenTemporal {

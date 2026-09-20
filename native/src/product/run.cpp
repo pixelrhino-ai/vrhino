@@ -1,4 +1,5 @@
 #include "vrhino/product/run.h"
+#include "vrhino/product/declared_run.h"
 #include "run_media.h"
 
 #include <algorithm>
@@ -467,6 +468,13 @@ std::filesystem::path default_media_encoder_path() {
 
 RunResult run_runnable_model(const ResolvedRunnableModel& model,
                              const RunOptions& options, RunEventSink progress) {
+    require_numerical_product_admission(model.manifest);
+    if (model.manifest.schema_version == 2)
+        return run_declared_text_product(model, options, std::move(progress));
+    if (options.resources.weight_cache_budget_bytes &&
+        model.manifest.product.family != "text_to_video")
+        product_fail(ModelPackageErrorCode::InvalidInput,
+                     "this product workflow does not support a weight cache budget");
     if (model.manifest.product.family == "lip_sync" &&
         model.manifest.product.workflow_identity ==
             "lip_sync_diffusion_workflow_v1")
@@ -544,6 +552,7 @@ RunResult run_runnable_model(const ResolvedRunnableModel& model,
             static_cast<size_t>(memory.at("host_budget_bytes").integer()),
             static_cast<size_t>(memory.at("host_staging_bytes").integer()),
             static_cast<size_t>(memory.at("safety_margin_bytes").integer())};
+        budget = constrain_run_memory(budget, options.resources);
         MemoryRuntimeOptions memory_options;
         memory_options.enabled = true;
         memory_options.host_staging = false;

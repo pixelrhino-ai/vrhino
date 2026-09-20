@@ -30,8 +30,9 @@ Tensor NativeRuntime::decode_component(Architecture& architecture,
 RuntimeResult NativeRuntime::execute_impl(Architecture& architecture,
                                           const TensorBundle& input,
                                           const Tensor* external_initial_state) {
+    backend_.admit_execution_resources();
     const auto started = std::chrono::steady_clock::now();
-    auto denoiser = architecture.create_denoiser(backend_, policy_, input);
+    auto execution = architecture.create_execution_setup(backend_, policy_, input);
     SamplingProgram program = architecture.create_program(input);
     SamplingRuntime sampling_runtime(backend_, policy_);
     sampling_runtime.set_step_observer(sampling_step_observer_);
@@ -39,9 +40,9 @@ RuntimeResult NativeRuntime::execute_impl(Architecture& architecture,
     {
         BackendProfileRegion region(backend_, "runtime.sampling");
         sampling = external_initial_state
-            ? sampling_runtime.run_with_external_initial_state_for_test(
-                  *denoiser, program, *external_initial_state)
-            : sampling_runtime.run(*denoiser, program);
+            ? sampling_runtime.run_with_initial_state(
+                  execution.context, execution.program, program, *external_initial_state)
+            : sampling_runtime.run(execution.context, execution.program, program);
     }
     const auto decode_started = std::chrono::steady_clock::now();
     Tensor video;

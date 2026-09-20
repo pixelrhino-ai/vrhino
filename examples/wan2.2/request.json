@@ -1,0 +1,9 @@
+{
+  "schema": "vrhino.product-text-request.v1",
+  "prompt": "A red panda runs through fresh snow, natural daylight, smooth tracking shot.",
+  "negative_prompt": "blurry, distorted",
+  "seed": 5701,
+  "width": 832,
+  "height": 480,
+  "frames": 81
+}

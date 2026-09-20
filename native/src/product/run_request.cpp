@@ -152,7 +152,7 @@ void map_group(const std::string& group_name,
 ProductRunDocument parse_product_run_document(const Json& value) {
     if (!value.is_object()) invalid("run request must be an object");
     static const std::set<std::string> admitted = {
-        "inputs", "model", "outputs", "parameters"};
+        "inputs", "model", "outputs", "parameters", "resources"};
     for (const auto& [name, ignored] : value.object()) {
         (void)ignored;
         if (!admitted.contains(name))
@@ -169,6 +169,11 @@ ProductRunDocument parse_product_run_document(const Json& value) {
     result.inputs = optional_group(value, "inputs");
     result.parameters = optional_group(value, "parameters");
     result.outputs = optional_group(value, "outputs");
+    try {
+        result.resources = parse_run_resources(Json(Json::Value(optional_group(value, "resources"))));
+    } catch (const ModelPackageError& error) {
+        invalid(error.what());
+    }
     return result;
 }
 
@@ -190,6 +195,10 @@ RunOptions map_product_run_options(const ResolvedRunnableModel& model,
     map_group("outputs", schema.outputs, request.outputs, result);
     result.overwrite = false;
     result.debug = false;
+    result.resources = request.resources;
+    if (result.resources.weight_cache_budget_bytes &&
+        model.manifest.product.family != "text_to_video")
+        invalid("this product workflow does not support a weight cache budget");
     return result;
 }
 

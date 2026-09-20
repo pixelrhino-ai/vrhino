@@ -25,7 +25,8 @@ std::pair<Tensor, Tensor> timestep_conditioning(Backend& backend,
                                                 const Tensor& sigma) {
     const int64_t batch = sigma.dim(0), tokens = sigma.numel() / batch;
     Tensor embedding = backend.sinusoidal_embedding(
-        backend.reshape(backend.mul(sigma, scalar_f32(1000.0f)), {-1}), 256, true, 0.0, false);
+        backend.reshape(precision_scalar_binary(backend, policy, PrecisionScalarRole::TimestepScale,
+            ScalarBinaryOperation::Multiply, sigma, scalar_f32(1000.0f)), {-1}), 256, true, 0.0, false);
     embedding = operation_linear(
         backend, policy, PrecisionOperation::Modulation,
         PrecisionSemantic::TemporaryCompute, embedding,

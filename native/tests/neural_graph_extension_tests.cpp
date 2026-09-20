@@ -123,10 +123,21 @@ void numerical() {
     Tensor i32=Tensor::host({3},DType::I32);int32_t ids[]={3,0,3};std::memcpy(i32.data(),ids,sizeof(ids));
     auto g32=g;g32.values[1].dtype=DType::I32;
     compare(backend,g32,{table,i32},{9,10,11,0,1,2,9,10,11},"non_h3_t5_row_gather_i32");
-    bool rejected=false;try{(void)ng::evaluate(backend,ng::admit(g),{table,host_i64({3},{0,4,1})},{});}
-    catch(const ng::GraphError& e){rejected=e.phase==ng::Phase::Run;}
-    check(rejected,"Out of range gather must fail before kernel");
-    compare(backend,g,{table,host_i64({3},{3,0,3})},{9,10,11,0,1,2,9,10,11},"gather_recovery");
+    {
+        // A failed CUDA operation retires its resource session. Recovery uses
+        // another session, never the Backend whose transaction failed.
+        CudaBackend failed_backend;failed_backend.set_execution_dtype(DType::F32);
+        bool rejected=false;
+        try{(void)ng::evaluate(failed_backend,ng::admit(g),{table,host_i64({3},{0,4,1})},{});}
+        catch(const ng::GraphError& e){rejected=e.phase==ng::Phase::Run;}
+        check(rejected,"Out of range gather must fail before kernel");
+        check(failed_backend.resource_session_terminal(),"Failed gather must retire resource session");
+        rejected=false;
+        try{(void)ng::evaluate(failed_backend,ng::admit(g),{table,host_i64({3},{3,0,3})},{});}
+        catch(const ng::GraphError&){rejected=true;}
+        check(rejected,"Terminal gather session must reject reuse");
+    }
+    compare(backend,g,{table,host_i64({3},{3,0,3})},{9,10,11,0,1,2,9,10,11},"gather_other_session_recovery");
     // Generic adjacent RoPE, two heads and token-varying frequencies (Wan semantic).
     std::vector<float> x(24),co(12),si(12),expected(24);
     for(int i=0;i<24;++i)x[i]=(i-11)/16.f;

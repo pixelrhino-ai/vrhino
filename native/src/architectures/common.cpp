@@ -7,6 +7,12 @@
 
 namespace vrhino {
 
+ExecutionSetup Architecture::create_execution_setup(Backend& backend,
+        const PrecisionPolicy& policy, const TensorBundle& input) {
+    return {ExecutionContext::legacy(create_denoiser(backend, policy, input)),
+            ExecutionProgram::uniform(ComponentInstanceID{0})};
+}
+
 const Tensor& WeightMap::at(const std::string& name) const {
     const auto found = values_.find(prefix_ + name);
     require(found != values_.end(), "Missing architecture weight: " + prefix_ + name);
