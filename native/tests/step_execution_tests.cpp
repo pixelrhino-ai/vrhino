@@ -2,7 +2,13 @@
 #include <limits>
 
 #include "step_execution_test_support.h"
+// Windows SDK headers define this object-like macro. The public execution
+// header and its accessor must compile without undefining a caller's macro.
+#define interface struct
 #include "vrhino/execution.h"
+interface WindowsInterfaceMacroPreserved { int value; };
+using ComponentInterfaceAccessor = decltype(&vrhino::ComponentGraphDefinition::component_interface);
+#undef interface
 #include "vrhino/runtime.h"
 
 using namespace vrhino;

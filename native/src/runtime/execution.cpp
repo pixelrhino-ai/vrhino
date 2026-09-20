@@ -86,9 +86,9 @@ void GuidanceSchedule::validate(size_t steps) const {
     }
 }
 
-ComponentGraphDefinition::ComponentGraphDefinition(ComponentInterface interface,
+ComponentGraphDefinition::ComponentGraphDefinition(ComponentInterface component_contract,
         std::vector<ExecutionTensorContract> parameters, Factory factory)
-    : interface_(std::move(interface)), parameters_(std::move(parameters)), factory_(std::move(factory)) {
+    : interface_(std::move(component_contract)), parameters_(std::move(parameters)), factory_(std::move(factory)) {
     require(static_cast<bool>(factory_), "Missing component graph factory");
     require(!interface_.predictions.empty(), "Empty component prediction interface");
 }
@@ -198,25 +198,25 @@ std::vector<const ComponentInstance*> ExecutionProgram::admit(const ExecutionCon
     }
     // Validate the entire catalog, including presently unselected candidates.
     if (!context.is_legacy()) {
-        const auto& expected = context.instances().front().graph()->interface();
+        const auto& expected = context.instances().front().graph()->component_interface();
         const auto mode = sampling.guidance_schedule ? sampling.guidance_schedule->at(0).mode : sampling.guidance_mode;
         for (const auto& instance : context.instances()) {
-            const auto& interface = instance.graph()->interface();
-            require(interface == expected, "Incompatible component interfaces");
-            require(interface.latent.shape == sampling.latent_shape && interface.latent.dtype == state_dtype,
+            const auto& component_contract = instance.graph()->component_interface();
+            require(component_contract == expected, "Incompatible component interfaces");
+            require(component_contract.latent.shape == sampling.latent_shape && component_contract.latent.dtype == state_dtype,
                     "Component latent shape/dtype contract mismatch");
-            require(interface.guidance_mode == mode && interface.predictions.size() == branch_count(sampling),
+            require(component_contract.guidance_mode == mode && component_contract.predictions.size() == branch_count(sampling),
                     "Component guidance branch contract mismatch");
-            require(interface.prediction == (sampling.contract ? std::optional(sampling.contract->prediction.semantic)
+            require(component_contract.prediction == (sampling.contract ? std::optional(sampling.contract->prediction.semantic)
                                                                : std::nullopt),
                     "Component prediction semantic mismatch");
-            for (const auto& output : interface.predictions)
+            for (const auto& output : component_contract.predictions)
                 require(output.shape == sampling.latent_shape &&
                             (output.dtype == DType::F32 || output.dtype == DType::BF16),
                         "Component prediction shape/dtype contract mismatch");
             validate_parameters(*instance.graph(), instance.parameters());
             for (size_t step = 0; step < steps; ++step)
-                validate_tensor(sampling.model_timestep_at(static_cast<int>(step)), interface.timestep);
+                validate_tensor(sampling.model_timestep_at(static_cast<int>(step)), component_contract.timestep);
         }
     }
     std::vector<const ComponentInstance*> result;
@@ -239,7 +239,7 @@ std::vector<const ComponentInstance*> ExecutionProgram::admit(const ExecutionCon
 void validate_component_predictions(const ComponentInstance& instance,
                                     const std::vector<Tensor>& predictions) {
     if (!instance.graph()) return;  // Existing legacy numerical interface.
-    const auto& expected = instance.graph()->interface().predictions;
+    const auto& expected = instance.graph()->component_interface().predictions;
     require(predictions.size() == expected.size(), "Component returned wrong prediction count");
     for (size_t i = 0; i < predictions.size(); ++i) validate_tensor(predictions[i], expected[i]);
 }

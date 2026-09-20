@@ -40,9 +40,9 @@ public:
     // Factory may retain Tensor handles/elements, but not a reference to the
     // vector object itself (the owning instance is move-constructed).
     using Factory = std::function<std::unique_ptr<Denoiser>(const std::vector<Tensor>&)>;
-    ComponentGraphDefinition(ComponentInterface interface,
+    ComponentGraphDefinition(ComponentInterface component_contract,
                              std::vector<ExecutionTensorContract> parameters, Factory factory);
-    const ComponentInterface& interface() const { return interface_; }
+    const ComponentInterface& component_interface() const { return interface_; }
     const std::vector<ExecutionTensorContract>& parameters() const { return parameters_; }
     std::unique_ptr<Denoiser> instantiate(const std::vector<Tensor>& parameters) const;
 private:

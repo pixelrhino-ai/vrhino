@@ -236,7 +236,7 @@ void packages(const fs::path& root) {
     two=replace(two,"\"id\":1,\"graph\":0,\"binding\":20","\"id\":1,\"graph\":1,\"binding\":20");
     int calls=0;
     auto incompatible=PackageDeclaration::parse(Json::parse(two)).admit(model,[&](const Json& j) {
-        auto g=lower(j);if(++calls==2) {auto i=g.executable->interface();i.conditioning_contract=7;
+        auto g=lower(j);if(++calls==2) {auto i=g.executable->component_interface();i.conditioning_contract=7;
             g.executable=std::make_shared<const ComponentGraphDefinition>(i,g.executable->parameters(),
                 [&](const std::vector<Tensor>& p){return std::make_unique<st::LegacyDenoiser>(backend,p[0]);});}return g;
     }).create_context();

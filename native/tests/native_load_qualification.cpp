@@ -105,7 +105,7 @@ int main(int argc,char** argv){try{
     require(lower_calls==1 && backend->conditioning_calls==0,"Admission must lower once before endpoint creation");
     auto context=std::make_unique<ExecutionContext>(admitted->create_context());
     require(context->at({0}).graph()==context->at({1}).graph() && context->at({0}).binding_id().value==0 && context->at({1}).binding_id().value==1,"Shared graph/separate binding identity");
-    require(context->at({0}).graph()->interface()==context->at({1}).graph()->interface(),"Interface mismatch");
+    require(context->at({0}).graph()->component_interface()==context->at({1}).graph()->component_interface(),"Interface mismatch");
     uint64_t bound_bytes=0;std::set<const void*> addresses;
     for(const auto& instance:context->instances()){
         require(instance.parameters().size()==1095,"Real instance slots");
