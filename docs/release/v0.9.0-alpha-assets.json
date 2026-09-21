@@ -1,0 +1,43 @@
+{
+  "schema": "vrhino.release-publication-record.v1",
+  "version": "v0.9.0-alpha",
+  "release_url": "https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.9.0-alpha",
+  "published_at": "2026-09-20T17:05:38Z",
+  "prerelease": true,
+  "platforms": [
+    "linux-x86_64-cuda"
+  ],
+  "source_commit": "8584cec12016b18a822843362c357ada06e19cd8",
+  "main_integration_commit": "142bc572bf5a9f72e61ad6bc72b30717c641ded9",
+  "source_tree": "c5fe33678adc2e4a51cc9480d1405e14517249e3",
+  "integration_method": "squash; source and integration trees identical",
+  "embedded_binary_git_head": "unknown; identified by exact source archive and external source manifest",
+  "numerical_qualification": "HOLD retained; scoped alpha support",
+  "assets": [
+    {
+      "name": "vrhino-linux-x86_64-cuda-v0.9.0-alpha-candidate.tar.gz",
+      "size_bytes": 1449009466,
+      "sha256": "e531f218fecf8316145ee336b009da9826c79dbc7b704736a8d455449b96c0fd",
+      "download_url": "https://github.com/pixelrhino-ai/vrhino/releases/download/v0.9.0-alpha/vrhino-linux-x86_64-cuda-v0.9.0-alpha-candidate.tar.gz"
+    },
+    {
+      "name": "vrhino-linux-x86_64-cuda-v0.9.0-alpha-candidate.tar.gz.sha256",
+      "size_bytes": 121,
+      "sha256": "177b01314c156c6b8a7109c2dce31dd25c6aab3c6c425b50930187d1dcb0b241",
+      "download_url": "https://github.com/pixelrhino-ai/vrhino/releases/download/v0.9.0-alpha/vrhino-linux-x86_64-cuda-v0.9.0-alpha-candidate.tar.gz.sha256"
+    },
+    {
+      "name": "vrhino-source-v0.9.0-alpha-candidate.tar.gz",
+      "size_bytes": 34597282,
+      "sha256": "7aad25a16e94cf91f2906e1924f97a0b9ba2e11c64a36d931f9b39477623a883",
+      "download_url": "https://github.com/pixelrhino-ai/vrhino/releases/download/v0.9.0-alpha/vrhino-source-v0.9.0-alpha-candidate.tar.gz"
+    },
+    {
+      "name": "vrhino-source-v0.9.0-alpha-candidate.tar.gz.sha256",
+      "size_bytes": 110,
+      "sha256": "3de4f94b266e02dbc37af9a17b603c672f5aa00846a1969021c1aa7508b44068",
+      "download_url": "https://github.com/pixelrhino-ai/vrhino/releases/download/v0.9.0-alpha/vrhino-source-v0.9.0-alpha-candidate.tar.gz.sha256"
+    }
+  ],
+  "source_manifest_sha256": "58d2881d4bc6d68c09cf46e5a5aa263652dbebe304985f3f23678049f2577222"
+}

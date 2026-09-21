@@ -34,15 +34,16 @@ comparable to llama.cpp today.
 
 ## Release status
 
-v0.9.0-alpha is in preparation for Linux CUDA, with Wan2.2 native video
-generation through `vrhino evaluate` and configurable weight-cache budgets.
-See the [v0.9 alpha notes](docs/release/v0.9.0-alpha.md) and
-[Wan2.2 tested setup](docs/release/v0.9-wan2.2-known-limitations.md).
+**[v0.9.0-alpha is available for Linux x86_64 CUDA](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.9.0-alpha)**,
+with Wan2.2 native video generation through `vrhino evaluate` and configurable
+weight-cache budgets. Start with the [installation guide](docs/install.md) and
+[Wan2.2 quick start](docs/models/wan2.2-quickstart.md).
+See the [published release record](docs/release/v0.9.0-alpha.md) for exact assets
+and the [tested setup](docs/release/v0.9-wan2.2-known-limitations.md).
 
-The current published release is **v0.8.0-alpha**, the first release line with a
-qualified native Windows x64 CUDA package. The Linux and Windows assets were
-built from `d460de0a152c9ff92553b17ca37e4b5554c8c766`. Published v0.7.0-alpha
-remains immutable and Linux-scoped.
+**Windows remains on v0.8.0-alpha**; v0.9 Windows packages are not yet qualified.
+The historical v0.8 Linux and Windows assets were built from
+`d460de0a152c9ff92553b17ca37e4b5554c8c766` and remain unchanged.
 
 The frozen Windows rc9 passed clean-host qualification on Windows 10 Pro 22H2 /
 build 19045, RTX 3090 24 GiB, and NVIDIA driver 610.47. Wan, LTX, MuseTalk, and
@@ -75,8 +76,8 @@ The exact v0.6.0-alpha Public model set is:
 
 ## Install
 
-Use the [installation guide](docs/install.md) for the v0.8 Linux archive and
-Windows rc9 ZIP. No model weights or converted VRMs are included. The
+Use the [installation guide](docs/install.md) for the v0.9 Linux archive and
+the existing v0.8 Windows rc9 ZIP. No model weights or converted VRMs are included. The
 historical v0.7 release and its assets remain unchanged.
 
 Keep the entire package directory intact. Windows packages place `vrhino.exe`,
@@ -85,6 +86,11 @@ manual CUDA library search path is needed. Verify the downloaded archive's
 published SHA256 and run `--version`, `device` and `doctor` from that package.
 
 ## CLI examples
+
+For Wan2.2 on Linux v0.9, follow the [native quick start](docs/models/wan2.2-quickstart.md).
+It uses the bundled local package example and `vrhino evaluate`; ordinary
+schema2 `run` support is pending. The following `pull` / `run` examples are the
+existing schema1 model paths.
 
 The model package identities introduced in v0.6.0-alpha remain unchanged.
 Platform qualification is tracked separately in the v0.8 support matrix:
