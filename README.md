@@ -10,18 +10,24 @@ English | [简体中文](README.zh-CN.md)
 
 ## Install
 
-Download **[v0.9.0-alpha for Linux CUDA](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.9.0-alpha)**.
-Windows users can use the existing **[v0.8 CUDA package](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.8.0-alpha)**.
-Verify the checksum, extract the complete package and add its executable directory to PATH:
-[installation steps](docs/install.md).
+Linux x86_64 — install **v0.9.0-alpha** with one command (no sudo):
 
 ```bash
-vrhino --version
+curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/main/install.sh | sh
+```
+
+The installer downloads and verifies the package, then configures your command
+path. Follow its final PATH instruction for the current terminal, then run:
+
+```bash
 vrhino doctor
 ```
 
+[Manual download / installation options](docs/install.md) ·
+[Windows v0.8 CUDA package](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.8.0-alpha)
+
 A compatible NVIDIA GPU/driver and sufficient memory are required. Model weights
-are downloaded separately; native execution needs no Python or CUDA Toolkit installation.
+are separate; native execution needs no Python or CUDA Toolkit installation.
 
 ## Available models
 

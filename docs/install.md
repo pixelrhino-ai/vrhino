@@ -30,6 +30,55 @@ CMake, Ninja, MSYS2/MinGW or WSL for the Windows product. VRhino
 bundles the required user-space runtime and media components. The host NVIDIA
 Driver remains required.
 
+## Linux one-command installation
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/main/install.sh | sh
+```
+
+The POSIX shell installer supports Linux x86_64 with glibc 2.35 or newer. It uses
+curl, tar and standard Linux command-line tools, without sudo, Python, a model
+download or GPU execution. The current script selects the published v0.9 alpha
+explicitly (GitHub's `latest` release can still point to the older stable entry).
+
+It verifies a SHA256 pinned in the script before extracting, checks the package's
+`SHA256SUMS`, and tests `--version` before activating the installation. Downloads
+use HTTPS and retry transient failures. Interrupted installs can be rerun.
+The package is about 1.45 GB compressed / 2.1 GB extracted; allow at least 4 GB
+free for staging, plus separate model storage.
+
+Default locations:
+
+- Package: `${XDG_DATA_HOME:-$HOME/.local/share}/vrhino-v0.9.0-alpha`
+- Commands: `~/.local/bin/vrhino` and `~/.local/bin/vrhino-wan-family-convert`
+
+The installer adds PATH entries to `.profile` and applicable Bash/Zsh profiles
+without duplicating them. A child shell cannot change the current terminal's
+PATH, so follow the printed `export PATH=...` instruction or open a new shell.
+It does not overwrite unrelated executables or an existing manually installed
+package. Repeating installation verifies and reuses its own intact package.
+An install lock prevents two installers using the same prefix concurrently.
+
+To inspect the script first or choose locations:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/main/install.sh -o install.sh
+sh install.sh --help
+sh install.sh --prefix "$HOME/apps/vrhino-v0.9.0-alpha" --bin-dir "$HOME/.local/bin"
+```
+
+`--no-modify-path` leaves shell profiles unchanged. `--archive /path/to/archive`
+uses an already downloaded archive with the same pinned SHA256; it does not
+accept arbitrary builds. `VRHINO_INSTALL_DIR` and `VRHINO_BIN_DIR` are equivalent
+to the corresponding location options when set in the installer environment.
+When using a custom package location, use that location as `VRHINO_ROOT` in the
+Wan2.2 quick start. Existing installations made by manual extraction should use
+their existing commands or choose a fresh prefix rather than overwrite them.
+
+The installer prints progress and exits nonzero on failure. It does not install
+an NVIDIA driver or establish model/hardware qualification; run `vrhino doctor`
+after installation. For manual installation, use the instructions below.
+
 ## Linux download
 
 Download these two files from the
