@@ -4,248 +4,83 @@
 
 # VRhino
 
-**Native runtime for local AI video models.**
+**Run AI video models locally with a shared native runtime — no per-model Python environment.**
 
 English | [简体中文](README.zh-CN.md)
 
-VRhino is a self-contained native runtime and model packaging system for
-running AI video models locally without model-specific Python environments.
-
-## What is VRhino?
-
-VRhino explores a GGUF + llama.cpp-like distribution and runtime model for AI
-video generation. It converts supported checkpoints into `.vrm` packages and
-runs them through a shared native runtime.
-
-```text
-Model / Checkpoint
-        ↓
-VRhino conversion
-        ↓
-      .vrm
-        ↓
-Shared Native Runtime
-        ↓
-     Backend
-```
-
-The project is still an Alpha. Its model coverage and maturity are not
-comparable to llama.cpp today.
-
-## Release status
-
-**[v0.9.0-alpha is available for Linux x86_64 CUDA](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.9.0-alpha)**,
-with Wan2.2 native video generation through `vrhino evaluate` and configurable
-weight-cache budgets. Start with the [installation guide](docs/install.md) and
-[Wan2.2 quick start](docs/models/wan2.2-quickstart.md).
-See the [published release record](docs/release/v0.9.0-alpha.md) for exact assets
-and the [tested setup](docs/release/v0.9-wan2.2-known-limitations.md).
-
-**Windows remains on v0.8.0-alpha**; v0.9 Windows packages are not yet qualified.
-The historical v0.8 Linux and Windows assets were built from
-`d460de0a152c9ff92553b17ca37e4b5554c8c766` and remain unchanged.
-
-The frozen Windows rc9 passed clean-host qualification on Windows 10 Pro 22H2 /
-build 19045, RTX 3090 24 GiB, and NVIDIA driver 610.47. Wan, LTX, MuseTalk, and
-LatentSync passed their native product paths. Packaged remote import passed for
-all five public models.
-
-Mochi remote import, installation, doctor, and admission passed on Windows;
-full inference was not run on the 24 GiB host because its unchanged admission
-requires 85,899,345,920 bytes of available device memory. Historical Linux
-Mochi qualification is preserved. No universal Windows/GPU or macOS support is
-claimed. See the exact [v0.8 release record](docs/release/v0.8.0-alpha.md).
-
-The self-contained product requires a compatible NVIDIA GPU and driver,
-sufficient memory/disk space, and network access for uncached model sources.
-End users do **not** install CUDA Toolkit, standalone cuDNN, Visual Studio,
-Build Tools, CMake, Ninja, Python, PyTorch, Diffusers, Transformers, Conda,
-system FFmpeg, MSYS2/MinGW or WSL. Developer build requirements are separate.
-
-The **v0.6.0-alpha** release adds machine-readable Product contracts and a
-local Native API for desktop, native, local-daemon, CLI-adjacent, and other
-community integrations.
-
-The exact v0.6.0-alpha Public model set is:
-
-- `vrhino/ltx-video-v0.9.1:1.1.1`
-- `vrhino/wan2.1-t2v-1.3b:1.0.1`
-- `vrhino/mochi-1-preview:1.0.1`
-- `vrhino/musetalk-v1.5:1.0.1`
-- `vrhino/latentsync-1.6:1.0.1`
-
 ## Install
 
-Use the [installation guide](docs/install.md) for the v0.9 Linux archive and
-the existing v0.8 Windows rc9 ZIP. No model weights or converted VRMs are included. The
-historical v0.7 release and its assets remain unchanged.
-
-Keep the entire package directory intact. Windows packages place `vrhino.exe`,
-the bundled media helper and 39 runtime DLLs together; no system FFmpeg or
-manual CUDA library search path is needed. Verify the downloaded archive's
-published SHA256 and run `--version`, `device` and `doctor` from that package.
-
-## CLI examples
-
-For Wan2.2 on Linux v0.9, follow the [native quick start](docs/models/wan2.2-quickstart.md).
-It uses the bundled local package example and `vrhino evaluate`; ordinary
-schema2 `run` support is pending. The following `pull` / `run` examples are the
-existing schema1 model paths.
-
-The model package identities introduced in v0.6.0-alpha remain unchanged.
-Platform qualification is tracked separately in the v0.8 support matrix:
-
-- `vrhino/ltx-video-v0.9.1:1.1.1`
-- `vrhino/wan2.1-t2v-1.3b:1.0.1`
-- `vrhino/mochi-1-preview:1.0.1`
-- `vrhino/musetalk-v1.5:1.0.1`
-- `vrhino/latentsync-1.6:1.0.1`
-
-The following examples use a Linux shell and an installed qualified package.
-For Windows PowerShell command syntax, see [installation](docs/install.md).
-Pull one exact model package, for example:
+Download **[v0.9.0-alpha for Linux CUDA](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.9.0-alpha)**.
+Windows users can use the existing **[v0.8 CUDA package](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.8.0-alpha)**.
+Verify the checksum, extract the complete package and add its executable directory to PATH:
+[installation steps](docs/install.md).
 
 ```bash
-vrhino pull vrhino/ltx-video-v0.9.1:1.1.1
+vrhino --version
+vrhino doctor
 ```
 
-Then generate a video:
+A compatible NVIDIA GPU/driver and sufficient memory are required. Model weights
+are downloaded separately; native execution needs no Python or CUDA Toolkit installation.
+
+## Available models
+
+| Model | Task | Entry |
+|---|---|---|
+| **Wan2.2 T2V A14B** | Text to video | Linux v0.9 · `evaluate` · [setup](docs/models/wan2.2-quickstart.md) |
+| Wan2.1 T2V 1.3B | Text to video | `pull` / `run` · `vrhino/wan2.1-t2v-1.3b:1.0.1` |
+| LTX-Video 0.9.1 | Text to video | `pull` / `run` · `vrhino/ltx-video-v0.9.1:1.1.1` |
+| Mochi 1 Preview | Text to video | `pull` / `run` · `vrhino/mochi-1-preview:1.0.1` |
+| MuseTalk 1.5 | Lip sync | `pull` / `run` · `vrhino/musetalk-v1.5:1.0.1` |
+| LatentSync 1.6 | Lip sync | `pull` / `run` · `vrhino/latentsync-1.6:1.0.1` |
+
+Hardware requirements and tested platforms vary by model; see the
+[installation and model notes](docs/install.md). VRhino is an alpha project.
+
+## Generate a video
 
 ```bash
-vrhino run vrhino/ltx-video-v0.9.1:1.1.1 \
-  --prompt "a cat walking in snow" \
-  --output output.mp4
+vrhino pull vrhino/wan2.1-t2v-1.3b:1.0.1
+vrhino run vrhino/wan2.1-t2v-1.3b:1.0.1 \
+  --prompt "a red panda running through fresh snow" --output video.mp4
 ```
 
-MuseTalk uses typed video/audio inputs instead of a prompt:
+The first `pull` downloads, verifies and converts the model into a local package.
+To use a larger model/cache disk, set `VRHINO_HOME` before pulling.
+
+### Wan2.2
+
+Follow the [Wan2.2 quick start](docs/models/wan2.2-quickstart.md) to prepare the
+model and copy the bundled example. From that example's working directory:
+
+```bash
+vrhino preflight vrhino-model.json local-resources.json
+vrhino evaluate vrhino-model.json local-resources.json request.json options.json ./output
+```
+
+Edit the prompt in `request.json`; the video is saved as `output/evaluation.mp4`.
+Use a new output directory. Wan2.2 currently uses `evaluate`, rather than ordinary
+`run`. See [tested settings and alpha notes](docs/release/v0.9-wan2.2-known-limitations.md).
+
+### Lip sync
 
 ```bash
 vrhino pull vrhino/musetalk-v1.5:1.0.1
 vrhino run vrhino/musetalk-v1.5:1.0.1 \
-  --video input.mp4 \
-  --audio driving.wav \
-  --output output.mp4
+  --video input.mp4 --audio driving.wav --output lipsync.mp4
 ```
 
-The v0.6.0-alpha release includes Public Mode-C support for:
+LatentSync uses the same video/audio command shape with its package ID above.
 
-- `vrhino/latentsync-1.6:1.0.1` (`lip_sync`)
+## More
 
-LatentSync uses the same typed video/audio CLI shape. It downloads 12 exact
-upstream inference assets and converts them locally; Pixel Rhino ships no model
-weights or converted VRMs.
+- [Installation and cache configuration](docs/install.md)
+- [Architecture](docs/architecture.md) · [Build from source](docs/source-build.md)
+- [Local Native API — v0.6.0-alpha contract](docs/api/native-api-v1.md) (`vrhino serve`)
+- [v0.9 release and checksums](docs/release/v0.9.0-alpha.md) · [Windows v0.8 scope](docs/release/v0.8.0-alpha.md)
+- [Contributing](CONTRIBUTING.md)
 
-The first pull downloads the original artifacts from the model's fixed
-upstream revision, converts them locally, and installs the runnable package in
-the local VRhino cache. The source acquisition is about 24.77 GB for LTX,
-16.36 GiB for Wan, 37.28 GiB for Mochi, and 4.01 GiB for MuseTalk. The release
-archive itself contains no model weights or converted model components.
-
-`vrhino pull` prefers the official Hugging Face endpoint and may transparently
-fall back to a third-party mirror when the official endpoint is unavailable.
-
-For a concise, privacy-safe local support report, run `vrhino doctor` or
-`vrhino doctor MODEL`. It performs no telemetry upload or automatic network
-diagnostic request.
-
-Model and cache data defaults to `~/.vrhino`. To use a larger filesystem, set
-`VRHINO_HOME` before pulling, for example:
-
-```bash
-export VRHINO_HOME=/mnt/large-disk/vrhino
-vrhino pull vrhino/ltx-video-v0.9.1:1.1.1
-```
-
-This does not change the VRhino binary installation directory. After a
-successful verified installation, pull reclaims source-only data that is no
-longer needed while preserving installed and shared CAS data.
-
-## How it works
-
-`vrhino pull` downloads a fixed upstream model revision, verifies and caches
-the source artifacts, converts them natively into the VRhino model format, and
-installs an immutable local package. `vrhino run` executes that package with
-the shared native runtime and writes an MP4 using the bundled media component.
-
-Successor packages declare their typed inputs, parameters, defaults, and
-outputs through
-[ProductInputSchema v1](docs/product/product-input-schema-v1.md). Inspect the
-same contract without parsing CLI text:
-
-```bash
-vrhino info vrhino/ltx-video-v0.9.1:1.1.1 --json
-```
-
-The primary executable also serves the local Native API introduced in v0.6.0-alpha:
-
-```bash
-vrhino serve
-# Equivalent explicit form:
-vrhino serve --host 127.0.0.1 --port 11435
-```
-
-The server is part of the primary `vrhino` executable; there is no separate
-server package and no Python or Node server dependency. Native API v1 alpha is
-a **local API**: it binds to `127.0.0.1:11435` by default, has no
-authentication, TLS, or CORS, and is not intended for direct exposure to the
-untrusted Internet. Explicit non-loopback binding emits a warning. See the
-[Native API v1 contract](docs/api/native-api-v1.md) for the complete seven-route
-contract and local absolute-path media rules.
-
-## Documentation
-
-- [Installation and system requirements](docs/install.md)
-- [v0.8 release preparation and qualification scope](docs/release/v0.8.0-alpha.md)
-- [Model commands](docs/cli/model-cli-v0.md)
-- [ProductInputSchema v1](docs/product/product-input-schema-v1.md)
-- [Model-info JSON v1](docs/product/model-info-json-v1.md)
-- [Native API v1 alpha](docs/api/native-api-v1.md)
-- [v0.6.0-alpha build-source provenance boundary](docs/release/build-source-provenance.md)
-- [`pull` command](docs/cli/pull-v0.md)
-- [`run` command](docs/cli/run-v0.md)
-- [`doctor` diagnostics](docs/cli/doctor-v0.md)
-- [LTX-Video v0.9.1 source and license notice](docs/models/ltx-video-v0.9.1.md)
-- [Wan2.1 T2V 1.3B source and license notice](docs/models/wan2.1-t2v-1.3b.md)
-- [Mochi 1 Preview source and license notice](docs/models/mochi-1-preview.md)
-- [MuseTalk v1.5 source, use and license notice](docs/models/musetalk-v1.5.md)
-- [LatentSync 1.6 source, use and license notice](docs/models/latentsync-1.6.md)
-- [VRM format specification](spec/vrm-v0.1.md)
-- [Runnable model package specification](spec/model-package-v0.md)
-
-## Alpha limitations
-
-The Linux and Windows v0.8 assets have separate exact-candidate qualification
-records. Interfaces and compatibility may change during Alpha; no claim covers
-every NVIDIA GPU, Windows/Linux version, model checkpoint, or architecture.
-macOS support is not claimed.
-
-For MuseTalk and LatentSync, technical execution and complete media validation
-are separate from manual visual sanity and objective lip-sync quality. A
-calibrated objective quality gate remains deferred; no objective quality PASS
-is claimed and its deferral is not a Windows-only technical blocker.
-
-See [Alpha limitations](docs/alpha-limitations.md) for details.
-
-## Build from source
-
-Public main contains the production source, Shared Runtime, NeuralGraph, backends, converters and native Product/API implementation. See [source build and tests](docs/source-build.md), [architecture](docs/architecture.md), [packaging](docs/source-packaging.md) and [contribution guide](CONTRIBUTING.md). Source presence does not expand historical release support; HunyuanVideo and the CogVideoX canary are not added to the v0.6 supported-model list.
-
-## License
-
-VRhino project-owned source is available under [Apache-2.0](LICENSE).
-Third-party components retain their respective licenses; see
-[third-party source notices](THIRD_PARTY_NOTICES.md). Existing released binaries
-retain their distributed [Alpha Binary License](licenses/VRHINO-BINARY-LICENSE.txt).
-
-Model licenses are independent. VRhino grants no rights to model weights,
-inputs, outputs, or other third-party content.
-
-For MuseTalk, Pixel Rhino distributes no model weights: users acquire the
-fixed upstream models and convert them locally. Use remains subject to each
-upstream license, including MuseTalk's CreativeML OpenRAIL-M use-based
-restrictions. Users are responsible for lawful and consented input media. No
-upstream endorsement is implied.
-
-The LatentSync Public package follows the same no-weight Mode-C
-boundary. LatentSync model use remains subject to the CreativeML Open RAIL++-M
-License and its Attachment A use-based restrictions.
+Project-owned source: [Apache-2.0](LICENSE). Distributed binaries retain their
+[binary license](licenses/VRHINO-BINARY-LICENSE.txt); dependencies and models retain
+their own terms. See [third-party notices](THIRD_PARTY_NOTICES.md) and
+[model license notes](docs/install.md#linux-shell-pull-and-run-examples).
