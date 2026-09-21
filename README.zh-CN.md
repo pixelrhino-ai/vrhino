@@ -10,14 +10,20 @@
 
 ## 安装
 
-下载 **[Linux CUDA v0.9.0-alpha](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.9.0-alpha)**。
-Windows 用户继续使用 **[v0.8 CUDA 包](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.8.0-alpha)**。
-校验 SHA256、完整解压，再把可执行文件目录加入 PATH：[安装步骤](docs/install.md)。
+Linux x86_64 一行安装 **v0.9.0-alpha**，无需 sudo：
 
 ```bash
-vrhino --version
+curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/main/install.sh | sh
+```
+
+脚本会下载、校验安装包并配置命令路径。当前终端按脚本末尾提示刷新 PATH，然后运行：
+
+```bash
 vrhino doctor
 ```
+
+[手动下载与安装选项](docs/install.md) ·
+[Windows v0.8 CUDA 包](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.8.0-alpha)
 
 需要兼容的 NVIDIA GPU/驱动和足够的内存。模型权重单独下载；原生执行无需安装 Python 或 CUDA Toolkit。
 
