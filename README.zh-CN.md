@@ -31,7 +31,7 @@ vrhino doctor
 
 | 模型 | 用途 | 使用入口 |
 |---|---|---|
-| **Wan2.2 T2V A14B** | 文生视频 | Linux v0.9 · `evaluate` · [上手指南](docs/models/wan2.2-quickstart.zh-CN.md) |
+| **Wan2.2 T2V A14B** | 文生视频 | `pull` / `run` · `vrhino/wan2.2-t2v-a14b:1.0.0` |
 | Wan2.1 T2V 1.3B | 文生视频 | `pull` / `run` · `vrhino/wan2.1-t2v-1.3b:1.0.1` |
 | LTX-Video 0.9.1 | 文生视频 | `pull` / `run` · `vrhino/ltx-video-v0.9.1:1.1.1` |
 | Mochi 1 Preview | 文生视频 | `pull` / `run` · `vrhino/mochi-1-preview:1.0.1` |
@@ -43,24 +43,16 @@ vrhino doctor
 ## 生成视频
 
 ```bash
-vrhino pull vrhino/wan2.1-t2v-1.3b:1.0.1
-vrhino run vrhino/wan2.1-t2v-1.3b:1.0.1 \
+vrhino pull vrhino/wan2.2-t2v-a14b:1.0.0
+vrhino run vrhino/wan2.2-t2v-a14b:1.0.0 \
   --prompt "a red panda running through fresh snow" --output video.mp4
 ```
 
 首次 `pull` 会下载、校验并转换模型，安装到本地缓存。需要把模型放到更大的磁盘时，在下载前设置 `VRHINO_HOME`。
 
-### Wan2.2
-
-先按 [Wan2.2 上手指南](docs/models/wan2.2-quickstart.zh-CN.md)准备模型并复制随包示例，然后在示例工作目录运行：
-
-```bash
-vrhino preflight vrhino-model.json local-resources.json
-vrhino evaluate vrhino-model.json local-resources.json request.json options.json ./output
-```
-
-在 `request.json` 中修改提示词，视频输出为 `output/evaluation.mp4`。输出目录必须是新目录。
-Wan2.2 当前使用 `evaluate`，普通 `run` 入口仍待接入；详见[测试配置与 Alpha 说明](docs/release/v0.9-wan2.2-known-limitations.md)。
+Wan2.2 与其他文生视频模型使用相同的 Product 命令。首次 `pull` 数据量较大，
+因为 VRhino 会校验并转换固定版本的上游权重。存储、硬件和 Alpha 资格说明见
+[Wan2.2 上手指南](docs/models/wan2.2-quickstart.zh-CN.md)。
 
 ### 口型同步
 

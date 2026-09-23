@@ -129,6 +129,9 @@ struct ModelPackageManifest {
     std::string source_revision;
     std::optional<uint64_t> minimum_vram_bytes;
     std::optional<uint64_t> recommended_vram_bytes;
+    // Schema2 packages remain numerically unqualified. A package may
+    // independently opt into the generic alpha execution path.
+    std::string execution_eligibility = "numerically_qualified";
     std::string raw_json;
 
     uint64_t logical_size() const;
@@ -136,6 +139,12 @@ struct ModelPackageManifest {
 
 // Structural admission never grants numerical execution permission.
 void require_numerical_product_admission(const ModelPackageManifest& manifest);
+
+// Product execution admission is distinct from numerical qualification.
+// Schema2 must explicitly declare alpha_unqualified; omission remains closed.
+void require_product_execution_admission(const ModelPackageManifest& manifest);
+bool product_execution_is_alpha_unqualified(
+    const ModelPackageManifest& manifest) noexcept;
 
 struct ResolvedArtifact {
     ArtifactDeclaration declaration;

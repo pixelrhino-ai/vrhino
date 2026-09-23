@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Installed/local schema2 admission equivalence; ordinary run remains fail closed.
+"""Installed/local schema2 admission equivalence; undeclared execution fails closed.
 
 Uses the small synthetic fixture emitted by schema2-request-wiring-tests.
 No GPU execution or external model asset is needed.
@@ -58,14 +58,14 @@ assert not cached_request['numerically_qualified']
 media = a.output / 'must-not-exist.mp4'
 rejected = run('ordinary-run-retains-HOLD', ['run', 'test/catalog:1', '--prompt', 'hello',
                                          '--output', str(media)], False)
-assert 'numerical qualification is HOLD' in rejected.stderr, rejected.stderr
+assert 'alpha execution was not declared' in rejected.stderr, rejected.stderr
 assert not media.exists()
 resources = a.output / 'run-resources.json'
 resources.write_text(json.dumps({'weight_cache_budget_bytes': 4096}))
 rejected = run('resource-control-cannot-bypass-HOLD',
                ['run', 'test/catalog:1', '--prompt', 'hello', '--resources', str(resources),
                 '--output', str(media)], False)
-assert 'numerical qualification is HOLD' in rejected.stderr, rejected.stderr
+assert 'alpha execution was not declared' in rejected.stderr, rejected.stderr
 assert not media.exists()
 resources.write_text(json.dumps({'weight_cache_budget_bytes': 0}))
 rejected = run('invalid-run-resource', ['run', 'test/catalog:1', '--prompt', 'hello',
@@ -79,5 +79,5 @@ bad_request = a.output / 'override.json'
 bad_request.write_text(json.dumps({**json.loads(Path(request).read_text()), 'guidance': 5}))
 run('cached-request-rejects-override', ['dry-run', 'test/catalog:1', str(bad_request)], False)
 (a.output / 'results.json').write_text(json.dumps(dict(status='PASS', cases=records,
-    scope='synthetic schema2 CLI admission/preparation; numerical execution rejected'), indent=2))
-print(f'PASS {len(records)} CLI cases; cache/local equivalence; ordinary run HOLD; no GPU execution')
+    scope='synthetic schema2 CLI admission/preparation; undeclared Product execution rejected'), indent=2))
+print(f'PASS {len(records)} CLI cases; cache/local equivalence; undeclared execution rejected; no GPU execution')

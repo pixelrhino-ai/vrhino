@@ -936,6 +936,8 @@ if(VRHINO_ENABLE_PRODUCT_CLI)
         tests/native_pull_orchestration_tests.cpp)
     target_link_libraries(vrhino-native-pull-orchestration-tests PRIVATE
         vrhino_pull_orchestration)
+    target_compile_definitions(vrhino-native-pull-orchestration-tests PRIVATE
+        VRHINO_TEST_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")
 
     add_executable(vrhino-product-schema-successor-orchestration-tests
         tests/product_schema_successor_orchestration_tests.cpp)
@@ -1120,6 +1122,14 @@ if(VRHINO_ENABLE_METAL)
 endif()
 
 if(VRHINO_ENABLE_CUDA)
+    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+        # Set this before enable_language(CUDA): CMake otherwise fills the
+        # variable from nvcc's host-dependent compiler default.
+        # Real images avoid first-run JIT on common devices; compute_80 PTX
+        # provides forward compatibility for newer compute capabilities.
+        set(CMAKE_CUDA_ARCHITECTURES
+            80-real 86-real 89-real 90-real 120-real 80-virtual)
+    endif()
     enable_language(CUDA)
     if(MSVC)
         set(CMAKE_CUDA_STANDARD 20)
@@ -1127,9 +1137,7 @@ if(VRHINO_ENABLE_CUDA)
         set(CMAKE_CUDA_STANDARD 17)
     endif()
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-        set(CMAKE_CUDA_ARCHITECTURES 89)
-    endif()
+    message(STATUS "VRhino CUDA architectures: ${CMAKE_CUDA_ARCHITECTURES}")
 
     find_package(CUDAToolkit REQUIRED)
     find_library(CUDNN_LIBRARY cudnn REQUIRED)
@@ -1259,6 +1267,10 @@ if(VRHINO_ENABLE_CUDA)
 
     add_executable(vrhino-native cli/main.cpp)
     target_link_libraries(vrhino-native PRIVATE vrhino_cuda_backend)
+
+    add_executable(vrhino-cuda-image-availability-tests
+        tests/cuda_image_availability_tests.cpp)
+    target_link_libraries(vrhino-cuda-image-availability-tests PRIVATE vrhino_cuda_backend)
 
     add_executable(vrhino-neural-graph-bf16-cuda-tests tests/neural_graph_bf16_tests.cpp)
     target_include_directories(vrhino-neural-graph-bf16-cuda-tests PRIVATE src/runtime)

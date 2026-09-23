@@ -3,6 +3,7 @@
 #include "vrhino/loader.h"
 #include "../architectures/wan_family.h"
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -155,6 +156,20 @@ void pin_spec(const fs::path& spec) {
         require(sha256_file(spec/name)==line.substr(0,64),"Converter spec drift: "+name);
     }
 }
+void pin_product_spec(const fs::path& spec) {
+    require(sha256_file(spec/"product-files.sha256")==
+            "e7bc0b2c77870bf38b04db06436e25d7bfa22e6064588d7ba4add9d1b4eeeeff",
+            "Unqualified Product declaration identity");
+    for(const auto& line:split(text(spec/"product-files.sha256"),'\n')) {
+        require(line.size()>66 && line.substr(64,2)=="  ",
+                "Invalid Product declaration manifest");
+        const auto name=line.substr(66);
+        require(name.find('/')==std::string::npos && name.find('\\')==std::string::npos,
+                "Invalid Product declaration filename");
+        require(sha256_file(spec/name)==line.substr(0,64),
+                "Product declaration drift: "+name);
+    }
+}
 }
 Json lower_wan_source_config(const Json& c,const Json& patch,int64_t limit) {
     require(c.at("model_type").string()=="t2v" && c.at("qk_norm").boolean() && c.at("cross_attn_norm").boolean(),"Unsupported source architecture semantics");
@@ -178,7 +193,9 @@ std::vector<TensorMapping> map_wan_parameters(const TensorSource& source,const J
     }
     return mappings;
 }
-Json verify_wan_family_structure(const fs::path& path) {
+Json verify_wan_family_structure(const fs::path& path,
+        const std::string& expected_manifest_sha256,
+        const std::string& expected_source_revision) {
     // No payload traversal by mmap: checksums are verified by bounded streaming
     // separately. Creating borrowed tensor descriptors does not load weights.
     auto model=std::make_shared<VrmModel>(path.string(),false);
@@ -212,23 +229,44 @@ Json verify_wan_family_structure(const fs::path& path) {
     for(const auto& [slot,name]:decoder.at("runtime_tensor_bindings").object()) { (void)slot; (void)model->tensor(name.string()); }
     require(model->tensors().size()==2384,"Unexpected canonical tensor count");
     const auto& provenance=model->metadata().at("conversion_provenance");
-    require(provenance.at("manifest_sha256").string()=="4ea6995c08502841565b9dd2e612af0dd97ddfb49ab17721339fc5c077338911" &&
-            provenance.at("actual_revision").string()=="3f42affa3a1f1c6bd1f14f4cd01cdb90373af3d7","Source provenance mismatch");
+    require(provenance.at("manifest_sha256").string()==expected_manifest_sha256 &&
+            provenance.at("actual_revision").string()==expected_source_revision,
+            "Source provenance mismatch");
     return obj({{"status",j(std::string("PASS"))},{"tensor_count",j(int64_t(model->tensors().size()))},
         {"graph_count",j(int64_t(1))},{"binding_count",j(int64_t(2))},{"instance_count",j(int64_t(2))},
         {"slots_per_binding",j(int64_t(1095))},{"steps",j(int64_t(declared.sampling.steps))},
         {"file_size",j(int64_t(model->file_size()))},{"numerical_execution",j(false)}});
 }
 Json convert_wan_family_package(const fs::path& model_root,const fs::path& semantic_root,
-                                const fs::path& spec,const fs::path& output,const WorkProgressCallback& progress) {
-    pin_spec(spec);const auto plan=Json::parse(text(spec/"conversion.json"));
-    const auto contract=Json::parse(text(spec/"source-contract.json"));
-    const auto manifest_sha=sha256_file(spec/"source-manifest.tsv");
-    require(manifest_sha==plan.at("manifest_sha256").string() && manifest_sha==contract.at("manifest_sha256").string() &&
+                                const fs::path& spec,const fs::path& output,
+                                const WorkProgressCallback& progress,
+                                const std::string& source_contract_name,
+                                const std::string& source_manifest_name) {
+    pin_spec(spec);
+    const bool product_mode=source_contract_name!="source-contract.json" ||
+                            source_manifest_name!="source-manifest.tsv";
+    if(product_mode)pin_product_spec(spec);
+    const auto plan=Json::parse(text(spec/"conversion.json"));
+    const auto contract=Json::parse(text(spec/source_contract_name));
+    const auto manifest_sha=sha256_file(spec/source_manifest_name);
+    // The frozen B-11 conversion plan remains tied to its original qualified
+    // inventory. Product mode has its own immutable declaration set and source
+    // inventory, pinned by product-files.sha256 above; do not rewrite or reuse
+    // the historical plan's provenance identity.
+    require(manifest_sha==contract.at("manifest_sha256").string() &&
+        (product_mode || manifest_sha==plan.at("manifest_sha256").string()) &&
         contract.at("qualification_status").string()=="PASS","Source manifest admission failed");
-    require(contract.at("source_roots").at("model").at("revision").string()=="3f42affa3a1f1c6bd1f14f4cd01cdb90373af3d7" &&
-        contract.at("source_roots").at("model").at("repository").string()=="https://modelscope.cn/models/Wan-AI/Wan2.2-T2V-A14B" &&
-        contract.at("expected_huggingface_reference").at("revision").string()=="c8c270b13ee05bfa474194ac9fb07a5868a97cea","Qualified source provider/revision drift");
+    const auto& model_source=contract.at("source_roots").at("model");
+    const auto source_revision=model_source.at("revision").string();
+    const auto source_repository=model_source.at("repository").string();
+    require((source_repository=="https://modelscope.cn/models/Wan-AI/Wan2.2-T2V-A14B" &&
+             source_revision=="3f42affa3a1f1c6bd1f14f4cd01cdb90373af3d7") ||
+            (source_repository=="https://huggingface.co/Wan-AI/Wan2.2-T2V-A14B" &&
+             source_revision=="c8c270b13ee05bfa474194ac9fb07a5868a97cea"),
+            "Qualified source provider/revision drift");
+    require(contract.at("expected_huggingface_reference").at("revision").string()==
+            "c8c270b13ee05bfa474194ac9fb07a5868a97cea",
+            "Qualified Hugging Face reference drift");
     require(!fs::exists(output),"Immutable conversion output directory already exists");
     fs::create_directories(output.parent_path());require_conversion_disk_space(127000000000ULL,fs::space(output.parent_path()).available);
     QualifiedFiles files(contract,model_root,semantic_root,progress);
@@ -273,14 +311,20 @@ Json convert_wan_family_package(const fs::path& model_root,const fs::path& seman
     auto graph=obj({{"schema_version",j(int64_t(2))},{"required_capabilities",Json::parse("[\"binding_catalog.v1\"]")},
         {"graphs",arr({obj({{"id",j(int64_t(0))},{"declaration",canonical}})})},{"bindings",arr(bindings)},{"instances",arr(instances)}});
     auto programs=make_programs(config_text,shared);(void)admit_program_declaration(programs,PackageDeclaration::parse(graph));
+    const Json product_identity = product_mode
+        ? j(std::string("vrhino/wan2.2-t2v-a14b:1.0.0"))
+        : plan.at("product");
     Json::Array decoder_slots;for(const auto& m:vae)decoder_slots.push_back(obj({{"name",j(m.destination_name)},{"shape",ints(m.destination_shape)},{"dtype",j(std::string("float32"))}}));
-    auto provenance=obj({{"actual_repository",j(std::string("https://modelscope.cn/models/Wan-AI/Wan2.2-T2V-A14B"))},
-        {"actual_revision",j(std::string("3f42affa3a1f1c6bd1f14f4cd01cdb90373af3d7"))},
+    const bool whole_hf=contract.at("expected_huggingface_reference").at("whole_directory_identical").boolean();
+    auto provenance=obj({{"actual_repository",j(source_repository)},
+        {"actual_revision",j(source_revision)},
         {"core_reference_repository",j(std::string("https://huggingface.co/Wan-AI/Wan2.2-T2V-A14B"))},
         {"core_reference_revision",j(std::string("c8c270b13ee05bfa474194ac9fb07a5868a97cea"))},
-        {"whole_directory_hf_identity",j(false)},{"manifest_sha256",j(manifest_sha)},
+        {"whole_directory_hf_identity",j(whole_hf)},{"manifest_sha256",j(manifest_sha)},
         {"semantic_source_revision",j(contract.at("source_roots").at("official_source").at("revision").string())},
-        {"converter",j(std::string("wan_family.structural.v1"))},{"spec_sha256",j(sha256_file(spec/"spec-files.sha256"))}});
+        {"converter",j(product_mode ? std::string("wan_family.product.v1")
+                                     : std::string("wan_family.structural.v1"))},
+        {"spec_sha256",j(sha256_file(spec/"spec-files.sha256"))}});
     auto decoder=Json::parse(text(spec/"decoder.json"));
     require(decoder.at("implementation_id").string()=="dit_flow.wan.vae_decoder.v1" &&
         decoder.at("runtime_tensor_bindings").object().size()==vae.size(),"Decoder declaration admission failed");
@@ -289,7 +333,7 @@ Json convert_wan_family_package(const fs::path& model_root,const fs::path& seman
         require(std::any_of(vae.begin(),vae.end(),[&](const TensorMapping& m){return m.destination_name==name.string();}),
                 "Decoder declaration references unknown canonical tensor");
     }
-    auto metadata=obj({{"architecture",j(std::string("wan"))},{"product",plan.at("product")},{"programs",programs},
+    auto metadata=obj({{"architecture",j(std::string("wan"))},{"product",product_identity},{"programs",programs},
         {"conversion_provenance",provenance},{"shared_components",obj({{"decoder",decoder},
             {"decoder_slots",arr(decoder_slots)},{"text_encoder_resource",j(std::string("conditioning.safetensors"))},
             {"text_encoder_declaration",j(std::string("conditioning.json"))},{"tokenizer_resource",j(std::string("tokenizer/tokenizer.json"))}})}});
@@ -297,7 +341,7 @@ Json convert_wan_family_package(const fs::path& model_root,const fs::path& seman
     try {
         put(staging/"graph.json",canonical_json(graph));put(staging/"metadata.json",canonical_json(metadata));
         put(staging/"programs.json",canonical_json(programs));put(staging/"tensor-mapping.tsv",mapping_text);
-        put(staging/"source-manifest.tsv",text(spec/"source-manifest.tsv"));put(staging/"source-contract.json",text(spec/"source-contract.json"));
+        put(staging/"source-manifest.tsv",text(spec/source_manifest_name));put(staging/"source-contract.json",text(spec/source_contract_name));
         put(staging/"conditioning.json",text(spec/"conditioning.json"));
         auto conditioning_index=Json::parse(text(spec/"conditioning-index.json")).object();
         auto weight_map=conditioning_index.at("weight_map").object();
@@ -310,12 +354,21 @@ Json convert_wan_family_package(const fs::path& model_root,const fs::path& seman
         put(staging/"conditioning-index.json",canonical_json(obj(conditioning_index)));
         fs::create_directory(staging/"tokenizer");
         for(const auto& [name,a]:files.artifacts) { (void)a;if(name.starts_with("model/google/umt5-xxl/"))files.copy(name,staging/"tokenizer"/fs::path(name).filename()); }
+        if(product_mode) {
+            files.copy("model/README.md",staging/"README.md");
+            files.copy("official_source/LICENSE.txt",staging/"LICENSE.txt");
+            for (const auto* declaration : {"request-wiring.json", "product-run.json",
+                                            "default-profile.json",
+                                            "qualification-precision.json"})
+                put(staging/declaration,text(spec/declaration));
+        }
         std::cerr<<"EMIT conditioning\n";
         write_safetensors_streaming(staging/"conditioning.safetensors",conditioning,umt5,
             {{"vrhino.phase","13C"},{"vrhino.component","text_encoder"},{"vrhino.extraction","sorted-tensor-names-v1"},{"format","pt"}},{},progress);
         require(sha256_file(staging/"conditioning.safetensors",progress)=="1c137395973a8a717bd5d467fec816e77af973474c6d4afd2cb83c78cc489bd6","Shared canonical UMT5 identity drift");
         std::cerr<<"EMIT canonical VRM\n";auto written=write_vrm_streaming(staging/"model.vrm","dit-flow","wan",metadata,graph,source,mappings,{},progress);
-        files.unchanged();auto verified=verify_wan_family_structure(staging/"model.vrm");
+        files.unchanged();auto verified=verify_wan_family_structure(
+            staging/"model.vrm",manifest_sha,source_revision);
         // Byte determinism of declarations independent of mapping insertion order.
         require(text(staging/"graph.json")==canonical_json(Json::parse(canonical_json(graph))) &&
                 text(staging/"metadata.json")==canonical_json(Json::parse(canonical_json(metadata))),"Noncanonical declaration bytes");
@@ -329,8 +382,119 @@ Json convert_wan_family_package(const fs::path& model_root,const fs::path& seman
         std::sort(resources.begin(),resources.end(),[](const Json& a,const Json& b){return a.at("path").string()<b.at("path").string();});
         put(staging/"package.json",canonical_json(obj({{"schema",j(std::string("vrhino.structural-package.v1"))},
             {"required_capabilities",Json::parse("[\"binding_catalog.v1\",\"execution.per_step.v1\",\"sampling.flow_sigma_cfg.v1\"]")},
-            {"product",plan.at("product")},{"architecture",j(std::string("wan"))},{"resources",arr(resources)}})));
+            {"product",product_identity},
+            {"architecture",j(std::string("wan"))},{"resources",arr(resources)}})));
+        if(product_mode) {
+        const std::map<std::string,std::pair<std::string,std::string>> declarations{
+            {"conditioning-index.json",{"conditioning-index","conditioning.weights.index"}},
+            {"conditioning.json",{"conditioning-declaration","conditioning.graph"}},
+            {"conditioning.safetensors",{"conditioning-weights","conditioning.weights.shard"}},
+            {"conversion-result.json",{"conversion-result","conversion.result"}},
+            {"default-profile.json",{"default-profile","execution.profile"}},
+            {"graph.json",{"graph","architecture.graph"}},
+            {"LICENSE.txt",{"license","legal.license"}},
+            {"metadata.json",{"metadata","architecture.metadata"}},
+            {"model.vrm",{"runtime","runtime.model"}},
+            {"product-run.json",{"product-run","product.execution"}},
+            {"programs.json",{"programs","execution.programs"}},
+            {"qualification-precision.json",{"qualification-precision","precision.policy"}},
+            {"README.md",{"license-evidence","legal.notice"}},
+            {"request-wiring.json",{"request-wiring","product.request"}},
+            {"source-contract.json",{"source-contract","source.contract"}},
+            {"source-manifest.tsv",{"source-manifest","source.manifest"}},
+            {"tensor-mapping.tsv",{"tensor-mapping","conversion.mapping"}},
+            {"tokenizer/special_tokens_map.json",{"tokenizer-special","tokenizer.metadata"}},
+            {"tokenizer/spiece.model",{"tokenizer-spiece","tokenizer.model"}},
+            {"tokenizer/tokenizer.json",{"tokenizer","tokenizer.json"}},
+            {"tokenizer/tokenizer_config.json",{"tokenizer-config","tokenizer.config"}},
+        };
+        Json::Array package_artifacts;
+        for (const auto& [path,identity] : declarations) {
+            const fs::path artifact_path=staging/path;
+            require(fs::is_regular_file(artifact_path),"Missing Product artifact: "+path);
+            package_artifacts.push_back(obj({{"id",j(identity.first)},
+                {"role",j(identity.second)},{"path",j(path)},
+                {"size",j(static_cast<int64_t>(fs::file_size(artifact_path)))},
+                {"sha256",j(path=="model.vrm"?summary.at("sha256").string():sha256_file(artifact_path))},
+                {"required",j(true)}}));
+        }
+        const auto product=obj({{"family",j(std::string("text_to_video"))},
+            {"status",j(std::string("alpha_unqualified"))},
+            {"public_distribution",j(std::string("supported"))},
+            {"input_schema",Json::parse(R"({"schema":"vrhino.product.input-schema.v1","inputs":[{"name":"prompt","type":"text","required":true,"validation":{"min_length":1}}],"parameters":[{"name":"seed","type":"integer","required":false,"default":5701,"validation":{"minimum":0,"maximum":"18446744073709551615"}}],"outputs":[{"name":"output","type":"media.mp4","required":false,"default":"output.mp4","validation":{"parent_creatable_and_writable":true}}]})")},
+            {"frozen_profile",Json::parse(R"({"output":{"width":832,"height":480,"frames":81,"fps":{"numerator":16,"denominator":1},"duration":"fixed","audio":"none"},"sampling":{"program_artifact":"programs"}})")},
+            {"execution_artifact",j(std::string("product-run"))}});
+        const auto package_manifest=obj({{"schema_version",j(int64_t(2))},
+            {"identity",obj({{"namespace",j(std::string("vrhino"))},{"name",j(std::string("wan2.2-t2v-a14b"))},
+                {"version",j(std::string("1.0.0"))},{"architecture",j(std::string("wan"))},{"publisher",j(std::string("VRhino"))}})},
+            {"compatibility",Json::parse(R"({"runtime_contract":"cuda-v1","vrm_schema":{"format_major":0,"format_minor":1,"metadata_schema":1}})")},
+            {"artifacts",arr(package_artifacts)},
+            {"entrypoint",Json::parse(R"({"runtime_artifact":"runtime","components":[{"id":"positive-conditioning","kind":"conditioning.text_encoder","artifacts":["conditioning-declaration","conditioning-index","conditioning-weights","tokenizer"]},{"id":"negative-conditioning","kind":"conditioning.text_encoder","artifacts":["conditioning-declaration","conditioning-index","conditioning-weights","tokenizer"]}],"default_preset":"default"})")},
+            {"defaults",Json::parse(R"({"default_preset":"default","presets":{"default":{"profile_artifact":"default-profile"}}})")},
+            {"product",product},
+            {"hardware",Json::parse(R"({"presets":{"default":{"minimum_vram_bytes":null,"recommended_vram_bytes":null}}})")},
+            {"source",obj({{"repository",j(source_repository)},
+                {"revision",j(source_revision)},
+                {"converter_version",j(std::string("wan_family.product.v1"))}})},
+            {"license",obj({{"identifier",j(std::string("Apache-2.0"))},{"artifact",j(std::string("license"))},
+                {"upstream_notice",j(std::string("Qualified Hugging Face model card and official Wan2.2 license"))}})},
+            {"admission",Json::parse(R"({"graph_artifact":"graph","metadata_artifact":"metadata","programs_artifact":"programs","source_manifest_artifact":"source-manifest","required_capabilities":["binding_catalog.v1","execution.per_step.v1","sampling.flow_sigma_cfg.v1"],"structural_only":true,"execution_eligibility":"alpha_unqualified","resources":{"conditioning_declaration":"conditioning-declaration","conditioning_index":"conditioning-index","conditioning_weights":"conditioning-weights","tokenizer":"tokenizer"},"request_artifact":"request-wiring"})")}});
+        put(staging/kModelManifestName,canonical_json(package_manifest));
+        (void)load_model_package_manifest(staging/kModelManifestName);
+        }
         fs::rename(staging,output);return obj(summary);
     } catch(...) {std::error_code error;fs::remove_all(staging,error);throw;}
+}
+
+ImportResult import_wan22_a14b_product(
+        const fs::path& qualified_source_directory, LocalModelCache& cache,
+        const ImportOptions& options) {
+    const auto started=std::chrono::steady_clock::now();
+    const fs::path spec_root=options.converter_spec_root.empty()
+        ? discover_converter_spec_root() : fs::canonical(options.converter_spec_root);
+    const fs::path spec=spec_root/"wan2_2_t2v_a14b";
+    require(fs::is_directory(spec),"Wan2.2 converter specification is missing");
+    if(!options.expected_model_reference.empty())
+        require(options.expected_model_reference=="vrhino/wan2.2-t2v-a14b:1.0.0",
+                "Wan2.2 converter target identity mismatch");
+    const fs::path output=cache.layout().temporary/
+        ("wan22-product-"+std::to_string(
+            std::chrono::steady_clock::now().time_since_epoch().count()));
+    uint64_t progressed=0;
+    constexpr uint64_t kConversionWorkBytes=260000000000ULL;
+    const WorkProgressCallback progress=[&](uint64_t bytes){
+        progressed+=bytes;
+        if(options.cancellation_requested && options.cancellation_requested())
+            throw ModelPackageError(ModelPackageErrorCode::Cancelled,
+                                    "Wan2.2 conversion cancelled");
+        if(options.progress)
+            options.progress(std::min(progressed,kConversionWorkBytes),
+                             kConversionWorkBytes);
+    };
+    try {
+        const Json result=convert_wan_family_package(
+            qualified_source_directory/"model",
+            qualified_source_directory/"official_source",spec,output,progress,
+            "product-source-contract.json","product-source-manifest.tsv");
+        const auto converted=std::chrono::steady_clock::now();
+        const InstallResult installed=cache.install(output);
+        const auto finalized=std::chrono::steady_clock::now();
+        ImportResult imported;
+        imported.installation=installed;
+        imported.runtime_vrm_path=cache.artifact_path(result.at("sha256").string());
+        imported.output_vrm_bytes=static_cast<uint64_t>(result.at("file_size").integer());
+        imported.source_checkpoint_bytes=127000000000ULL;
+        imported.temporary_disk_peak_bytes=imported.output_vrm_bytes;
+        imported.largest_temporary_buffer_bytes=8ULL*1024*1024;
+        imported.mapping_count=2384;
+        imported.conversion_performed=true;
+        imported.conversion_seconds=std::chrono::duration<double>(converted-started).count();
+        imported.finalization_seconds=std::chrono::duration<double>(finalized-converted).count();
+        imported.runtime_vrm_sha256=result.at("sha256").string();
+        std::error_code cleanup_error;fs::remove_all(output,cleanup_error);
+        return imported;
+    } catch(...) {
+        std::error_code cleanup_error;fs::remove_all(output,cleanup_error);throw;
+    }
 }
 } // namespace vrhino::product

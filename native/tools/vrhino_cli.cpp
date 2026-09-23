@@ -533,7 +533,10 @@ int main(int argc, char** argv) {
                       << "VRAM total: " << format_bytes(hardware.total_vram_bytes) << '\n'
                       << "VRAM available: " << format_bytes(hardware.available_vram_bytes) << '\n'
                       << "CUDA driver API: " << hardware.driver_version << '\n'
-                      << "CUDA runtime API: " << hardware.runtime_version << '\n';
+                      << "CUDA runtime API: " << hardware.runtime_version << '\n'
+                      << "VRhino CUDA image: "
+                      << (hardware.backend_kernel_image_available ? "available" : "unavailable")
+                      << '\n';
             return 0;
         }
 #endif
@@ -860,7 +863,7 @@ int main(int argc, char** argv) {
 #endif
             const product::ResolvedRunnableModel model =
                 cache.resolve(run_options.model_reference, false);
-            product::require_numerical_product_admission(model.manifest);
+            product::require_product_execution_admission(model.manifest);
             const char* external_encoder = std::getenv("VRHINO_FFMPEG");
             if (run_options.encoder_path.empty() &&
                 (external_encoder == nullptr || *external_encoder == '\0')) {

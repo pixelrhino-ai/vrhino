@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "model_reference": "vrhino/wan2.2-t2v-a14b:1.0.0",
+  "distribution": {
+    "kind": "source_backed",
+    "source": {
+      "provider": "huggingface",
+      "repository": "Wan-AI/Wan2.2-T2V-A14B",
+      "revision": "c8c270b13ee05bfa474194ac9fb07a5868a97cea"
+    },
+    "source_plan": "product-source-contract.json",
+    "converter": "native"
+  }
+}

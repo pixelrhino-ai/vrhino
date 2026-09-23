@@ -2,15 +2,42 @@
 
 For normal use, follow [installation](install.md) for the self-contained release. Packaged users do not need Python, PyTorch, Diffusers, Conda, CUDA Toolkit or a system FFmpeg installation. The requirements below are for source developers.
 
-The qualified source path is Linux x86-64, CMake 3.22+, C++20 (GCC 11), CUDA Toolkit 12.8, cuDNN development files 9.8 and Rust/Cargo. Install libcurl development files and normal system build utilities. GPU tests require an NVIDIA driver and compatible GPU; the current qualification target is RTX 4090 D (SM 89). Use the existing qualified toolchain, without upgrading dependency versions during validation.
+The source path is Linux x86-64, CMake 3.22+, C++20 (GCC 11), CUDA Toolkit 12.8, cuDNN development files 9.8 and Rust/Cargo. Install libcurl development files and normal system build utilities. GPU tests require an NVIDIA driver and compatible GPU. The current real Wan2.2 Product run was tested on an A800 (SM 80); other GPU families require their own runtime qualification. Use the existing qualified toolchain, without upgrading dependency versions during validation.
 
 ```sh
 cmake -S native -B build -DCMAKE_BUILD_TYPE=Release \
-  -DVRHINO_ENABLE_CUDA=ON -DVRHINO_ENABLE_TOKENIZERS=ON \
-  -DCMAKE_CUDA_ARCHITECTURES=89
+  -DVRHINO_ENABLE_CUDA=ON -DVRHINO_ENABLE_TOKENIZERS=ON
 cmake --build build -j4
 ctest --test-dir build --output-on-failure -L public
 ```
+
+The default CUDA build embeds native images for SM 80, 86, 89, 90 and 120,
+plus compute 80 PTX for forward compatibility. CUDA selects a compatible image
+at runtime; users do not select one per model. Source developers may override
+`CMAKE_CUDA_ARCHITECTURES` for a local build, but a single-architecture build
+must not be used as a general release package. Before packaging a Linux build,
+check the executable with:
+
+```sh
+python3 tools/verify_cuda_fatbin.py build/vrhino build/vrhino-native \
+  --cuobjdump /usr/local/cuda/bin/cuobjdump
+```
+
+This checks code coverage in the binary; it does not replace execution tests
+on each advertised GPU family. GPUs below SM 80 are outside this BF16 build's
+declared architecture coverage.
+
+The CUDA image smoke test queries an existing Backend kernel on the selected
+GPU without loading a model. Product preflight uses the same query and rejects
+a binary without a compatible image before model execution:
+
+```sh
+ctest --test-dir build --output-on-failure -R vrhino-cuda-image-availability-tests
+```
+
+The packaged executable must still be qualified on the GPU families it claims
+to support. A compatible image does not guarantee that a model fits in device
+memory or that every cuBLAS/cuDNN algorithm is available.
 
 Make the installed CUDA and Cargo executables available in PATH before configuring. No model download or Python environment is part of these commands. All tokenizer build sources are committed under `native/third_party/tokenizer-build-sources/`. CMake verifies their pinned inventories; Cargo uses a build-local cache with `--locked --offline`. Missing or corrupted inputs fail configuration without a network fallback. Toolchain installation itself is an external prerequisite, not part of this offline build claim.
 
