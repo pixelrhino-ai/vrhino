@@ -2,15 +2,15 @@
 
 ## Release status
 
-**Linux: [v0.9.0-alpha](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.9.0-alpha)**.
+**Linux: [v0.9.1-alpha](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.9.1-alpha)**.
 **Windows: v0.8.0-alpha** (existing qualified rc9 package).
-See the [v0.9 release and checksum record](release/v0.9.0-alpha.md) and the
+See the [v0.9.1 release and checksum record](release/v0.9.1-alpha.md) and the
 [v0.8 Windows qualification record](release/v0.8.0-alpha.md).
 Older release assets remain unchanged; v0.9 Windows binaries are not published.
 
 ## Requirements
 
-- Linux v0.9 package: x86_64, glibc 2.35 or newer; CUDA 12.8 / SM80 build, tested on A800 80 GB
+- Linux v0.9.1 package: x86_64, glibc 2.35 or newer; CUDA 12.8 images for SM 80/86/89/90/120 plus compute 80 PTX
 - Windows package: native Windows x64 CUDA; qualification baseline
   Windows 10 Pro 22H2 / build 19045, RTX 3090 24 GiB, NVIDIA driver 610.47
 - compatible NVIDIA GPU and NVIDIA Driver
@@ -44,12 +44,12 @@ explicitly (GitHub's `latest` release can still point to the older stable entry)
 It verifies a SHA256 pinned in the script before extracting, checks the package's
 `SHA256SUMS`, and tests `--version` before activating the installation. Downloads
 use HTTPS and retry transient failures. Interrupted installs can be rerun.
-The package is about 1.45 GB compressed / 2.1 GB extracted; allow at least 4 GB
+The package is about 1.42 GB compressed / 2.1 GB extracted; allow at least 4 GB
 free for staging, plus separate model storage.
 
 Default locations:
 
-- Package: `${XDG_DATA_HOME:-$HOME/.local/share}/vrhino-v0.9.0-alpha`
+- Package: `${XDG_DATA_HOME:-$HOME/.local/share}/vrhino-v0.9.1-alpha`
 - Commands: `~/.local/bin/vrhino` and `~/.local/bin/vrhino-wan-family-convert`
 
 The installer adds PATH entries to `.profile` and applicable Bash/Zsh profiles
@@ -64,16 +64,16 @@ To inspect the script first or choose locations:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/main/install.sh -o install.sh
 sh install.sh --help
-sh install.sh --prefix "$HOME/apps/vrhino-v0.9.0-alpha" --bin-dir "$HOME/.local/bin"
+sh install.sh --prefix "$HOME/apps/vrhino-v0.9.1-alpha" --bin-dir "$HOME/.local/bin"
 ```
 
 `--no-modify-path` leaves shell profiles unchanged. `--archive /path/to/archive`
 uses an already downloaded archive with the same pinned SHA256; it does not
 accept arbitrary builds. `VRHINO_INSTALL_DIR` and `VRHINO_BIN_DIR` are equivalent
 to the corresponding location options when set in the installer environment.
-When using a custom package location, use that location as `VRHINO_ROOT` in the
-Wan2.2 quick start. Existing installations made by manual extraction should use
-their existing commands or choose a fresh prefix rather than overwrite them.
+The installed command resolves resources from a custom package location.
+Existing installations made by manual extraction should use their existing
+commands or choose a fresh prefix rather than overwrite them.
 
 The installer prints progress and exits nonzero on failure. It does not install
 an NVIDIA driver or establish model/hardware qualification; run `vrhino doctor`
@@ -82,41 +82,41 @@ after installation. For manual installation, use the instructions below.
 ## Linux download
 
 Download these two files from the
-[v0.9.0-alpha release](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.9.0-alpha):
+[v0.9.1-alpha release](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.9.1-alpha):
 
-- [Linux CUDA archive](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.9.0-alpha/vrhino-linux-x86_64-cuda-v0.9.0-alpha-candidate.tar.gz)
-- [SHA256 file](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.9.0-alpha/vrhino-linux-x86_64-cuda-v0.9.0-alpha-candidate.tar.gz.sha256)
+- [Linux CUDA archive](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.9.1-alpha/vrhino-linux-x86_64-cuda-v0.9.1-alpha.tar.gz)
+- [SHA256 file](https://github.com/pixelrhino-ai/vrhino/releases/download/v0.9.1-alpha/vrhino-linux-x86_64-cuda-v0.9.1-alpha.tar.gz.sha256)
 
-The published filenames retain `candidate`; these are the released alpha assets.
-The archive is 1,449,009,466 bytes. Exact hashes are in the
-[release record](release/v0.9.0-alpha.md). Model weights are separate.
+The archive is 1,412,112,885 bytes. Its SHA256 is
+`37bff0ecd0ac10d3bf2bd7c2c78f867477ca27a3c803d83f32a6d873ce015733`. Details are in the
+[release record](release/v0.9.1-alpha.md). Model weights are separate.
 
 If both files are in `~/Downloads`, run:
 
 ```bash
 cd "$HOME/Downloads"
-sha256sum -c vrhino-linux-x86_64-cuda-v0.9.0-alpha-candidate.tar.gz.sha256
+sha256sum -c vrhino-linux-x86_64-cuda-v0.9.1-alpha.tar.gz.sha256
 mkdir -p "$HOME/.local/share"
 # Extract into a fresh directory; do not overlay an older installation.
-tar -xzf vrhino-linux-x86_64-cuda-v0.9.0-alpha-candidate.tar.gz -C "$HOME/.local/share"
-export PATH="$HOME/.local/share/vrhino-v0.9.0-alpha/bin:$PATH"
+tar -xzf vrhino-linux-x86_64-cuda-v0.9.1-alpha.tar.gz -C "$HOME/.local/share"
+export PATH="$HOME/.local/share/vrhino-v0.9.1-alpha/bin:$PATH"
 ```
 
 Add the same `export PATH=...` line to your shell profile if desired.
-Keep the entire `~/.local/share/vrhino-v0.9.0-alpha` directory intact: the launcher
+Keep the entire `~/.local/share/vrhino-v0.9.1-alpha` directory intact: the launcher
 resolves bundled libraries and the media encoder relative to it.
 
 Verify from any directory:
 
 ```bash
-vrhino --version   # v0.9.0-alpha
+vrhino --version   # v0.9.1-alpha
 vrhino device
 vrhino doctor
 ```
 
 For Wan2.2, continue with the [quick start](models/wan2.2-quickstart.md)
-([中文](models/wan2.2-quickstart.zh-CN.md)). It uses `evaluate` with a local
-qualified package; the schema1 `pull` / `run` examples below remain separate.
+([中文](models/wan2.2-quickstart.zh-CN.md)). It uses the normal `pull` / `run`
+Product commands with the schema2 package.
 
 No `sudo`, repository clone, environment activation, or manual
 `LD_LIBRARY_PATH` configuration is required.
@@ -202,7 +202,7 @@ packages, or reveal token/proxy credential values. See
 ## Model and cache location
 
 The VRhino binary installation and model storage are separate. On Linux the
-v0.9 release tree may remain under `~/.local/share/vrhino-v0.9.0-alpha`, while model/cache data
+v0.9 release tree may remain under `~/.local/share/vrhino-v0.9.1-alpha`, while model/cache data
 defaults to `~/.vrhino`. On Windows use an explicit `--cache-root` to select
 your intended model storage directory independently of the extracted ZIP.
 

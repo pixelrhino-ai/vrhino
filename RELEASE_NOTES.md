@@ -1,3 +1,18 @@
+# VRhino v0.9.1-alpha
+
+The Linux CUDA package adds normal `pull` / `run` Product support for Wan2.2
+T2V A14B and carries native CUDA images for SM 80, 86, 89, 90 and 120, plus
+compute 80 PTX. The native converter and media helper are bundled; model
+weights are downloaded separately. The same Product commands remain available
+for the previously supported models.
+
+The multi-architecture route was exercised with representative native video
+runs on A800 and RTX 4090 systems using models that fit each device. Device memory and
+speed depend on the model and settings. Generic BF16 reference numerical
+qualification is still tracked separately. See the
+[v0.9.1 release record](docs/release/v0.9.1-alpha.md) for package identity,
+tested scope and installation.
+
 # VRhino v0.8.0-alpha
 
 This is the first VRhino Alpha release with a qualified native Windows x64 CUDA

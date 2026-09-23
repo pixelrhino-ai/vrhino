@@ -10,7 +10,7 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-PIN = 'e531f218fecf8316145ee336b009da9826c79dbc7b704736a8d455449b96c0fd'
+PIN = '37bff0ecd0ac10d3bf2bd7c2c78f867477ca27a3c803d83f32a6d873ce015733'
 
 class InstallerTests(unittest.TestCase):
     def setUp(self):
@@ -21,11 +21,11 @@ class InstallerTests(unittest.TestCase):
         self.home.mkdir()
         self.prefix = self.home / 'runtime'
         self.bin = self.home / 'commands'
-        tree = self.root / 'vrhino-v0.9.0-alpha'
+        tree = self.root / 'vrhino-v0.9.1-alpha'
         (tree / 'bin').mkdir(parents=True)
         for name in ('vrhino', 'vrhino-wan-family-convert'):
             p = tree / 'bin' / name
-            p.write_text('#!/bin/sh\nif [ "${1:-}" = --version ]; then echo "VRhino v0.9.0-alpha"; else printf "%s\\n" "$@"; fi\n')
+            p.write_text('#!/bin/sh\nif [ "${1:-}" = --version ]; then echo "VRhino v0.9.1-alpha"; else printf "%s\\n" "$@"; fi\n')
             p.chmod(0o755)
         (tree / 'SHA256SUMS').write_text(''.join(
             hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + str(p.relative_to(tree)) + '\n'
@@ -48,7 +48,7 @@ class InstallerTests(unittest.TestCase):
             env=self.env, text=True, capture_output=True)
 
     def test_release_pin_matches_public_record(self):
-        record = json.loads((ROOT / 'docs/release/v0.9.0-alpha-assets.json').read_text())
+        record = json.loads((ROOT / 'docs/release/v0.9.1-alpha-assets.json').read_text())
         self.assertEqual(next(a['sha256'] for a in record['assets'] if a['name'].startswith('vrhino-linux') and a['name'].endswith('.tar.gz')), PIN)
         self.assertIn('archive_sha='+PIN, (ROOT / 'install.sh').read_text())
 

@@ -3,10 +3,10 @@
 # Keep all execution inside main so a truncated curl response cannot partly install.
 vrhino_install_main() (
     set -eu
-    version=v0.9.0-alpha
-    archive_name=vrhino-linux-x86_64-cuda-v0.9.0-alpha-candidate.tar.gz
-    archive_sha=e531f218fecf8316145ee336b009da9826c79dbc7b704736a8d455449b96c0fd
-    archive_root=vrhino-v0.9.0-alpha
+    version=v0.9.1-alpha
+    archive_name=vrhino-linux-x86_64-cuda-v0.9.1-alpha.tar.gz
+    archive_sha=37bff0ecd0ac10d3bf2bd7c2c78f867477ca27a3c803d83f32a6d873ce015733
+    archive_root=vrhino-v0.9.1-alpha
     url="https://github.com/pixelrhino-ai/vrhino/releases/download/$version/$archive_name"
     prefix=${VRHINO_INSTALL_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/$archive_root}
     bin_dir=${VRHINO_BIN_DIR:-$HOME/.local/bin}
@@ -38,7 +38,7 @@ vrhino_install_main() (
             --no-modify-path) modify_path=no; shift;;
             --help|-h)
                 say 'Usage: sh install.sh [--prefix ABSOLUTE_DIR] [--bin-dir ABSOLUTE_DIR] [--archive FILE] [--no-modify-path]'
-                say 'Default: ~/.local/share/vrhino-v0.9.0-alpha and ~/.local/bin. Installs Linux x86_64 only.'
+                say 'Default: ~/.local/share/vrhino-v0.9.1-alpha and ~/.local/bin. Installs Linux x86_64 only.'
                 exit 0;;
             *) fail "Unknown option: $1";;
         esac
@@ -85,7 +85,7 @@ vrhino_install_main() (
             say '[2/5] Checking local archive'
         else
             archive=$work/$archive_name
-            say '[2/5] Downloading Linux CUDA package (about 1.45 GB)'
+            say '[2/5] Downloading Linux CUDA package (about 1.42 GB)'
             curl --fail --location --proto '=https' --proto-redir '=https' --tlsv1.2 \
                 --retry 3 --connect-timeout 30 --progress-bar --output "$archive" "$url" || fail 'Download failed; rerun to retry.'
         fi

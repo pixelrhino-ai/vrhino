@@ -2,7 +2,7 @@
 
 For normal use, follow [installation](install.md) for the self-contained release. Packaged users do not need Python, PyTorch, Diffusers, Conda, CUDA Toolkit or a system FFmpeg installation. The requirements below are for source developers.
 
-The source path is Linux x86-64, CMake 3.22+, C++20 (GCC 11), CUDA Toolkit 12.8, cuDNN development files 9.8 and Rust/Cargo. Install libcurl development files and normal system build utilities. GPU tests require an NVIDIA driver and compatible GPU. The current real Wan2.2 Product run was tested on an A800 (SM 80); other GPU families require their own runtime qualification. Use the existing qualified toolchain, without upgrading dependency versions during validation.
+The source path is Linux x86-64, CMake 3.22+, C++20 (GCC 11), CUDA Toolkit 12.8, cuDNN development files 9.8 and Rust/Cargo. Install libcurl development files and normal system build utilities. GPU tests require an NVIDIA driver and compatible GPU. The packaged multi-architecture binaries have completed normal Product runs on A800 (SM 80) and RTX 4090 (SM 89) using models that fit each device; model memory requirements remain separate from CUDA image compatibility. Use the existing qualified toolchain, without upgrading dependency versions during validation.
 
 ```sh
 cmake -S native -B build -DCMAKE_BUILD_TYPE=Release \

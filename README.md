@@ -10,7 +10,7 @@ English | [简体中文](README.zh-CN.md)
 
 ## Install
 
-Linux x86_64 — install **v0.9.0-alpha** with one command (no sudo):
+Linux x86_64 — install **v0.9.1-alpha** with one command (no sudo):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/main/install.sh | sh
@@ -74,7 +74,7 @@ LatentSync uses the same video/audio command shape with its package ID above.
 - [Installation and cache configuration](docs/install.md)
 - [Architecture](docs/architecture.md) · [Build from source](docs/source-build.md)
 - [Local Native API — v0.6.0-alpha contract](docs/api/native-api-v1.md) (`vrhino serve`)
-- [v0.9 release and checksums](docs/release/v0.9.0-alpha.md) · [Windows v0.8 scope](docs/release/v0.8.0-alpha.md)
+- [v0.9.1 release and checksums](docs/release/v0.9.1-alpha.md) · [Windows v0.8 scope](docs/release/v0.8.0-alpha.md)
 - [Contributing](CONTRIBUTING.md)
 
 Project-owned source: [Apache-2.0](LICENSE). Distributed binaries retain their
