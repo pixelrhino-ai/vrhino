@@ -113,6 +113,38 @@ int main(int argc, char** argv) {
                           "vrhino/absent:1.0.0", specs).has_value(),
                      "unexpected pull plan match");
 
+        const fs::path installed_specs = fs::path(VRHINO_TEST_SOURCE_ROOT) / "specs";
+        std::optional<product::PullDistributionPlan> wan22;
+        try {
+            wan22 = product::find_pull_distribution_plan(
+                "vrhino/wan2.2-t2v-a14b:1.0.0", installed_specs);
+        } catch (const std::exception& exception) {
+            throw std::runtime_error(std::string("Wan2.2 pull-plan discovery: ")+
+                                     exception.what());
+        }
+        require_test(wan22.has_value() &&
+                         wan22->source.provider == "huggingface" &&
+                         wan22->source.revision ==
+                             "c8c270b13ee05bfa474194ac9fb07a5868a97cea",
+                     "Wan2.2 fixed Hugging Face pull identity was not admitted");
+        product::SourceArtifactPlanDocument wan22_source;
+        try {
+            wan22_source=product::load_pull_source_artifact_plan(*wan22);
+        } catch (const std::exception& exception) {
+            throw std::runtime_error(std::string("Wan2.2 source-contract lowering: ")+
+                                     exception.what());
+        }
+        require_test(wan22_source.artifacts.size() == 35 &&
+                         wan22_source.requested_source.provider == "huggingface",
+                     "qualified Wan2.2 source contract did not lower to artifacts");
+        size_t huggingface_artifacts = 0, fixed_semantic_artifacts = 0;
+        for (const auto& artifact : wan22_source.artifacts) {
+            huggingface_artifacts += artifact.provider == "huggingface";
+            fixed_semantic_artifacts += artifact.provider == "fixed_https";
+        }
+        require_test(huggingface_artifacts == 24 && fixed_semantic_artifacts == 11,
+                     "Wan2.2 provider attribution changed");
+
         const fs::path declared = specs / "fixture/source-plan.json";
         const auto exact = product::load_pull_source_artifact_plan(*plan);
         require_test(fs::equivalent(exact.document_path, declared) &&

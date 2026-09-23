@@ -1,4 +1,5 @@
 #include "vrhino/product/converter.h"
+#include "vrhino/product/wan_family_conversion.h"
 
 #include <algorithm>
 #include <atomic>
@@ -696,6 +697,8 @@ ImportResult import_local_model(const std::string& catalog_reference,
         return import_wan_model(source_directory, cache, resolved_options);
     if (catalog_reference == "vrhino/wan2.1-t2v-1.3b:1.0.1")
         return import_wan_model(source_directory, cache, resolved_options);
+    if (catalog_reference == "vrhino/wan2.2-t2v-a14b:1.0.0")
+        return import_wan22_a14b_product(source_directory, cache, resolved_options);
     if (catalog_reference == "vrhino/mochi-1-preview:1.0.0")
         return import_mochi_model(source_directory, cache, resolved_options);
     if (catalog_reference == "vrhino/mochi-1-preview:1.0.1")

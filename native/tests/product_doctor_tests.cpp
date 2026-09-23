@@ -187,8 +187,19 @@ int main() {
         require_contains(global.text, " bytes)", "cache free bytes");
         require_contains(global.text, "VRAM: 90.00 GiB available / 100.00 GiB total",
                          "device facts");
+        require_contains(global.text, "VRhino CUDA image: available", "compatible binary");
         require_test(!fs::exists(home / ".vrhino"),
                      "global doctor created the absent default cache");
+
+        product::DoctorOptions incompatible_global = global_options;
+        incompatible_global.hardware_override->backend_kernel_image_available = false;
+        const product::DoctorReport missing_global_image =
+            product::run_doctor(incompatible_global);
+        require_test(missing_global_image.overall == product::DoctorOverall::Failed &&
+                         missing_global_image.exit_code() == 1,
+                     "global doctor ignored an incompatible CUDA binary");
+        require_contains(missing_global_image.text, "VRhino CUDA image: unavailable",
+                         "incompatible binary");
 
         const fs::path healthy_cache = root / "healthy-cache";
         product::LocalModelCache healthy(healthy_cache);
@@ -245,6 +256,16 @@ int main() {
                      "no-threshold model did not produce non-blocking WARNING");
         require_contains(unknown_threshold.text, "Status: NOT_APPLICABLE",
                          "no-threshold admission");
+
+        product::DoctorOptions missing_image = options(
+            healthy_cache, specs, encoder, no_minimum.reference);
+        missing_image.hardware_override->backend_kernel_image_available = false;
+        const product::DoctorReport incompatible_binary = product::run_doctor(missing_image);
+        require_test(incompatible_binary.overall == product::DoctorOverall::Failed &&
+                         incompatible_binary.exit_code() == 1,
+                     "missing CUDA image was hidden by an absent VRAM threshold");
+        require_contains(incompatible_binary.text, "Status: FAIL", "CUDA image admission");
+        require_contains(incompatible_binary.text, "kernel image", "CUDA image concern");
 
         const fs::path missing_runtime_cache = root / "missing-runtime-cache";
         product::LocalModelCache missing_runtime(missing_runtime_cache);

@@ -21,6 +21,7 @@ int main(int argc,char**argv){try{
     require(sampling.guidance_schedule->at(0).scale == 4 && sampling.guidance_schedule->at(1).scale == 3,
             "Guidance schedule collapsed");
     reject("structural admission cannot grant numerical execution", [&]{p::require_numerical_product_admission(admitted.resources.manifest);});
+    reject("structural admission cannot grant Product execution", [&]{p::require_product_execution_admission(admitted.resources.manifest);});
     const auto base_graph=f.graph,base_metadata=f.metadata,base_manifest=f.manifest,base_local=f.local;
     // A public Product profile references the existing canonical program. It
     // never fabricates constant guidance or numerical execution permission.
@@ -73,6 +74,10 @@ int main(int argc,char**argv){try{
         if(mode==5)f.manifest=set(f.manifest,"admission",set(f.manifest.at("admission"),"programs_artifact",j(std::string("absent"))));
         f.save();reject("invalid product/local "+std::to_string(mode),[&]{f.preflight();});
     }
+    f.manifest=base_manifest;
+    f.manifest=set(f.manifest,"admission",set(f.manifest.at("admission"),
+        "execution_eligibility",j(std::string("unknown"))));f.save();
+    reject("unknown execution eligibility",[&]{f.preflight();});
     f.manifest=base_manifest;f.local=base_local;f.emit();
     write(f.root/"graph.json",set(base_graph,"schema_version",j(int64_t(1))));f.refresh();reject("graph/package mismatch",[&]{f.preflight();});f.emit();
     auto arts=f.manifest.at("artifacts").array();arts[0]=set(arts[0],"sha256",j(std::string(64,'0')));f.manifest=set(f.manifest,"artifacts",j(arts));f.save();reject("wrong SHA256",[&]{f.preflight();});f.manifest=base_manifest;f.emit();

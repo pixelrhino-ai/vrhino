@@ -173,6 +173,7 @@ HardwareSnapshot hardware_snapshot() {
     result.total_vram_bytes = total;
     cudaDriverGetVersion(&result.driver_version);
     cudaRuntimeGetVersion(&result.runtime_version);
+    result.backend_kernel_image_available = cuda_backend_kernel_image_available();
     return result;
 }
 
@@ -426,7 +427,10 @@ PreflightResult preflight_runnable_model(const ResolvedRunnableModel& model,
     result.hardware = hardware;
     result.minimum_vram_bytes = declared.minimum;
     result.recommended_vram_bytes = declared.recommended;
-    if (declared.minimum_compute_major &&
+    if (!result.hardware.backend_kernel_image_available) {
+        result.status = PreflightStatus::UnsupportedGpu;
+        result.message = "this VRhino binary has no CUDA Backend kernel image for the selected GPU; install a compatible build";
+    } else if (declared.minimum_compute_major &&
         (result.hardware.compute_major < *declared.minimum_compute_major ||
          (result.hardware.compute_major == *declared.minimum_compute_major &&
           result.hardware.compute_minor < *declared.minimum_compute_minor))) {
@@ -468,7 +472,10 @@ std::filesystem::path default_media_encoder_path() {
 
 RunResult run_runnable_model(const ResolvedRunnableModel& model,
                              const RunOptions& options, RunEventSink progress) {
-    require_numerical_product_admission(model.manifest);
+    require_product_execution_admission(model.manifest);
+    if (product_execution_is_alpha_unqualified(model.manifest) && progress)
+        progress(RunEvent::diagnostic(
+            "Alpha execution: this package is structurally admitted; numerical qualification remains HOLD"));
     if (model.manifest.schema_version == 2)
         return run_declared_text_product(model, options, std::move(progress));
     if (options.resources.weight_cache_budget_bytes &&

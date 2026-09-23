@@ -3031,6 +3031,17 @@ private:
 
 #define VRHINO_PROFILE(name) CudaFailureGuard operation_transaction_(impl_); ProfileScope profile_scope_(impl_, name)
 
+bool cuda_backend_kernel_image_available() {
+    cudaFuncAttributes attributes{};
+    const cudaError_t status = cudaFuncGetAttributes(
+        &attributes, binary_kernel<float, 0>);
+    if (status == cudaErrorNoKernelImageForDevice ||
+        status == cudaErrorInvalidDeviceFunction)
+        return false;
+    CUDA_CHECK(status);
+    return true;
+}
+
 CudaBackend::CudaBackend() : impl_(new Impl(resource_session_)) {}
 CudaBackend::~CudaBackend() { delete impl_; }
 std::string CudaBackend::name() const { return "native-cuda-correctness"; }

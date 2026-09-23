@@ -10,7 +10,7 @@ English | [简体中文](README.zh-CN.md)
 
 ## Install
 
-Linux x86_64 — install **v0.9.0-alpha** with one command (no sudo):
+Linux x86_64 — install **v0.9.1-alpha** with one command (no sudo):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/main/install.sh | sh
@@ -33,7 +33,7 @@ are separate; native execution needs no Python or CUDA Toolkit installation.
 
 | Model | Task | Entry |
 |---|---|---|
-| **Wan2.2 T2V A14B** | Text to video | Linux v0.9 · `evaluate` · [setup](docs/models/wan2.2-quickstart.md) |
+| **Wan2.2 T2V A14B** | Text to video | `pull` / `run` · `vrhino/wan2.2-t2v-a14b:1.0.0` |
 | Wan2.1 T2V 1.3B | Text to video | `pull` / `run` · `vrhino/wan2.1-t2v-1.3b:1.0.1` |
 | LTX-Video 0.9.1 | Text to video | `pull` / `run` · `vrhino/ltx-video-v0.9.1:1.1.1` |
 | Mochi 1 Preview | Text to video | `pull` / `run` · `vrhino/mochi-1-preview:1.0.1` |
@@ -46,27 +46,18 @@ Hardware requirements and tested platforms vary by model; see the
 ## Generate a video
 
 ```bash
-vrhino pull vrhino/wan2.1-t2v-1.3b:1.0.1
-vrhino run vrhino/wan2.1-t2v-1.3b:1.0.1 \
+vrhino pull vrhino/wan2.2-t2v-a14b:1.0.0
+vrhino run vrhino/wan2.2-t2v-a14b:1.0.0 \
   --prompt "a red panda running through fresh snow" --output video.mp4
 ```
 
 The first `pull` downloads, verifies and converts the model into a local package.
 To use a larger model/cache disk, set `VRHINO_HOME` before pulling.
 
-### Wan2.2
-
-Follow the [Wan2.2 quick start](docs/models/wan2.2-quickstart.md) to prepare the
-model and copy the bundled example. From that example's working directory:
-
-```bash
-vrhino preflight vrhino-model.json local-resources.json
-vrhino evaluate vrhino-model.json local-resources.json request.json options.json ./output
-```
-
-Edit the prompt in `request.json`; the video is saved as `output/evaluation.mp4`.
-Use a new output directory. Wan2.2 currently uses `evaluate`, rather than ordinary
-`run`. See [tested settings and alpha notes](docs/release/v0.9-wan2.2-known-limitations.md).
+Wan2.2 uses the same Product command as other text-to-video models. Its first
+pull is large because VRhino verifies and converts the fixed upstream weights.
+See the [Wan2.2 notes](docs/models/wan2.2-quickstart.md) for storage, hardware and
+alpha qualification details.
 
 ### Lip sync
 
@@ -83,7 +74,7 @@ LatentSync uses the same video/audio command shape with its package ID above.
 - [Installation and cache configuration](docs/install.md)
 - [Architecture](docs/architecture.md) · [Build from source](docs/source-build.md)
 - [Local Native API — v0.6.0-alpha contract](docs/api/native-api-v1.md) (`vrhino serve`)
-- [v0.9 release and checksums](docs/release/v0.9.0-alpha.md) · [Windows v0.8 scope](docs/release/v0.8.0-alpha.md)
+- [v0.9.1 release and checksums](docs/release/v0.9.1-alpha.md) · [Windows v0.8 scope](docs/release/v0.8.0-alpha.md)
 - [Contributing](CONTRIBUTING.md)
 
 Project-owned source: [Apache-2.0](LICENSE). Distributed binaries retain their

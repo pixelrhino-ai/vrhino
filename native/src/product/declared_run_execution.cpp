@@ -9,9 +9,9 @@
 namespace vrhino::product {
 RunResult run_declared_text_product(const ResolvedRunnableModel& model,
                                     const RunOptions& options, RunEventSink events) {
-    // This guard is intentionally independent of structurally valid declarations.
-    // No current schema2 package is numerically admitted by this implementation.
-    require_numerical_product_admission(model.manifest);
+    // Alpha execution permission is explicit and independent of numerical
+    // qualification. Direct callers cannot bypass package admission.
+    require_product_execution_admission(model.manifest);
     using Clock = std::chrono::steady_clock;
     const auto started = Clock::now();
     const auto cancelled = [&] {

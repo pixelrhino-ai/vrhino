@@ -90,6 +90,14 @@ int main() {
         require_test(admitted.status == product::PreflightStatus::Supported,
                      "available VRAM above required threshold was rejected");
 
+        hardware.backend_kernel_image_available = false;
+        const product::PreflightResult missing_image = product::preflight_runnable_model(
+            admitted_model, "default", hardware);
+        require_test(missing_image.status == product::PreflightStatus::UnsupportedGpu &&
+                         missing_image.message.find("kernel image") != std::string::npos,
+                     "missing CUDA Backend image did not fail during product preflight");
+        hardware.backend_kernel_image_available = true;
+
         hardware.available_vram_bytes = 72 * kGiB + 440 * 1024 * 1024;
         const product::PreflightResult contended = product::preflight_runnable_model(
             admitted_model, "default", hardware);

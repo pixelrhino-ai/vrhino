@@ -160,6 +160,8 @@ AdmittedLocalProduct preflight_resolved_product(ResolvedRunnableModel resources)
     resource_request.validate();
     out.evidence = Json(Json::Object{
         {"structurally_runnable", Json(true)}, {"numerically_qualified", Json(false)},
+        {"product_execution_eligible", Json(product_execution_is_alpha_unqualified(m))},
+        {"product_execution_status", Json(m.execution_eligibility)},
         {"numerical_status", Json(std::string("HOLD"))}, {"route", Json(std::string("production_default_structural"))},
         {"graphs", Json(int64_t(catalog.graphs().size()))}, {"bindings", Json(int64_t(catalog.bindings().size()))},
         {"instances", Json(int64_t(catalog.instances().size()))}, {"sampling_steps", Json(int64_t(out.sampling.steps))},

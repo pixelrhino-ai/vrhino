@@ -1,0 +1,17 @@
+{
+  "schema": "vrhino.release-publication-record.v1",
+  "version": "v0.9.1-alpha",
+  "release_url": "https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.9.1-alpha",
+  "prerelease": true,
+  "platforms": ["linux-x86_64-cuda"],
+  "binary_source_commit": "df27ee5eb4b987fa4cb6e83d744f001d61883595",
+  "numerical_qualification": "alpha; generic BF16 reference qualification remains open",
+  "assets": [
+    {
+      "name": "vrhino-linux-x86_64-cuda-v0.9.1-alpha.tar.gz",
+      "size_bytes": 1412112885,
+      "sha256": "37bff0ecd0ac10d3bf2bd7c2c78f867477ca27a3c803d83f32a6d873ce015733",
+      "download_url": "https://github.com/pixelrhino-ai/vrhino/releases/download/v0.9.1-alpha/vrhino-linux-x86_64-cuda-v0.9.1-alpha.tar.gz"
+    }
+  ]
+}

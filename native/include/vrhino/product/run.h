@@ -23,6 +23,7 @@ enum class PreflightStatus {
 
 struct HardwareSnapshot {
     std::string gpu_name;
+    bool backend_kernel_image_available = true;
     int compute_major = 0;
     int compute_minor = 0;
     uint64_t total_vram_bytes = 0;

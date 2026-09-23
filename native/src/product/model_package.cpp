@@ -645,14 +645,32 @@ ModelPackageManifest load_model_package_manifest(const fs::path& path) {
             const Json& admission = object_field(root, "admission");
             const std::set<std::string> fields{"graph_artifact", "programs_artifact", "metadata_artifact",
                 "source_manifest_artifact", "required_capabilities", "resources", "structural_only"};
-            if (admission.object().size() != fields.size() + (admission.find("request_artifact") ? 1 : 0))
+            const bool has_request = admission.find("request_artifact") != nullptr;
+            const bool has_execution_eligibility =
+                admission.find("execution_eligibility") != nullptr;
+            if (admission.object().size() != fields.size() + has_request +
+                    has_execution_eligibility)
                 fail(ModelPackageErrorCode::PackageInvalid, "schema2 admission field set mismatch");
             for (const auto& [key, value] : admission.object()) {
                 (void)value;
-                if (!fields.contains(key) && key != "request_artifact") fail(ModelPackageErrorCode::PackageInvalid, "Unknown admission field");
+                if (!fields.contains(key) && key != "request_artifact" &&
+                    key != "execution_eligibility")
+                    fail(ModelPackageErrorCode::PackageInvalid,
+                         "Unknown admission field");
             }
             if (!bool_field(admission, "structural_only"))
                 fail(ModelPackageErrorCode::PackageInvalid, "schema2 numerical qualification is not available");
+            manifest.execution_eligibility = "structural_only";
+            if (has_execution_eligibility) {
+                manifest.execution_eligibility =
+                    string_field(admission, "execution_eligibility");
+                if (manifest.execution_eligibility != "alpha_unqualified")
+                    fail(ModelPackageErrorCode::PackageInvalid,
+                         "unsupported schema2 execution eligibility");
+                if (manifest.product.execution_artifact_id.empty())
+                    fail(ModelPackageErrorCode::PackageInvalid,
+                         "alpha execution requires a declared Product execution artifact");
+            }
             if (program_profile && *program_profile != string_field(admission, "programs_artifact"))
                 fail(ModelPackageErrorCode::PackageInvalid, "Product profile must reference the admitted program artifact");
             for (const auto* key : {"graph_artifact", "programs_artifact", "metadata_artifact", "source_manifest_artifact"}) {
@@ -697,6 +715,19 @@ void require_numerical_product_admission(const ModelPackageManifest& manifest) {
     if (manifest.schema_version != 1)
         fail(ModelPackageErrorCode::PackageVersionUnsupported,
              "Package numerical qualification is HOLD; use structural preflight");
+}
+
+bool product_execution_is_alpha_unqualified(
+        const ModelPackageManifest& manifest) noexcept {
+    return manifest.schema_version == 2 &&
+           manifest.execution_eligibility == "alpha_unqualified";
+}
+
+void require_product_execution_admission(const ModelPackageManifest& manifest) {
+    if (manifest.schema_version == 1) return;
+    if (product_execution_is_alpha_unqualified(manifest)) return;
+    fail(ModelPackageErrorCode::PackageVersionUnsupported,
+         "Package execution is structurally admitted only; alpha execution was not declared");
 }
 
 LocalModelCache::LocalModelCache(fs::path root) : layout_(cache_layout(root)) {

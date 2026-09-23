@@ -191,7 +191,7 @@ SourceArtifactPlanDocument parse_plan(const fs::path& path) {
         plan.requested_source.revision = string_field(requested, "revision");
         if (plan.requested_source.provider != "huggingface")
             fail(ModelPackageErrorCode::SourceInvalid,
-                 "Phase 26C source plan provider must be huggingface");
+                 "source plan provider must be huggingface");
         validate_repository(plan.requested_source.repository);
         if (!fixed_commit(plan.requested_source.revision))
             fail(ModelPackageErrorCode::SourceRevisionRequired,
@@ -222,7 +222,7 @@ SourceArtifactPlanDocument parse_plan(const fs::path& path) {
                 validate_repository(artifact.repository);
                 if (!fixed_commit(artifact.revision))
                     fail(ModelPackageErrorCode::SourceRevisionRequired,
-                         "every Hugging Face source artifact must pin a 40-hex revision");
+                         "every repository source artifact must pin a 40-hex revision");
                 validate_relative_path(artifact.upstream_path, "upstream_path");
             } else if (artifact.provider == "fixed_https") {
                 artifact.fixed_url = string_field(value, "url");
@@ -252,6 +252,111 @@ SourceArtifactPlanDocument parse_plan(const fs::path& path) {
     } catch (const Error& error) {
         fail(ModelPackageErrorCode::SourceInvalid,
              "malformed source artifact plan: " + std::string(error.what()));
+    }
+}
+
+SourceArtifactPlanDocument parse_qualified_source_contract(
+        const fs::path& path, const std::string& expected_model_reference) {
+    try {
+        SourceArtifactPlanDocument plan;
+        plan.schema_version = kSourcePlanSchemaVersion;
+        plan.model_reference = expected_model_reference;
+        plan.document_path = path;
+        plan.raw_json = read_text(path);
+        const Json root = Json::parse(plan.raw_json);
+        if (!root.is_object() || string_field(root, "contract_kind") !=
+                "B10_qualified_source_inventory_evidence" ||
+            string_field(root, "qualification_status") != "PASS")
+            fail(ModelPackageErrorCode::SourceInvalid,
+                 "qualified source contract is not admitted");
+        const Json& roots = object_field(root, "source_roots");
+        const Json& model = object_field(roots, "model");
+        const Json& official = object_field(roots, "official_source");
+        const std::string model_repository_url = string_field(model, "repository");
+        constexpr std::string_view huggingface_prefix =
+            "https://huggingface.co/";
+        if (!model_repository_url.starts_with(huggingface_prefix))
+            fail(ModelPackageErrorCode::SourceInvalid,
+                 "qualified model root is not a Hugging Face repository");
+        plan.requested_source = SourceReference{
+            "huggingface",
+            model_repository_url.substr(huggingface_prefix.size()),
+            string_field(model, "revision")};
+        validate_repository(plan.requested_source.repository);
+        if (!fixed_commit(plan.requested_source.revision))
+            fail(ModelPackageErrorCode::SourceRevisionRequired,
+                 "qualified model source must pin a 40-hex revision");
+        const std::string official_repository = string_field(official, "repository");
+        constexpr std::string_view github_prefix = "https://github.com/";
+        if (!official_repository.starts_with(github_prefix))
+            fail(ModelPackageErrorCode::SourceInvalid,
+                 "qualified semantic root is not a GitHub repository");
+        const std::string github_repository =
+            official_repository.substr(github_prefix.size());
+        const std::string github_revision = string_field(official, "revision");
+        validate_repository(github_repository);
+        if (!fixed_commit(github_revision))
+            fail(ModelPackageErrorCode::SourceRevisionRequired,
+                 "qualified semantic source must pin a 40-hex revision");
+        const Json* artifact_list=root.find("artifacts");
+        if(artifact_list==nullptr || !artifact_list->is_array())
+            fail(ModelPackageErrorCode::SourceInvalid,
+                 "qualified source contract artifacts must be an array");
+        size_t index = 0;
+        std::set<fs::path> local_paths;
+        for (const Json& item : artifact_list->array()) {
+            if (!item.is_object())
+                fail(ModelPackageErrorCode::SourceInvalid,
+                     "qualified source artifact must be an object");
+            SourceArtifactPlan artifact;
+            artifact.id = "qualified-" + std::to_string(index++);
+            artifact.role = string_field(item, "role");
+            artifact.local_path = string_field(item, "relative_path");
+            validate_relative_path(artifact.local_path, "relative_path");
+            const std::string size_text = string_field(item, "size_bytes");
+            size_t consumed = 0;
+            try { artifact.size = std::stoull(size_text, &consumed); }
+            catch (...) {
+                fail(ModelPackageErrorCode::SourceInvalid,
+                     "qualified source artifact size is invalid");
+            }
+            artifact.sha256 = string_field(item, "sha256");
+            if (consumed != size_text.size() || artifact.size == 0 ||
+                artifact.sha256.size() != 64 ||
+                !local_paths.insert(artifact.local_path).second)
+                fail(ModelPackageErrorCode::SourceInvalid,
+                     "qualified source artifact identity is invalid");
+            auto part = artifact.local_path.begin();
+            const std::string source_namespace = (part++)->string();
+            fs::path upstream;
+            for (; part != artifact.local_path.end(); ++part) upstream /= *part;
+            validate_relative_path(upstream, "qualified upstream path");
+            if (source_namespace == "model") {
+                artifact.provider = "huggingface";
+                artifact.repository = plan.requested_source.repository;
+                artifact.revision = plan.requested_source.revision;
+                artifact.upstream_path = upstream;
+            } else if (source_namespace == "official_source") {
+                artifact.provider = "fixed_https";
+                artifact.fixed_url = "https://raw.githubusercontent.com/" +
+                    github_repository + "/" + github_revision + "/" +
+                    upstream.generic_string();
+                validate_fixed_https_url(artifact.fixed_url);
+            } else {
+                fail(ModelPackageErrorCode::SourceInvalid,
+                     "qualified source artifact has an unknown namespace");
+            }
+            plan.artifacts.push_back(std::move(artifact));
+        }
+        if (plan.artifacts.empty())
+            fail(ModelPackageErrorCode::SourceInvalid,
+                 "qualified source contract has no artifacts");
+        return plan;
+    } catch (const ModelPackageError&) {
+        throw;
+    } catch (const Error& error) {
+        fail(ModelPackageErrorCode::SourceInvalid,
+             "malformed qualified source contract: " + std::string(error.what()));
     }
 }
 
@@ -578,7 +683,7 @@ SourceReference parse_source_reference(const std::string& reference) {
     validate_repository(result.repository);
     if (!fixed_commit(result.revision))
         fail(ModelPackageErrorCode::SourceRevisionRequired,
-             "Hugging Face revision must be an explicit 40-hex commit");
+             "source revision must be an explicit 40-hex commit");
     return result;
 }
 
@@ -588,7 +693,19 @@ SourceArtifactPlanDocument load_source_artifact_plan_file(
     if (!fs::is_regular_file(path, error) || error)
         fail(ModelPackageErrorCode::SourceInvalid,
              "declared source plan is not a readable regular file");
-    SourceArtifactPlanDocument plan = parse_plan(path);
+    SourceArtifactPlanDocument plan;
+    try {
+        const std::string document = read_text(path);
+        const Json root = Json::parse(document);
+        plan = root.is_object() && root.find("contract_kind") != nullptr
+            ? parse_qualified_source_contract(path, expected_model_reference)
+            : parse_plan(path);
+    } catch (const ModelPackageError&) {
+        throw;
+    } catch (const Error& error) {
+        fail(ModelPackageErrorCode::SourceInvalid,
+             "malformed source artifact plan: " + std::string(error.what()));
+    }
     if (plan.model_reference != expected_model_reference)
         fail(ModelPackageErrorCode::SourceInvalid,
              "declared source plan model_reference does not match: " +

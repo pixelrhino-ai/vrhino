@@ -4,6 +4,10 @@
 
 namespace vrhino {
 
+// Checks a compiled Backend kernel on the currently selected CUDA device.
+// This probes the executable image without constructing a Backend or launching work.
+bool cuda_backend_kernel_image_available();
+
 class CudaBackend final : public Backend {
 public:
     struct Impl;

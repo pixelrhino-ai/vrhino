@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 
 
 def digest(path):
@@ -30,7 +31,8 @@ def main():
     output = args.output.absolute()
     if output.exists():
         parser.error('output must be a new directory')
-    required_files = [build / 'vrhino', build / 'vrhino-native',
+    executables = ('vrhino', 'vrhino-native', 'vrhino-wan-family-convert')
+    required_files = [*(build / name for name in executables),
                       deps / 'media/bin/vrhino-ffmpeg', source / 'LICENSE',
                       source / 'NOTICE', source / 'THIRD_PARTY_NOTICES.md']
     required_dirs = [deps / p for p in ('lib', 'media/sources', 'media/licenses', 'licenses')]
@@ -40,10 +42,21 @@ def main():
     for path in required_dirs:
         if not path.is_dir():
             parser.error(f'missing audited dependency directory: {path}')
-    for name in ('vrhino', 'vrhino-native'):
+    for name in executables:
         with (build / name).open('rb') as stream:
             if stream.read(4) != b'\x7fELF':
                 parser.error(f'{name} must be a freshly built ELF executable')
+    cuobjdump = shutil.which('cuobjdump')
+    if not cuobjdump:
+        parser.error('cuobjdump is required to verify CUDA images before packaging')
+    image_audit = subprocess.run(
+        [sys.executable, str(source / 'tools/verify_cuda_fatbin.py'),
+         str(build / 'vrhino'), str(build / 'vrhino-native'),
+         '--cuobjdump', cuobjdump], text=True, capture_output=True,
+        check=False)
+    if image_audit.returncode:
+        parser.error('CUDA image audit failed: ' + image_audit.stderr.strip())
+    print(image_audit.stdout, end='')
     if any((deps / 'lib').glob('libcuda.so*')):
         parser.error('dependency bundle must not contain the host NVIDIA driver')
     directories = [name for name in ('lib', 'media', 'licenses', 'sbom') if (deps / name).is_dir()]
@@ -74,7 +87,7 @@ def main():
     if (deps / 'THIRD_PARTY_NOTICES.txt').is_file():
         shutil.copy2(deps / 'THIRD_PARTY_NOTICES.txt', output / 'licenses/dependency-origin-NOTICES.txt')
     shutil.copytree(source / 'native/specs', output / 'share/vrhino/converters', symlinks=True)
-    for name in ('vrhino', 'vrhino-native'):
+    for name in executables:
         binary = output / 'libexec' / name
         shutil.copy2(build / name, binary)
         subprocess.run([patcher, '--set-rpath', '$ORIGIN/../lib', str(binary)], check=True)
@@ -94,13 +107,13 @@ def main():
     helper.chmod(0o755)
     for name in ('LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.md', 'VERSION'):
         shutil.copy2(source / name, output / name)
-    manifest = {'kind': 'local-source-build-not-a-published-release',
+    manifest = {'kind': 'source-built-linux-cuda-package',
                 'project_license': 'Apache-2.0',
                 'version': (source / 'VERSION').read_text().strip(),
                 'dependency_licenses': 'licenses/ and media/licenses/',
                 'dependency_provenance': 'licenses/dependency-origin-NOTICES.txt and optional sbom/dependency-origin-*',
                 'binaries': {name: digest(output / 'libexec' / name)
-                             for name in ('vrhino', 'vrhino-native')}}
+                             for name in executables}}
     (output / 'SOURCE-BUILD.json').write_text(json.dumps(manifest, indent=2) + '\n')
     # Package input libraries/media are copied without patching or stripping.
     for directory in ('lib', 'media'):

@@ -34,6 +34,16 @@ No model weights, caches, videos, test executables or build logs are copied.
 
 Build the native `vrhino` CMake target from the intended commit using Release,
 MSVC x64, CUDA enabled, native tokenizers and product CLI enabled, and SM86.
+This is the frozen v0.8 Windows qualification target, not a multi-GPU claim.
+For a future v0.9 Windows build, use the shared multi-architecture CUDA source
+default and inspect the actual PE executable before packaging:
+
+```powershell
+python tools/verify_cuda_fatbin.py build/vrhino.exe --cuobjdump cuobjdump.exe
+```
+
+The future build must be qualified separately on its supported GPU families.
+The existing v0.8 package and its SM86 build record remain unchanged.
 Record the actual toolchain and build configuration in a build-info JSON file:
 
 ```json

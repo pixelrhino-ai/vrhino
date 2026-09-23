@@ -173,6 +173,19 @@ int main(int argc,char** argv){try{
     write(f.root/"normal-request.json",set(envelope,"model",j(std::string("test/other:1"))));
     reject("normal request/package mismatch",[&]{p::dry_run_resolved_product(run_resources,f.root/"normal-request.json");});
     reject("complete declaration cannot grant numerical qualification",[&]{p::require_numerical_product_admission(run_resources.manifest);});
+    reject("complete declaration does not implicitly grant execution",[&]{p::require_product_execution_admission(run_resources.manifest);});
+    f.manifest=set(f.manifest,"admission",set(f.manifest.at("admission"),
+        "execution_eligibility",j(std::string("alpha_unqualified"))));f.save();
+    const auto alpha_product=f.preflight();
+    p::require_product_execution_admission(alpha_product.resources.manifest);
+    require(p::product_execution_is_alpha_unqualified(alpha_product.resources.manifest),
+            "Explicit alpha execution declaration was lost");
+    require(alpha_product.evidence.at("product_execution_eligible").boolean() &&
+            alpha_product.evidence.at("product_execution_status").string()==
+                "alpha_unqualified",
+            "Preflight did not distinguish alpha execution from qualification");
+    reject("alpha execution must not grant numerical qualification",[&]{
+        p::require_numerical_product_admission(alpha_product.resources.manifest);});
     f.manifest=base_manifest;f.local=base_local;f.save();
     for(int mode=0;mode<5;++mode){
         auto w=base_wiring;

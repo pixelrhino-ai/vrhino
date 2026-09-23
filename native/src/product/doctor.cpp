@@ -410,7 +410,12 @@ DoctorReport run_doctor(const DoctorOptions& options) {
                << "VRAM: " << format_bytes(hardware->available_vram_bytes)
                << " available / " << format_bytes(hardware->total_vram_bytes) << " total\n"
                << "CUDA driver API: " << hardware->driver_version << '\n'
-               << "CUDA runtime API: " << hardware->runtime_version << '\n';
+               << "CUDA runtime API: " << hardware->runtime_version << '\n'
+               << "VRhino CUDA image: "
+               << (hardware->backend_kernel_image_available ? "available" : "unavailable")
+               << '\n';
+        if (!hardware->backend_kernel_image_available)
+            escalate(report.overall, DoctorOverall::Failed);
     } else {
         output << "Status: FAILED (" << (hardware_failure.empty() ? "UNKNOWN" : hardware_failure)
                << ")\n"
@@ -639,7 +644,13 @@ DoctorReport run_doctor(const DoctorOptions& options) {
                        << '\n'
                        << "Current available VRAM: "
                        << format_bytes(hardware->available_vram_bytes) << '\n';
-                if (!admission.minimum_vram_bytes.has_value()) {
+                if (admission.status == PreflightStatus::UnsupportedGpu ||
+                    admission.status == PreflightStatus::DriverIncompatible ||
+                    admission.status == PreflightStatus::InsufficientVram) {
+                    output << "Status: FAIL\n"
+                           << "Concern: " << admission.message << '\n';
+                    escalate(report.overall, DoctorOverall::Failed);
+                } else if (!admission.minimum_vram_bytes.has_value()) {
                     output << "Status: NOT_APPLICABLE (no declared threshold)\n";
                     escalate(report.overall, DoctorOverall::Warning);
                 } else if (admission.status == PreflightStatus::Supported) {
@@ -648,9 +659,6 @@ DoctorReport run_doctor(const DoctorOptions& options) {
                     output << "Status: WARNING\n"
                            << "Concern: " << admission.message << '\n';
                     escalate(report.overall, DoctorOverall::Warning);
-                } else {
-                    output << "Status: FAIL\n";
-                    escalate(report.overall, DoctorOverall::Failed);
                 }
             }
         }

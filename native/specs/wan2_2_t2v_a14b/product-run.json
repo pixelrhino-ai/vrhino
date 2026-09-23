@@ -1,0 +1,13 @@
+{
+  "schema": "vrhino.product-text-run.v1",
+  "negative_prompt": "blurry, distorted",
+  "precision_artifact": "qualification-precision",
+  "memory": {
+    "device_budget_bytes": 81604378624,
+    "host_budget_bytes": 214748364800,
+    "workspace_bytes": 2147483648,
+    "safety_margin_bytes": 1073741824,
+    "weight_cache_budget_bytes": 32212254720
+  },
+  "media_range": [-1, 1]
+}
