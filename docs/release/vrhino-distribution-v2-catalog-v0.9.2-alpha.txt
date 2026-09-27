@@ -1,0 +1,15 @@
+schema=vrhino-distribution-v2-catalog-v1
+catalog_version=v0.9.2-alpha
+platform=linux-x86_64
+runtime_api=1
+source_archive_sha256=37bff0ecd0ac10d3bf2bd7c2c78f867477ca27a3c803d83f32a6d873ce015733
+core_name=vrhino-core-linux-x86_64-v0.9.1-alpha-split-prototype.tar.gz
+core_sha256=70ff9060357310b4c865790b92cb14749a91247534e282bbf8afbe97ca8594b0
+core_root=vrhino-core-v0.9.1-alpha-split-prototype
+core_version=v0.9.1-alpha-split-prototype
+runtime_name=vrhino-nvidia-runtime-nvidia-linux-x86_64-cuda12.8.90-cublas12.8.4.1-cudnn9.8.0.87-nvrtc12.8.93-nvjitlink12.8.93-r1.tar.gz
+runtime_sha256=c3488da9a4d346ff791cb14ba012018e50b7876ab7dd4dbecc7ba53e088dbe83
+runtime_root=vrhino-nvidia-runtime-nvidia-linux-x86_64-cuda12.8.90-cublas12.8.4.1-cudnn9.8.0.87-nvrtc12.8.93-nvjitlink12.8.93-r1
+runtime_id=nvidia-linux-x86_64-cuda12.8.90-cublas12.8.4.1-cudnn9.8.0.87-nvrtc12.8.93-nvjitlink12.8.93-r1
+core_url=https://github.com/pixelrhino-ai/vrhino/releases/download/v0.9.2-alpha/vrhino-core-linux-x86_64-v0.9.1-alpha-split-prototype.tar.gz
+runtime_url=https://github.com/pixelrhino-ai/vrhino/releases/download/v0.9.2-alpha/vrhino-nvidia-runtime-nvidia-linux-x86_64-cuda12.8.90-cublas12.8.4.1-cudnn9.8.0.87-nvrtc12.8.93-nvjitlink12.8.93-r1.tar.gz
