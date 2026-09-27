@@ -1,141 +1,74 @@
 #!/bin/sh
-# Install the published Linux alpha. No model download, sudo, or inference.
-# Keep all execution inside main so a truncated curl response cannot partly install.
+# Versioned Distribution v2 bootstrap. Keep execution inside the function so a
+# truncated curl pipe response cannot start an installation.
 vrhino_install_main() (
     set -eu
-    version=v0.9.1-alpha
-    archive_name=vrhino-linux-x86_64-cuda-v0.9.1-alpha.tar.gz
-    archive_sha=37bff0ecd0ac10d3bf2bd7c2c78f867477ca27a3c803d83f32a6d873ce015733
-    archive_root=vrhino-v0.9.1-alpha
-    url="https://github.com/pixelrhino-ai/vrhino/releases/download/$version/$archive_name"
-    prefix=${VRHINO_INSTALL_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/$archive_root}
-    bin_dir=${VRHINO_BIN_DIR:-$HOME/.local/bin}
-    local_archive=
-    modify_path=yes
-    login_shell=${SHELL:-}
+    release=v0.9.2-alpha
+    base=https://github.com/pixelrhino-ai/vrhino/releases/download/$release
+    catalog_name=vrhino-distribution-v2-catalog-v0.9.2-alpha.txt
+    catalog_sha=d3890bd1b0d2d95f7be3500eb861abd84d2be4db4b77d70dfc600966d3a0fa80
+    installer_name=install_distribution_v2.sh
+    installer_sha=b1780b4e1bc652b5a954a713497abf65b7f95665e814d48ca78e8e8c95b436e7
+    bundle=
+    prefix=
+    bin_dir=
     work=
-    lock=
-    fail() { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
-    say() { printf '%s\n' "$*"; }
-    quote() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
+    fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
     cleanup() {
         code=$?
         trap - EXIT
         [ -z "$work" ] || rm -rf -- "$work"
-        [ -z "$lock" ] || rmdir -- "$lock" 2>/dev/null || :
-        [ "$code" -eq 0 ] || printf 'Installation stopped; no existing installation was deleted.\n' >&2
         exit "$code"
     }
     trap cleanup EXIT
     trap 'exit 130' INT
     trap 'exit 143' TERM HUP
     while [ "$#" -gt 0 ]; do
-        case "$1" in
-            --prefix|--bin-dir|--archive)
-                [ "$#" -ge 2 ] || fail "Missing value for $1"
-                case "$1" in --prefix) prefix=$2;; --bin-dir) bin_dir=$2;; --archive) local_archive=$2;; esac
+        case $1 in
+            --prefix|--bin-dir|--bundle-dir)
+                [ "$#" -ge 2 ] || fail "missing value for $1"
+                case $1 in
+                    --prefix) prefix=$2;;
+                    --bin-dir) bin_dir=$2;;
+                    --bundle-dir) bundle=$2;;
+                esac
                 shift 2;;
-            --no-modify-path) modify_path=no; shift;;
             --help|-h)
-                say 'Usage: sh install.sh [--prefix ABSOLUTE_DIR] [--bin-dir ABSOLUTE_DIR] [--archive FILE] [--no-modify-path]'
-                say 'Default: ~/.local/share/vrhino-v0.9.1-alpha and ~/.local/bin. Installs Linux x86_64 only.'
+                printf 'Usage: sh install.sh [--prefix ABSOLUTE_DIR] [--bin-dir ABSOLUTE_DIR]\n'
+                printf 'Offline: sh install.sh --bundle-dir DIR [--prefix DIR] [--bin-dir DIR]\n'
+                printf 'Online release: %s\n' "$release"
                 exit 0;;
-            *) fail "Unknown option: $1";;
+            *) fail "unknown option: $1";;
         esac
     done
-    say '[1/5] Checking platform and installation paths'
-    [ "$(uname -s)" = Linux ] || fail 'This installer supports Linux only. Windows: see docs/install.md.'
-    [ "$(uname -m)" = x86_64 ] || fail 'The published package requires x86_64.'
-    for command in curl tar sha256sum getconf awk sed grep mktemp mkdir mv chmod dirname; do
-        command -v "$command" >/dev/null 2>&1 || fail "Required command missing: $command"
-    done
-    glibc=$(getconf GNU_LIBC_VERSION 2>/dev/null) || fail 'glibc 2.35 or newer is required.'
-    printf '%s\n' "$glibc" | awk '$1=="glibc" {split($2,v,"."); if(v[1]>2 || (v[1]==2 && v[2]>=35)) ok=1} END {exit !ok}' || fail "glibc 2.35 or newer is required; found $glibc"
-    for path in "$prefix" "$bin_dir"; do
-        case "$path" in /*) ;; *) fail 'Installation directories must be absolute paths.';; esac
-        case "$path" in /|*'
-'*) fail 'Invalid installation directory.';; esac
-    done
-    [ ! -L "$prefix" ] || fail "Refusing symlink installation directory: $prefix"
-    mkdir -p -- "$(dirname -- "$prefix")" "$bin_dir"
-    # Canonicalize parent directories without following a pre-existing prefix link.
-    parent=$(CDPATH= cd -- "$(dirname -- "$prefix")" && pwd -P)
-    leaf=${prefix##*/}; [ -n "$leaf" ] && [ "$leaf" != . ] && [ "$leaf" != .. ] || fail 'Invalid prefix leaf.'
-    prefix=$parent/$leaf
-    bin_dir=$(CDPATH= cd -- "$bin_dir" && pwd -P)
-    lock_path=$prefix.install-lock
-    mkdir -- "$lock_path" 2>/dev/null || fail "Another installation may be running. Lock: $lock_path"
-    lock=$lock_path
-    for name in vrhino vrhino-wan-family-convert; do
-        target=$bin_dir/$name
-        if [ -e "$target" ] || [ -L "$target" ]; then
-            [ ! -L "$target" ] && [ -f "$target" ] && grep -Fqx '# VRhino installer launcher v1' "$target" || fail "Refusing to overwrite existing command: $target"
-        fi
-    done
-    if [ -e "$prefix" ]; then
-        [ -d "$prefix" ] && [ -f "$prefix/.vrhino-install-identity" ] || fail "Directory already exists and is not managed by this installer: $prefix"
-        [ "$(cat "$prefix/.vrhino-install-identity")" = "$archive_sha" ] || fail 'Existing installation has a different identity; use a new --prefix.'
-        say '[2/5] Existing installation found; checking package checksums'
-        (cd "$prefix" && sha256sum --quiet -c SHA256SUMS) || fail 'Existing package is damaged; use a new --prefix.'
+    command -v sha256sum >/dev/null 2>&1 || fail 'sha256sum is required'
+    if [ -n "$bundle" ]; then
+        installer=$bundle/$installer_name
+        catalog=$bundle/catalog.txt
+        [ -f "$installer" ] || fail "offline installer missing: $installer"
+        [ -f "$catalog" ] || fail "offline catalog missing: $catalog"
+        actual=$(sha256sum < "$catalog"); actual=${actual%% *}
+        [ "$actual" = "$catalog_sha" ] || fail 'offline catalog SHA256 mismatch'
     else
-        work=$(mktemp -d "$parent/.vrhino-install.XXXXXXXX")
-        if [ -n "$local_archive" ]; then
-            [ -f "$local_archive" ] || fail "Archive not found: $local_archive"
-            archive=$local_archive
-            say '[2/5] Checking local archive'
-        else
-            archive=$work/$archive_name
-            say '[2/5] Downloading Linux CUDA package (about 1.42 GB)'
-            curl --fail --location --proto '=https' --proto-redir '=https' --tlsv1.2 \
-                --retry 3 --connect-timeout 30 --progress-bar --output "$archive" "$url" || fail 'Download failed; rerun to retry.'
-        fi
-        actual=$(sha256sum < "$archive"); actual=${actual%% *}
-        [ "$actual" = "$archive_sha" ] || fail 'Archive SHA256 mismatch; nothing was extracted.'
-        say '[3/5] SHA256 verified; extracting and checking package'
-        tar -xzf "$archive" -C "$work" --no-same-owner
-        unpacked=$work/$archive_root
-        [ -d "$unpacked" ] && [ ! -L "$unpacked" ] || fail 'Unexpected archive layout.'
-        (cd "$unpacked" && sha256sum --quiet -c SHA256SUMS) || fail 'Extracted package checksum failure.'
-        for name in vrhino vrhino-wan-family-convert; do
-            [ -x "$unpacked/bin/$name" ] || fail "Missing package launcher: $name"
-        done
-        detected=$("$unpacked/bin/vrhino" --version) || fail 'Packaged executable cannot start on this host.'
-        printf '%s\n' "$detected" | grep -Fqx "VRhino $version" || fail 'Unexpected executable version.'
-        printf '%s\n' "$archive_sha" > "$unpacked/.vrhino-install-identity"
-        mv -T -- "$unpacked" "$prefix"
+        command -v curl >/dev/null 2>&1 || fail 'curl is required for online install'
+        work=$(mktemp -d "${TMPDIR:-/tmp}/vrhino-v2-bootstrap.XXXXXXXX")
+        installer=$work/$installer_name
+        curl --silent --show-error --fail --location --proto '=https' \
+            --proto-redir '=https' --tlsv1.2 --retry 3 --retry-all-errors \
+            --retry-delay 1 --connect-timeout 30 --output "$installer" \
+            "$base/$installer_name" || fail 'installer download failed'
     fi
-    say '[4/5] Installing commands'
-    # A symlink to the shipped shell wrapper would break its relative library paths.
-    for name in vrhino vrhino-wan-family-convert; do
-        launcher=$(mktemp "$bin_dir/.vrhino-launcher.XXXXXXXX")
-        {
-            printf '#!/bin/sh\n# VRhino installer launcher v1\nexec '
-            quote "$prefix/bin/$name"
-            printf ' "$@"\n'
-        } > "$launcher"
-        chmod 755 "$launcher"
-        mv -T -- "$launcher" "$bin_dir/$name"
-    done
-    "$bin_dir/vrhino" --version
-    say '[5/5] Configuring command search path'
-    path_line="export PATH=$(quote "$bin_dir"):\"\$PATH\""
-    if [ "$modify_path" = yes ]; then
-        for profile in "$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc"; do
-            case "$profile" in
-                */.bashrc) [ -f "$profile" ] || [ "${login_shell##*/}" = bash ] || continue;;
-                */.zshrc) [ -f "$profile" ] || [ "${login_shell##*/}" = zsh ] || continue;;
-            esac
-            if ! grep -Fqx "$path_line" "$profile" 2>/dev/null; then
-                printf '\n# VRhino command path\n%s\n' "$path_line" >> "$profile"
-            fi
-        done
+    actual=$(sha256sum < "$installer"); actual=${actual%% *}
+    [ "$actual" = "$installer_sha" ] || fail 'installer SHA256 mismatch'
+    set --
+    if [ -n "$prefix" ]; then set -- "$@" --prefix "$prefix"; fi
+    if [ -n "$bin_dir" ]; then set -- "$@" --bin-dir "$bin_dir"; fi
+    if [ -n "$bundle" ]; then
+        set -- "$@" --bundle-dir "$bundle" --catalog-sha256 "$catalog_sha"
+    else
+        set -- "$@" --catalog-url "$base/$catalog_name" --catalog-sha256 "$catalog_sha"
     fi
-    say "SUCCESS: VRhino $version installed at $prefix"
-    case ":$PATH:" in
-        *":$bin_dir:"*) say 'Next: vrhino doctor';;
-        *) say 'For this terminal, run:'; say "  $path_line"; say 'Then: vrhino doctor';;
-    esac
-    [ "$modify_path" = no ] || say 'New Bash/Zsh login or interactive terminals will use the configured PATH.'
-    say 'Wan2.2 setup: https://github.com/pixelrhino-ai/vrhino/blob/main/docs/models/wan2.2-quickstart.md'
+    sh "$installer" "$@" --expected-catalog-version "$release"
+    printf 'If needed in this terminal: export PATH="%s:$PATH"\n' "${bin_dir:-$HOME/.local/bin}"
 )
 vrhino_install_main "$@"

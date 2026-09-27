@@ -1,3 +1,35 @@
+# VRhino v0.9.2-alpha — Distribution v2
+
+This Linux x86_64 alpha release promotes the publicly qualified v0.9.2-rc1
+core and NVIDIA runtime archives without changing either archive's bytes.
+Distribution v2 ships exactly two runtime artifacts: `vrhino-core` and
+`vrhino-nvidia-runtime`. A one-command installer uses a versioned SHA-pinned
+catalog to download and verify the exact private NVIDIA userspace runtime.
+It requires a compatible host NVIDIA Driver but no system CUDA Toolkit,
+cuDNN, FFmpeg, Python inference environment, or sudo. Model weights remain
+separate and are managed with `vrhino pull`.
+
+The first install still downloads both archives, 1,411,496,250 bytes in total.
+Future core versions that declare the same runtime identity reuse the installed
+runtime and download only the new core. The installer preserves an existing
+installer-managed v0.9.1 monolithic installation and its rollback target;
+activation is atomic. The historical v0.9.1 release is unchanged.
+
+RC qualification covered private NVIDIA library loading, offline install,
+dependency reuse, rollback, and real Product paths for Wan2.1, Wan2.2, LTX,
+and Mochi. An independent RC clean-host installation and Wan2.1 GPU Product
+smoke passed. The same frozen archives are used here. Wan2.2 produces video
+through its normal Product path; its existing generic numerical HOLD remains
+unchanged and is not claimed as a numerical PASS. A short external smoke from
+the formal v0.9.2-alpha URLs is still pending after publication.
+
+The frozen core archive embeds its original `v0.9.1-alpha` build/version and
+source commit `df27ee5eb4b987fa4cb6e83d744f001d61883595`; the
+`v0.9.2-alpha` tag identifies this distribution publication commit. The
+archive filenames likewise retain their RC1 identity. See the
+[v0.9.2-alpha release record](docs/release/v0.9.2-alpha.md) for exact URLs,
+SHA256 values, catalog trust pin, installer, and rollback instructions.
+
 # VRhino v0.9.1-alpha
 
 The Linux CUDA package adds normal `pull` / `run` Product support for Wan2.2

@@ -2,15 +2,15 @@
 
 ## Release status
 
-**Linux: [v0.9.1-alpha](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.9.1-alpha)**.
+**Linux: [v0.9.2-alpha Distribution v2](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.9.2-alpha)**.
 **Windows: v0.8.0-alpha** (existing qualified rc9 package).
-See the [v0.9.1 release and checksum record](release/v0.9.1-alpha.md) and the
+See the [v0.9.2 release and checksum record](release/v0.9.2-alpha.md) and the
 [v0.8 Windows qualification record](release/v0.8.0-alpha.md).
-Older release assets remain unchanged; v0.9 Windows binaries are not published.
+The v0.9.1 monolithic release remains available and unchanged; v0.9 Windows binaries are not published.
 
 ## Requirements
 
-- Linux v0.9.1 package: x86_64, glibc 2.35 or newer; CUDA 12.8 images for SM 80/86/89/90/120 plus compute 80 PTX
+- Linux v0.9.2 Distribution v2: x86_64, glibc 2.35 or newer; frozen CUDA 12.8 images for SM 80/86/89/90/120 plus compute 80 PTX
 - Windows package: native Windows x64 CUDA; qualification baseline
   Windows 10 Pro 22H2 / build 19045, RTX 3090 24 GiB, NVIDIA driver 610.47
 - compatible NVIDIA GPU and NVIDIA Driver
@@ -33,53 +33,54 @@ Driver remains required.
 ## Linux one-command installation
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/v0.9.2-alpha/install.sh | sh
 ```
 
-The POSIX shell installer supports Linux x86_64 with glibc 2.35 or newer. It uses
-curl, tar and standard Linux command-line tools, without sudo, Python, a model
-download or GPU execution. The current script selects the published v0.9 alpha
-explicitly (GitHub's `latest` release can still point to the older stable entry).
+The versioned bootstrap pins the final catalog SHA256 and the qualified v2
+installer SHA256. The installer resolves exactly one core archive and its exact
+NVIDIA runtime identity, verifies both outer and internal checksums, runs
+`--version` and `doctor`, then atomically activates the core. A compatible
+NVIDIA Driver is still required. No system CUDA Toolkit, cuDNN, FFmpeg, Python
+inference environment or sudo is required.
 
-It verifies a SHA256 pinned in the script before extracting, checks the package's
-`SHA256SUMS`, and tests `--version` before activating the installation. Downloads
-use HTTPS and retry transient failures. Interrupted installs can be rerun.
-The package is about 1.42 GB compressed / 2.1 GB extracted; allow at least 4 GB
-free for staging, plus separate model storage.
+The first installation downloads both archives: 36,064,164 bytes of core and
+1,375,432,086 bytes of NVIDIA runtime, or 1,411,496,250 bytes total. An upgrade
+that requires the same runtime downloads only the new core archive. Allow space
+for both extracted packages and staging, plus separate model storage.
 
 Default locations:
 
-- Package: `${XDG_DATA_HOME:-$HOME/.local/share}/vrhino-v0.9.1-alpha`
+- Versioned store: `${XDG_DATA_HOME:-$HOME/.local/share}/vrhino-v2`
+- Private dependency: `dependencies/EXACT_RUNTIME_ID` inside that store
 - Commands: `~/.local/bin/vrhino` and `~/.local/bin/vrhino-wan-family-convert`
 
-The installer adds PATH entries to `.profile` and applicable Bash/Zsh profiles
-without duplicating them. A child shell cannot change the current terminal's
-PATH, so follow the printed `export PATH=...` instruction or open a new shell.
-It does not overwrite unrelated executables or an existing manually installed
-package. Repeating installation verifies and reuses its own intact package.
-An install lock prevents two installers using the same prefix concurrently.
+The bootstrap prints the PATH command for the current terminal; add it to your
+shell profile if needed. It does not overwrite unrelated executables. A verified
+dependency is reused across core versions, and the install lock prevents
+concurrent activation. Existing v0.9.1 installer-managed installations are
+recognized and preserved for rollback without a manual uninstall.
 
 To inspect the script first or choose locations:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/main/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/v0.9.2-alpha/install.sh -o install.sh
 sh install.sh --help
-sh install.sh --prefix "$HOME/apps/vrhino-v0.9.1-alpha" --bin-dir "$HOME/.local/bin"
+sh install.sh --prefix "$HOME/apps/vrhino-v2" --bin-dir "$HOME/.local/bin"
 ```
 
-`--no-modify-path` leaves shell profiles unchanged. `--archive /path/to/archive`
-uses an already downloaded archive with the same pinned SHA256; it does not
-accept arbitrary builds. `VRHINO_INSTALL_DIR` and `VRHINO_BIN_DIR` are equivalent
-to the corresponding location options when set in the installer environment.
-The installed command resolves resources from a custom package location.
-Existing installations made by manual extraction should use their existing
-commands or choose a fresh prefix rather than overwrite them.
+For offline installation, put the exact core archive, NVIDIA runtime archive,
+`install_distribution_v2.sh`, and the final catalog copied as `catalog.txt` in
+one directory. Run `sh install.sh --bundle-dir /absolute/path/to/bundle` with a
+local copy of this versioned `install.sh`. The bootstrap checks the same catalog
+and installer trust pins offline. Custom `--prefix` and `--bin-dir` locations
+must be absolute. Existing manually extracted installations should use their
+existing commands or choose a fresh prefix.
 
 The installer prints progress and exits nonzero on failure. It does not install
 an NVIDIA driver or establish model/hardware qualification; run `vrhino doctor`
 after installation. For manual installation, use the instructions below.
 
-## Linux download
+## Historical v0.9.1 monolithic download
 
 Download these two files from the
 [v0.9.1-alpha release](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.9.1-alpha):
