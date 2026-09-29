@@ -10,10 +10,10 @@
 
 ## 安装
 
-Linux x86_64 一行安装 **v0.9.2-alpha Distribution v2**，无需 sudo：
+Linux x86_64 一行安装 **v0.9.3-alpha Distribution v2**，无需 sudo：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/v0.9.2-alpha/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/v0.9.3-alpha/install.sh | sh
 ```
 
 脚本会下载并校验 core 与其精确指定的私有 NVIDIA runtime。首次安装需要下载两包；
@@ -70,7 +70,7 @@ LatentSync 使用相同的视频/音频命令格式，替换为上表中的模�
 - [安装与缓存配置](docs/install.md)
 - [架构](docs/architecture.md) · [源码构建](docs/source-build.md)
 - [本地 Native API — v0.6.0-alpha 合同](docs/api/native-api-v1.md)（`vrhino serve`）
-- [v0.9.2-alpha 发布与校验和](docs/release/v0.9.2-alpha.md) · [Windows v0.8 支持范围](docs/release/v0.8.0-alpha.md)
+- [v0.9.3-alpha 发布与校验和](docs/release/v0.9.3-alpha.md) · [Windows v0.8 支持范围](docs/release/v0.8.0-alpha.md)
 - [参与贡献](CONTRIBUTING.md)
 
 项目自有源码采用 [Apache-2.0](LICENSE)。已分发二进制遵循其[二进制许可证](licenses/VRHINO-BINARY-LICENSE.txt)，
