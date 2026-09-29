@@ -3,6 +3,7 @@
 import hashlib
 import os
 from pathlib import Path
+import re
 import subprocess
 import tarfile
 import tempfile
@@ -10,6 +11,7 @@ import unittest
 
 SCRIPT = Path(__file__).with_name('install_distribution_v2.sh')
 ROLLBACK = Path(__file__).with_name('rollback_distribution_v2_legacy.sh')
+BOOTSTRAP = SCRIPT.parent.parent / 'install.sh'
 
 
 def digest(path):
@@ -74,6 +76,25 @@ class DistributionV2Tests(unittest.TestCase):
                                *extra_args],
                               env=self.env, capture_output=True, text=True)
 
+    def bootstrap(self, corrupt_helper=False):
+        script = BOOTSTRAP.read_text()
+        values = {'core_name': self.core_file.name, 'core_sha': self.core_sha,
+                  'core_root': 'core-a', 'core_version': 'a',
+                  'runtime_name': self.runtime_file.name,
+                  'runtime_sha': self.runtime_sha,
+                  'runtime_root': self.runtime_root,
+                  'runtime_id': self.runtime_id,
+                  'helper_sha': digest(SCRIPT)}
+        for key, value in values.items():
+            script, count = re.subn(rf'(?m)^    {key}=.*$', f'    {key}={value}', script)
+            self.assertEqual(count, 1, key)
+        bootstrap = self.base / 'install.sh'
+        bootstrap.write_text(script)
+        (self.bundle / SCRIPT.name).write_bytes(b'bad helper' if corrupt_helper else SCRIPT.read_bytes())
+        return subprocess.run(['sh', str(bootstrap), '--bundle-dir', str(self.bundle),
+                               '--prefix', str(self.prefix), '--bin-dir', str(self.bin)],
+                              env=self.env, capture_output=True, text=True)
+
     def active(self):
         return os.readlink(self.prefix / 'current')
 
@@ -100,6 +121,14 @@ class DistributionV2Tests(unittest.TestCase):
         p = self.install(); self.assertEqual(p.returncode, 0, p.stderr)
         self.assertIn('Reusing NVIDIA runtime', p.stdout)
         self.assertEqual(self.active(), 'runtime/b')
+
+    def test_versioned_bootstrap_offline_and_helper_pin(self):
+        p = self.bootstrap(); self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertEqual(self.active(), 'runtime/a')
+        p = self.bootstrap(corrupt_helper=True)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn('helper SHA256 mismatch', p.stderr)
+        self.assertEqual(self.active(), 'runtime/a')
 
     def test_missing_runtime(self):
         self.runtime_file.unlink()

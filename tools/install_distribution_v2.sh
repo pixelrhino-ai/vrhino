@@ -109,8 +109,7 @@ install_main() (
         catalog=$catalog_work/catalog.txt
         curl_fetch "$catalog_url" "$catalog"
     fi
-    if [ -n "$bundle" ]; then
-        [ -z "$catalog" ] || fail 'choose bundle or catalog'
+    if [ -n "$bundle" ] && [ -z "$catalog" ]; then
         catalog=$bundle/catalog.txt
     fi
     [ -f "$catalog" ] || fail 'catalog missing'
