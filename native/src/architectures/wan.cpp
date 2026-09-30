@@ -118,9 +118,36 @@ Tensor block(Backend& backend, const PrecisionPolicy& policy,
     return output;
 }
 
+// Owned by one WanDenoiser: its definition (head width/theta), policy, dtype
+// and Backend/device remain fixed. Only the actual patch grid can vary;
+// a new execution endpoint starts with an empty cache.
+struct PositionGridCache {
+    int64_t frames = 0, height = 0, width = 0;
+    Tensor cosine, sine;
+};
+
+void prepare_position_grid(Backend& backend, const PrecisionPolicy& policy,
+                           const wan_family::Config& config, DType dtype,
+                           int64_t frames, int64_t height, int64_t width,
+                           PositionGridCache& positions) {
+    if (positions.cosine.defined() && positions.frames == frames &&
+        positions.height == height && positions.width == width) return;
+    std::vector<std::vector<float>> coordinates;
+    for (int64_t t = 0; t < frames; ++t) for (int64_t h = 0; h < height; ++h)
+        for (int64_t w = 0; w < width; ++w)
+            coordinates.push_back({static_cast<float>(t), static_cast<float>(h), static_cast<float>(w)});
+    const int d = static_cast<int>(config.dim / config.heads);
+    auto [cosine, sine] = standard_rope(
+        backend, policy, coordinates,
+        {d - 4 * (d / 6), 2 * (d / 6), 2 * (d / 6)}, config.rope_theta, true);
+    positions = {frames, height, width,
+        backend.cast(cosine, dtype), backend.cast(sine, dtype)};
+}
+
 Tensor full_denoiser(Backend& backend, const PrecisionPolicy& policy,
                      const WeightMap& weights, const Tensor& video,
                      const Tensor& timestep, const Tensor& raw_context,
+                     PositionGridCache& positions,
                      TensorBundle* trace = nullptr, int trace_block = -1,
                      const wan_family::Config& config = {}) {
     Tensor patch = backend.conv3d(video, weights.at("patch_embedding.weight"),
@@ -162,14 +189,10 @@ Tensor full_denoiser(Backend& backend, const PrecisionPolicy& policy,
     context = backend.activation(context, Activation::GeluTanh);
     context = backend.linear(context, weights.at("text_embedding.2.weight"), &weights.at("text_embedding.2.bias"));
     if (trace) (*trace)["conditioning.context"] = context;
-    std::vector<std::vector<float>> coordinates;
-    for (int64_t t = 0; t < frames; ++t) for (int64_t h = 0; h < height; ++h)
-        for (int64_t w = 0; w < spatial_width; ++w) coordinates.push_back({static_cast<float>(t), static_cast<float>(h), static_cast<float>(w)});
-    const int d = static_cast<int>(config.dim / config.heads);
-    auto [rope_cos, rope_sin] = standard_rope(
-        backend, policy, coordinates, {d - 4 * (d / 6), 2 * (d / 6), 2 * (d / 6)}, config.rope_theta, true);
-    rope_cos = backend.cast(rope_cos, temporary_full);
-    rope_sin = backend.cast(rope_sin, temporary_full);
+    prepare_position_grid(backend, policy, config, temporary_full,
+                          frames, height, spatial_width, positions);
+    const Tensor& rope_cos = positions.cosine;
+    const Tensor& rope_sin = positions.sine;
     for (int index = 0; index < config.layers; ++index) {
         const std::string block_prefix = "block." + std::to_string(index);
         hidden = block(backend, policy,
@@ -331,10 +354,10 @@ public:
         const bool trace_this_step = trace_enabled_ &&
             (trace_step_ < 0 || global_step == trace_step_);
         Tensor unconditional = full_denoiser(backend_, policy_, weights_, latent,
-            timestep, negative_,
+            timestep, negative_, positions_,
             trace_this_step ? &negative_trace : nullptr, trace_block_, definition_->config);
         Tensor conditional = full_denoiser(backend_, policy_, weights_, latent,
-            timestep, positive_,
+            timestep, positive_, positions_,
             trace_this_step ? &positive_trace : nullptr, trace_block_, definition_->config);
         ++evaluation_index_;
         for (auto& [name, tensor] : negative_trace)
@@ -350,6 +373,7 @@ private:
     std::shared_ptr<const AdmittedArchitectureBinding> binding_;
     WeightMap weights_;
     Tensor positive_, negative_;
+    PositionGridCache positions_;
     bool trace_enabled_ = false;
     int trace_step_ = -1;
     int trace_block_ = -1;
