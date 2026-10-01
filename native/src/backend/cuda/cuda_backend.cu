@@ -549,16 +549,48 @@ template <typename T> __device__ T store_value(float value) { return static_cast
 template <> __device__ __nv_bfloat16 store_value(float value) { return __float2bfloat16(value); }
 
 template <typename T, int Kind>
+__device__ T binary_value(float av, float bv) {
+    if constexpr (Kind == 0) return store_value<T>(av + bv);
+    else if constexpr (Kind == 1) return store_value<T>(av * bv);
+    else if constexpr (Kind == 2) return store_value<T>(av / bv);
+    else return store_value<T>(fmaxf(av, bv));
+}
+
+template <typename T, int Kind>
 __global__ void binary_kernel(const T* a, const T* b, T* output,
                               int64_t count, Meta out_meta, Meta a_meta, Meta b_meta) {
     for (int64_t index = static_cast<int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
          index < count; index += static_cast<int64_t>(blockDim.x) * gridDim.x) {
         const float av = load_value(a[broadcast_offset(index, out_meta, a_meta)]);
         const float bv = load_value(b[broadcast_offset(index, out_meta, b_meta)]);
-        if constexpr (Kind == 0) output[index] = store_value<T>(av + bv);
-        else if constexpr (Kind == 1) output[index] = store_value<T>(av * bv);
-        else if constexpr (Kind == 2) output[index] = store_value<T>(av / bv);
-        else output[index] = store_value<T>(fmaxf(av, bv));
+        output[index] = binary_value<T, Kind>(av, bv);
+    }
+}
+
+// A dense suffix repeats as one flat block. Full tensors and scalars are
+// special cases; internal broadcast axes retain the general indexing path.
+int64_t flat_broadcast_period(const Meta& output, const Meta& input,
+                              int64_t elements) {
+    if (elements <= 0) return 0;
+    int64_t remaining = elements;
+    const int shift = output.rank - input.rank;
+    for (int dimension = output.rank - 1; remaining > 1 && dimension >= 0; --dimension) {
+        const int input_dimension = dimension - shift;
+        if (input_dimension < 0 || input.shape[input_dimension] != output.shape[dimension])
+            return 0;
+        remaining /= output.shape[dimension];
+    }
+    return remaining == 1 ? elements : 0;
+}
+
+template <typename T, int Kind>
+__global__ void binary_flat_kernel(const T* a, const T* b, T* output,
+                                   int64_t count, int64_t a_period, int64_t b_period) {
+    for (int64_t index = static_cast<int64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+         index < count; index += static_cast<int64_t>(blockDim.x) * gridDim.x) {
+        const int64_t a_index = a_period == count ? index : (a_period == 1 ? 0 : index % a_period);
+        const int64_t b_index = b_period == count ? index : (b_period == 1 ? 0 : index % b_period);
+        output[index] = binary_value<T, Kind>(load_value(a[a_index]), load_value(b[b_index]));
     }
 }
 
@@ -3817,9 +3849,17 @@ Tensor binary(CudaBackend& backend, CudaBackend::Impl* impl,
              (b_raw.dtype() == DType::F32 || b_raw.dtype() == DType::BF16)) dtype = b_raw.dtype();
     Tensor a = backend.copy_to_device(a_raw, dtype), b = backend.copy_to_device(b_raw, dtype);
     Tensor output = impl->temporary(shape, dtype);
-    if (dtype == DType::BF16)
-        binary_kernel<__nv_bfloat16, Kind><<<blocks(output.numel()), kThreads>>>(a.data_as<__nv_bfloat16>(), b.data_as<__nv_bfloat16>(), output.data_as<__nv_bfloat16>(), output.numel(), meta(shape), meta(a.shape()), meta(b.shape()));
-    else binary_kernel<float, Kind><<<blocks(output.numel()), kThreads>>>(a.data_as<float>(), b.data_as<float>(), output.data_as<float>(), output.numel(), meta(shape), meta(a.shape()), meta(b.shape()));
+    // Keep rank/stride validation for both routes, including flat operands.
+    const Meta out_meta = meta(shape), a_meta = meta(a.shape()), b_meta = meta(b.shape());
+    const int64_t a_period = flat_broadcast_period(out_meta, a_meta, a.numel());
+    const int64_t b_period = flat_broadcast_period(out_meta, b_meta, b.numel());
+    if (a_period && b_period) {
+        if (dtype == DType::BF16)
+            binary_flat_kernel<__nv_bfloat16, Kind><<<blocks(output.numel()), kThreads>>>(a.data_as<__nv_bfloat16>(), b.data_as<__nv_bfloat16>(), output.data_as<__nv_bfloat16>(), output.numel(), a_period, b_period);
+        else binary_flat_kernel<float, Kind><<<blocks(output.numel()), kThreads>>>(a.data_as<float>(), b.data_as<float>(), output.data_as<float>(), output.numel(), a_period, b_period);
+    } else if (dtype == DType::BF16)
+        binary_kernel<__nv_bfloat16, Kind><<<blocks(output.numel()), kThreads>>>(a.data_as<__nv_bfloat16>(), b.data_as<__nv_bfloat16>(), output.data_as<__nv_bfloat16>(), output.numel(), out_meta, a_meta, b_meta);
+    else binary_kernel<float, Kind><<<blocks(output.numel()), kThreads>>>(a.data_as<float>(), b.data_as<float>(), output.data_as<float>(), output.numel(), out_meta, a_meta, b_meta);
     CUDA_CHECK(cudaGetLastError()); return output;
 }
 Tensor CudaBackend::add(const Tensor& a, const Tensor& b) {
