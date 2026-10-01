@@ -116,6 +116,16 @@ else()
     target_compile_options(vrhino-file-mapping-tests PRIVATE -Wall -Wextra -Werror)
 endif()
 
+# Private hash primitive validation; loader.cpp is included by the test itself.
+add_executable(vrhino-blake2b-tests tests/blake2b_tests.cpp src/tensor.cpp src/json.cpp
+    src/representation/package_declaration.cpp)
+target_include_directories(vrhino-blake2b-tests PRIVATE include)
+if(MSVC)
+    target_compile_options(vrhino-blake2b-tests PRIVATE /W4 /WX /utf-8)
+else()
+    target_compile_options(vrhino-blake2b-tests PRIVATE -Wall -Wextra -Werror)
+endif()
+
 if(WIN32)
     # Exercise the real verification/SHA/loader boundary without cache/CUDA linkage.
     add_executable(vrhino-stable-file-verification-tests

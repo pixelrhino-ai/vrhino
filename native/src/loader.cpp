@@ -22,6 +22,14 @@
 #include <unistd.h>
 #endif
 
+#if (defined(__x86_64__) || defined(__i386__)) && \
+    (defined(__GNUC__) || defined(__clang__))
+#define VRHINO_HAS_AVX2_BLAKE2B 1
+#include <immintrin.h>
+#else
+#define VRHINO_HAS_AVX2_BLAKE2B 0
+#endif
+
 #include "vrhino/error.h"
 #include "vrhino/quantization/reference.h"
 
@@ -145,7 +153,7 @@ constexpr uint8_t kSigma[12][16] = {
 
 uint64_t rotate(uint64_t value, int bits) { return (value >> bits) | (value << (64 - bits)); }
 
-void compress(std::array<uint64_t, 8>& h, const uint8_t block[128], uint64_t low,
+void compress_scalar(std::array<uint64_t, 8>& h, const uint8_t block[128], uint64_t low,
               uint64_t high, bool last) {
     uint64_t m[16];
     for (int index = 0; index < 16; ++index) m[index] = u64(block + index * 8);
@@ -168,6 +176,74 @@ void compress(std::array<uint64_t, 8>& h, const uint8_t block[128], uint64_t low
     for (int index = 0; index < 8; ++index) h[index] ^= v[index] ^ v[index + 8];
 }
 
+#if VRHINO_HAS_AVX2_BLAKE2B
+// Four independent BLAKE2b G functions fit the AVX2 lanes. All operations are
+// the same wrapping integer additions, XORs and rotations as the scalar path.
+__attribute__((target("avx2")))
+void compress_avx2(std::array<uint64_t, 8>& h, const uint8_t block[128], uint64_t low,
+                   uint64_t high, bool last) {
+    uint64_t m[16];
+    // This path only targets little-endian x86; memcpy also permits unaligned blocks.
+    std::memcpy(m, block, sizeof(m));
+    const uint64_t flags[4] = {low, high, last ? UINT64_MAX : 0, 0};
+    __m256i a = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(h.data()));
+    __m256i b = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(h.data() + 4));
+    __m256i c = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(kIv.data()));
+    __m256i d = _mm256_xor_si256(
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(kIv.data() + 4)),
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(flags)));
+    const __m256i rotate24 = _mm256_setr_epi8(
+        3,4,5,6,7,0,1,2,11,12,13,14,15,8,9,10,
+        3,4,5,6,7,0,1,2,11,12,13,14,15,8,9,10);
+    const __m256i rotate16 = _mm256_setr_epi8(
+        2,3,4,5,6,7,0,1,10,11,12,13,14,15,8,9,
+        2,3,4,5,6,7,0,1,10,11,12,13,14,15,8,9);
+    // The fixed schedule lets the compiler select message words directly.
+#pragma GCC unroll 12
+    for (int round = 0; round < 12; ++round) {
+        const uint8_t* s = kSigma[round];
+        for (int half = 0; half < 2; ++half) {
+            const int base = half * 8;
+            const __m256i x = _mm256_set_epi64x(
+                m[s[base + 6]], m[s[base + 4]], m[s[base + 2]], m[s[base]]);
+            const __m256i y = _mm256_set_epi64x(
+                m[s[base + 7]], m[s[base + 5]], m[s[base + 3]], m[s[base + 1]]);
+            a = _mm256_add_epi64(_mm256_add_epi64(a, b), x);
+            d = _mm256_shuffle_epi32(_mm256_xor_si256(d, a), _MM_SHUFFLE(2,3,0,1));
+            c = _mm256_add_epi64(c, d);
+            b = _mm256_shuffle_epi8(_mm256_xor_si256(b, c), rotate24);
+            a = _mm256_add_epi64(_mm256_add_epi64(a, b), y);
+            d = _mm256_shuffle_epi8(_mm256_xor_si256(d, a), rotate16);
+            c = _mm256_add_epi64(c, d);
+            b = _mm256_xor_si256(b, c);
+            b = _mm256_or_si256(_mm256_srli_epi64(b, 63), _mm256_slli_epi64(b, 1));
+            // Rotate rows to diagonal G functions, then restore column order.
+            if (half == 0) {
+                b = _mm256_permute4x64_epi64(b, _MM_SHUFFLE(0,3,2,1));
+                d = _mm256_permute4x64_epi64(d, _MM_SHUFFLE(2,1,0,3));
+            } else {
+                b = _mm256_permute4x64_epi64(b, _MM_SHUFFLE(2,1,0,3));
+                d = _mm256_permute4x64_epi64(d, _MM_SHUFFLE(0,3,2,1));
+            }
+            c = _mm256_permute4x64_epi64(c, _MM_SHUFFLE(1,0,3,2));
+        }
+    }
+    _mm256_storeu_si256(reinterpret_cast<__m256i*>(h.data()), _mm256_xor_si256(
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(h.data())), _mm256_xor_si256(a, c)));
+    _mm256_storeu_si256(reinterpret_cast<__m256i*>(h.data() + 4), _mm256_xor_si256(
+        _mm256_loadu_si256(reinterpret_cast<const __m256i*>(h.data() + 4)), _mm256_xor_si256(b, d)));
+}
+#endif
+
+using CompressBlock = void (*)(std::array<uint64_t, 8>&, const uint8_t*, uint64_t, uint64_t, bool);
+CompressBlock select_compress() {
+#if VRHINO_HAS_AVX2_BLAKE2B
+    __builtin_cpu_init();
+    if (__builtin_cpu_supports("avx2")) return compress_avx2;
+#endif
+    return compress_scalar;
+}
+
 // Hash through the retained descriptor, never through the full tensor mapping.
 // This bounds checksum working memory independently of model size. The mmap is
 // still used for metadata and borrowed tensor views after integrity succeeds.
@@ -182,6 +258,7 @@ std::array<uint8_t, 16> blake2b128(int descriptor, uint64_t offset, uint64_t len
     require(event.value != nullptr, "Cannot create checksum read event");
     const HANDLE file = reinterpret_cast<HANDLE>(_get_osfhandle(descriptor));
 #endif
+    const CompressBlock compress = select_compress();
     std::array<uint64_t, 8> h = kIv;
     h[0] ^= 0x01010000U ^ 16U;
     uint64_t low = 0, high = 0, consumed = 0;
