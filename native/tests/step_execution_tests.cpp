@@ -337,15 +337,20 @@ public:
     }
     SamplingProgram create_program(const TensorBundle&) override { order.push_back(2); return st::program(1); }
     ExecutionSetup create_execution_setup(vrhino::Backend& backend, const PrecisionPolicy& policy, const TensorBundle& input) override {
+        expected_cache_releases = dynamic_cast<st::Backend&>(backend).cache_releases + 1;
         if (!multi) return Architecture::create_execution_setup(backend,policy,input);
         order.push_back(1);
         return {catalog(graph_for(dynamic_cast<st::Backend&>(backend),st::program(1))),
                 ExecutionProgram::per_step({{0},{1},{0}})};
     }
-    Tensor decode(vrhino::Backend&, const PrecisionPolicy&, const Tensor& latent, const TensorBundle&) override {
-        order.push_back(3); return latent;
+    Tensor decode(vrhino::Backend& backend, const PrecisionPolicy&, const Tensor& latent, const TensorBundle&) override {
+        require(dynamic_cast<st::Backend&>(backend).cache_releases == expected_cache_releases,
+                "Decoder started before this request's sampling cache release");
+        order.push_back(3); if (fail_decode) throw Error("Injected decode failure"); return latent;
     }
     bool multi;
+    bool fail_decode = false;
+    size_t expected_cache_releases = 0;
     std::vector<int> order;
 };
 
@@ -353,10 +358,35 @@ void native_runtime_and_lifetime() {
     for (bool multi : {false,true}) {
         st::Backend backend;
         TestArchitecture architecture(multi);
-        auto result = NativeRuntime(backend).execute(architecture,{});
+        NativeRuntime runtime(backend);
+        auto result = runtime.execute(architecture,{});
         require(architecture.order == std::vector<int>({1,2,3}),"Architecture factory/decode order changed");
         require(backend.rng_calls == 1 && result.outputs.contains("video"),"NativeRuntime setup not integrated");
         require(!result.outputs.contains("step.0.endpoint.instance"),"Default trace keys changed");
+
+        // Reuse the same Runtime/Backend with different component bindings.
+        architecture.multi = !multi;
+        auto second = runtime.execute(architecture,{});
+        st::Backend fresh_backend; TestArchitecture fresh_architecture(!multi);
+        auto fresh = NativeRuntime(fresh_backend).execute(fresh_architecture,{});
+        auto exact_outputs = [](const RuntimeResult& a, const RuntimeResult& b) {
+            require(a.outputs.size() == b.outputs.size(), "Repeated request changed output keys");
+            for (const auto& [name,tensor] : a.outputs)
+                if (!name.starts_with("metric.")) st::exact(tensor,b.outputs.at(name));
+        };
+        exact_outputs(second,fresh);
+        architecture.multi = multi;
+        architecture.fail_decode = true;
+        bool failed = false;
+        try { (void)runtime.execute(architecture,{}); }
+        catch (const Error& error) { failed = std::string(error.what()) == "Injected decode failure"; }
+        require(failed && backend.cache_releases == 3 && architecture.order.back() == 3,
+                "Decode failure retried or skipped phase cache release");
+        architecture.fail_decode = false;
+        auto recovered = runtime.execute(architecture,{});
+        exact_outputs(recovered,result);
+        require(backend.cache_releases == 4 && backend.rng_calls == 4,
+                "Repeated request or decode recovery disabled Backend reuse");
     }
     auto p = st::program();
     auto owner = std::make_shared<std::vector<float>>(1,0.25f);

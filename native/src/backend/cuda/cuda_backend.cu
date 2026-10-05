@@ -3401,6 +3401,36 @@ void CudaBackend::synchronize() {
         if (impl_->memory_options.enabled) resolve_transfers(impl_);
     } catch(...) { resource_session_->terminal=true; throw; }
 }
+void CudaBackend::release_cached_device_memory() {
+    require_active_session();
+    CudaFailureGuard transaction(impl_);
+    // Includes the transfer stream; resolve pending events before dropping cache
+    // ownership. External Tensor handles still own any storage they need.
+    synchronize();
+    impl_->refresh_device_accounting();
+    impl_->weight_cache.clear();
+    impl_->quantized_weight_cache.clear();
+    impl_->weight_cache_resident = 0;
+    impl_->memory_stats.accounting.quantized_packed_bytes = 0;
+    impl_->small_value_cache.clear();
+    impl_->small_value_cache_bytes = 0;
+    impl_->attention_mask_cache_evictions += impl_->attention_mask_cache.size();
+    impl_->attention_mask_cache.clear();
+    impl_->attention_mask_cache_bytes = 0;
+    impl_->bf16_linear_accumulation = {};
+    impl_->bf16_linear_accumulation_elements = 0;
+    if (impl_->bf16_linear_workspace) {
+        CUDA_CHECK(cudaFree(impl_->bf16_linear_workspace));
+        impl_->bf16_linear_workspace = nullptr;
+        impl_->bf16_linear_workspace_bytes = 0;
+    }
+    impl_->temporary_pool->trim_cached();
+    // trim_cached enqueues stream-ordered frees. Complete those frees before
+    // returning unused CUDA pool pages; live allocations are never trimmed.
+    CUDA_CHECK(cudaStreamSynchronize(nullptr));
+    impl_->temporary_pool->trim_cached();
+    impl_->record();
+}
 size_t CudaBackend::peak_device_bytes() const {
     impl_->refresh_device_accounting();
     return impl_->peak;
