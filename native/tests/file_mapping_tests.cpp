@@ -68,15 +68,17 @@ void put64(Bytes& bytes, size_t offset, uint64_t value) {
         bytes.at(offset + index) = static_cast<uint8_t>(value >> (8 * index));
 }
 
-Bytes prefix(uint64_t elements, uint64_t second_offset) {
+Bytes prefix(uint64_t elements, uint64_t second_offset, bool second_tensor = true) {
     const std::string metadata = "{\"architecture\":\"fixture\"}";
     const std::string graph = "{\"schema_version\":1}";
-    const std::string table =
+    std::string table =
         "{\"schema_version\":1,\"tensors\":[{\"name\":\"a\",\"dtype\":\"u8\",\"shape\":[" +
         std::to_string(elements) + "],\"offset\":0,\"byte_length\":" + std::to_string(elements) +
-        ",\"alignment\":64,\"layout\":\"contiguous\",\"quantization\":{\"type\":\"none\"}},"
+        ",\"alignment\":64,\"layout\":\"contiguous\",\"quantization\":{\"type\":\"none\"}}";
+    if (second_tensor) table += ","
         "{\"name\":\"b\",\"dtype\":\"i32\",\"shape\":[1],\"offset\":" + std::to_string(second_offset) +
-        ",\"byte_length\":4,\"alignment\":64,\"layout\":\"contiguous\",\"quantization\":{\"type\":\"none\"}}]}";
+        ",\"byte_length\":4,\"alignment\":64,\"layout\":\"contiguous\",\"quantization\":{\"type\":\"none\"}}";
+    table += "]}";
     const size_t data_offset = (128 + metadata.size() + table.size() + graph.size() + 63) / 64 * 64;
     Bytes bytes(data_offset);
     const std::array<uint8_t, 8> magic{'V','R','H','I','N','O',0,1};
@@ -93,7 +95,7 @@ Bytes prefix(uint64_t elements, uint64_t second_offset) {
         cursor += section.size(); field += 16;
     }
     put64(bytes, 96, data_offset);
-    put64(bytes, 104, data_offset + second_offset + 4);
+    put64(bytes, 104, data_offset + (second_tensor ? second_offset + 4 : elements));
     return bytes;
 }
 
@@ -230,6 +232,47 @@ void lifetime_contract(const fs::path& path) {
 #ifdef _WIN32
     std::cout << "read-only/access-violation/unmap: PASS\n";
 #endif
+}
+
+void checksum_boundaries(const fs::path& root) {
+    struct Case { size_t payload_bytes; std::array<uint8_t, 16> digest; };
+    // Independent hashlib.blake2b(..., digest_size=16) golden digests. Exercise
+    // final-block and descriptor-read chunk boundaries through the real loader.
+    const Case cases[] = {
+        {1023, {0xce,0x8b,0x24,0x54,0xda,0x64,0x24,0x0f,0xc2,0x85,0x97,0x97,0x3c,0xbe,0x81,0x8b}},
+        {1024, {0x66,0x9e,0x69,0xcc,0x08,0xbf,0x2e,0xd4,0x16,0x3d,0xbe,0xb4,0xe9,0xf3,0x2d,0xc3}},
+        {1025, {0x7a,0xf2,0x3e,0x99,0x43,0x33,0x98,0x56,0x70,0x3a,0xcf,0x0b,0x3c,0x1a,0xf5,0xb3}},
+        {8388607, {0x01,0x39,0x1b,0xe9,0x62,0xb5,0x9d,0xe8,0x71,0x25,0x55,0x34,0x8c,0x98,0xd5,0xc4}},
+        {8388608, {0xb6,0x70,0xea,0x27,0x38,0x29,0xb9,0xaf,0x61,0xb3,0xa4,0x78,0x1e,0x14,0xaf,0x6e}},
+        {8388609, {0xc9,0xcb,0x12,0xd5,0x15,0xdf,0x3c,0xcb,0x60,0xc4,0x3a,0xd4,0x13,0xfd,0xe2,0xea}},
+        {16777233, {0xed,0x39,0x4c,0x58,0x4a,0x05,0x72,0xa6,0xf6,0xde,0x6b,0x84,0x98,0x29,0x55,0x09}},
+    };
+    const auto path = root / "checksum-boundaries.vrm";
+    for (const auto& item : cases) {
+        size_t elements = item.payload_bytes;
+        Bytes bytes;
+        do {
+            bytes = prefix(elements, 0, false);
+            if (bytes.size() + elements == 128 + item.payload_bytes) break;
+            elements = 128 + item.payload_bytes - bytes.size();
+        } while (true);
+        const size_t prefix_size = bytes.size();
+        bytes.resize(prefix_size + elements);
+        for (size_t i = prefix_size; i < bytes.size(); ++i)
+            bytes[i] = static_cast<uint8_t>(i * 17 + 3);
+        bytes[prefix_size] = 17;
+        std::copy(item.digest.begin(), item.digest.end(), bytes.begin() + 112);
+        write_file(path, bytes);
+        {
+            VrmModel model(utf8_path(path));
+            require(model.tensor("a").data_as<const uint8_t>()[0] == 17,
+                    "checksum verification changed the borrowed tensor");
+        }
+        bytes.back() ^= 1;
+        write_file(path, bytes);
+        rejects([&] { VrmModel model(utf8_path(path)); }, "VRM payload checksum mismatch");
+    }
+    std::cout << "checksum block/chunk boundaries + corruption: PASS cases=7\n";
 }
 
 void rejection_contract(const fs::path& root) {
@@ -432,6 +475,7 @@ int main() {
         write_file(good, small_fixture());
         lifetime_contract(good);
         rejection_contract(root.path);
+        checksum_boundaries(root.path);
         stable_open_contract(root.path);
         unicode_contract(root.path);
         large_file_contract(root.path);

@@ -34,6 +34,7 @@ public:
     Tensor copy_to_device(const Tensor& input, DType dtype) override;
     Tensor copy_to_host(const Tensor& input) override;
     void synchronize() override;
+    void release_cached_device_memory() override;
     size_t peak_device_bytes() const override;
     size_t weight_upload_bytes() const override;
     double weight_upload_seconds() const override;

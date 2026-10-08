@@ -48,6 +48,9 @@ RuntimeResult NativeRuntime::execute_impl(Architecture& architecture,
     Tensor video;
     {
         BackendProfileRegion region(backend_, "runtime.vae_decode");
+        // Sampling's cached weights and scratch need not overlap the decoder.
+        // Result/endpoint Tensor handles and source leases survive cache release.
+        backend_.release_cached_device_memory();
         video = decode_component(architecture, sampling.final_latent, input);
     }
     TensorBundle component_trace = architecture.take_trace();

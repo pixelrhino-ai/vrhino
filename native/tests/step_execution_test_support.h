@@ -14,6 +14,8 @@ namespace vrhino::step_test {
 class Backend final : public neural_graph::test::TinyBackend {
 public:
     size_t rng_calls = 0;
+    size_t cache_releases = 0;
+    void release_cached_device_memory() override { ++cache_releases; }
     std::string name() const override { return "test-host"; }
     bool profiling_enabled() const override { return false; }
     void profile_region_begin(const std::string&) override {}

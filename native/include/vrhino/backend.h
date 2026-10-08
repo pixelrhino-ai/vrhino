@@ -198,6 +198,12 @@ public:
     // no architecture or model identity.
     virtual Tensor exp(const Tensor& x) = 0;
     virtual Tensor sqrt(const Tensor& x) = 0;
+
+    // Drop optional device caches at an execution phase boundary. Live Tensor
+    // handles and immutable source-owner leases remain valid; configuration,
+    // plans and cumulative statistics are preserved. Backends with caches must
+    // complete outstanding uses before reclaiming their private storage.
+    virtual void release_cached_device_memory() { require_active_session(); }
 };
 
 class BackendProfileRegion {

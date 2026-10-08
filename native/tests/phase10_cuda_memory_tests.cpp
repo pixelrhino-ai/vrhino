@@ -1,5 +1,7 @@
 #include <cmath>
 #include <cstdint>
+#include <cstring>
+#include <cuda_runtime_api.h>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -70,10 +72,65 @@ void check_close(const std::vector<float>& a, const std::vector<float>& b) {
         if (a[index] != b[index]) throw std::runtime_error("memory runtime changed numerical output");
 }
 
+void phase_memory_release(bool representative) {
+    // Exercise retained F32 Lt scratch and live output/weight handles. Keep the
+    // default unit test bounded; the explicit replay uses Product FFN geometry.
+    const int64_t m = representative ? 32760 : 256;
+    const int64_t n = representative ? 8960 : 1024;
+    const int64_t k = representative ? 1536 : 1024;
+    vrhino::CudaBackend backend;
+    backend.set_execution_dtype(DType::BF16);
+    vrhino::MemoryRuntimeOptions options;
+    options.enabled = true;
+    const vrhino::MemoryBudget budget = representative
+        ? vrhino::MemoryBudget{21ULL << 30, 2ULL << 30, 64ULL << 30, 2ULL << 30, 1ULL << 30}
+        : vrhino::MemoryBudget{64ULL << 20, 8ULL << 20, 128ULL << 20, 8ULL << 20, 8ULL << 20};
+    backend.configure_memory_runtime(budget, options);
+    Tensor x = Tensor::host({m, k}, DType::F32);
+    Tensor w = Tensor::host({n, k}, DType::F32);
+    for (int64_t i = 0; i < x.numel(); ++i) x.data_as<float>()[i] = (i % 17 - 8) * 0.03125f;
+    for (int64_t i = 0; i < w.numel(); ++i) w.data_as<float>()[i] = (i % 13 - 6) * 0.015625f;
+    Tensor borrowed = Tensor::borrowed(w.data(), w.bytes(), w.shape(), w.dtype());
+    Tensor live_weight = backend.copy_to_device(borrowed, DType::BF16);
+    Tensor before = backend.linear(x, borrowed);
+    auto fence = backend.create_fence();
+    backend.record_fence(fence);
+    size_t free_before = 0, total = 0, free_after = 0;
+    vrhino::require(cudaMemGetInfo(&free_before, &total) == cudaSuccess, "Memory query failed");
+    const size_t uploaded = backend.weight_upload_bytes();
+    backend.release_cached_device_memory(); // no caller synchronization
+    vrhino::require(backend.query_fence(fence), "Cache release did not complete submitted work");
+    backend.destroy_fence(fence);
+    vrhino::require(backend.weight_cache_resident_bytes() == 0, "Released cache still resident");
+    vrhino::require(cudaMemGetInfo(&free_after, &total) == cudaSuccess, "Memory query failed");
+    // A small asynchronous call may commit more pool/library pages between
+    // queries than its scratch occupies. Check material physical reclamation
+    // on the representative replay, independently of cache accounting.
+    if (representative)
+        vrhino::require(free_after > free_before + static_cast<size_t>(m * n * 2),
+                        "Cache release did not reclaim actual device memory");
+    Tensor expected = backend.copy_to_host(before);
+    Tensor actual = backend.copy_to_host(backend.linear(x, borrowed));
+    vrhino::require(expected.bytes() == actual.bytes() &&
+                    std::memcmp(expected.data(), actual.data(), actual.bytes()) == 0,
+                    "Recreated Lt scratch changed output");
+    Tensor saved_weight = backend.copy_to_host(live_weight);
+    Tensor new_weight = backend.copy_to_host(backend.copy_to_device(borrowed, DType::BF16));
+    vrhino::require(std::memcmp(saved_weight.data(), new_weight.data(), new_weight.bytes()) == 0,
+                    "Cache release invalidated a live cached Tensor");
+    vrhino::require(backend.weight_upload_bytes() > uploaded, "Released weight was not re-uploaded");
+    backend.release_cached_device_memory();
+    backend.release_cached_device_memory();
+    std::cout << "phase boundary release=pass MNK=" << m << "," << n << "," << k
+              << " device_free_delta_bytes=" << static_cast<int64_t>(free_after) - static_cast<int64_t>(free_before) << " live_handles=valid\n";
+}
+
 }  // namespace
 
-int main() {
+int main(int argc, char** argv) {
     try {
+        const bool representative = argc == 2 && std::string(argv[1]) == "--representative-memory";
+        vrhino::require(argc == 1 || representative, "Unknown memory test argument");
         constexpr size_t MiB = 1024 * 1024;
         Weight w1 = weight(1024, 1024, 1), w2 = weight(1024, 1024, 2),
                w3 = weight(1024, 1024, 3);
@@ -133,6 +190,15 @@ int main() {
                   << " overlap_ratio=" << stats.overlap_ratio()
                   << " peak_gpu_weight_bytes=" << stats.accounting.peak_device_resident_weight_bytes
                   << " peak_pinned_bytes=" << stats.accounting.peak_host_staging_bytes << "\n";
+        const auto uploads_before_release = high.weight_upload_bytes();
+        high.release_cached_device_memory();
+        if (high.weight_cache_resident_bytes() != 0 ||
+            high.memory_runtime_stats().accounting.quantized_packed_bytes != 0)
+            throw std::runtime_error("packed cache survived phase release");
+        check_close(expected_values, host_values(high, run(high, x, weights)));
+        if (high.weight_upload_bytes() <= uploads_before_release)
+            throw std::runtime_error("packed weights were not re-uploaded");
+        phase_memory_release(representative);
         return 0;
     } catch (const std::exception& error) {
         std::cerr << "phase10 CUDA memory tests: " << error.what() << "\n";

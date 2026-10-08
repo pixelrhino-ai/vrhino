@@ -116,6 +116,16 @@ else()
     target_compile_options(vrhino-file-mapping-tests PRIVATE -Wall -Wextra -Werror)
 endif()
 
+# Private hash primitive validation; loader.cpp is included by the test itself.
+add_executable(vrhino-blake2b-tests tests/blake2b_tests.cpp src/tensor.cpp src/json.cpp
+    src/representation/package_declaration.cpp)
+target_include_directories(vrhino-blake2b-tests PRIVATE include)
+if(MSVC)
+    target_compile_options(vrhino-blake2b-tests PRIVATE /W4 /WX /utf-8)
+else()
+    target_compile_options(vrhino-blake2b-tests PRIVATE -Wall -Wextra -Werror)
+endif()
+
 if(WIN32)
     # Exercise the real verification/SHA/loader boundary without cache/CUDA linkage.
     add_executable(vrhino-stable-file-verification-tests
@@ -1194,6 +1204,13 @@ if(VRHINO_ENABLE_CUDA)
     add_executable(vrhino-wan-numerical-probe tests/wan_numerical_probe.cpp)
     target_link_libraries(vrhino-wan-numerical-probe PRIVATE vrhino_neural_graph vrhino_cuda_backend vrhino_converter)
     target_compile_options(vrhino-wan-numerical-probe PRIVATE -Wall -Wextra -Werror -ffp-contract=off)
+    add_executable(vrhino-wan-position-grid-cache-tests tests/wan_position_grid_cache_tests.cpp)
+    target_link_libraries(vrhino-wan-position-grid-cache-tests PRIVATE vrhino_neural_graph vrhino_cuda_backend vrhino_converter)
+    target_compile_options(vrhino-wan-position-grid-cache-tests PRIVATE -Wall -Wextra -Werror -ffp-contract=off)
+    add_executable(vrhino-cuda-binary-indexing-tests tests/cuda_binary_indexing_tests.cu)
+    target_link_libraries(vrhino-cuda-binary-indexing-tests PRIVATE vrhino_cuda_backend)
+    add_executable(vrhino-cuda-indexed-gather-tests tests/cuda_indexed_gather_tests.cpp)
+    target_link_libraries(vrhino-cuda-indexed-gather-tests PRIVATE vrhino_cuda_backend)
     add_executable(vrhino-f32-propagation-probe tests/f32_propagation_probe.cpp)
     add_executable(vrhino-bf16-operator-probe tests/bf16_operator_probe.cpp)
     add_executable(vrhino-rng-replay-probe tests/rng_replay_probe.cpp)
