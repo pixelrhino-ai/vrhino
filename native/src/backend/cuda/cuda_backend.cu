@@ -4000,10 +4000,37 @@ Tensor CudaBackend::indexed_gather(const Tensor& table_raw, const Tensor& indice
         require(value >= 0 && value < rows, "indexed_gather index out of range");
     }
     const DType dtype = execution_dtype();
-    Tensor table = copy_to_device(table_raw, dtype);
-    Tensor indices = copy_to_device(indices_raw, indices_raw.dtype());
     std::vector<int64_t> shape = indices_raw.shape();
     shape.push_back(width);
+    // For a selective gather from a dense host table, only the selected rows
+    // need device storage. Copy their original bits first, then use the same
+    // CUDA conversion as the full-table path. Quantized/device tables and
+    // empty gathers and gathers at least as large as the table retain the
+    // existing path, including its admission/allocation failure behavior.
+    const int64_t output_count = shape_numel(shape);
+    if (table_raw.device().is_host() && !table_raw.is_quantized() &&
+        output_count > 0 && output_count < table_raw.numel()) {
+        const int64_t per_batch = batched ? indices_raw.numel() / indices_raw.dim(0)
+                                          : indices_raw.numel();
+        Tensor selected = Tensor::host(shape, table_raw.dtype());
+        const size_t row_bytes = static_cast<size_t>(width) * dtype_size(table_raw.dtype());
+        const auto* source = static_cast<const uint8_t*>(table_raw.data());
+        auto* destination = static_cast<uint8_t*>(selected.data());
+        for (int64_t index = 0; index < host_indices.numel(); ++index) {
+            const int64_t row = host_indices.dtype() == DType::I64
+                ? host_indices.data_as<int64_t>()[index]
+                : host_indices.data_as<int32_t>()[index];
+            const int64_t batch = batched ? index / per_batch : 0;
+            std::memcpy(destination + static_cast<size_t>(index) * row_bytes,
+                        source + static_cast<size_t>(batch * rows + row) * row_bytes,
+                        row_bytes);
+        }
+        // copy_to_device retains owned host storage through async transfers;
+        // the borrowed source table is no longer accessed after the row copy.
+        return copy_to_device(selected, dtype);
+    }
+    Tensor table = copy_to_device(table_raw, dtype);
+    Tensor indices = copy_to_device(indices_raw, indices_raw.dtype());
     Tensor output = impl_->temporary(shape, dtype);
     const int64_t per_batch = batched ? indices_raw.numel() / indices_raw.dim(0)
                                       : indices_raw.numel();

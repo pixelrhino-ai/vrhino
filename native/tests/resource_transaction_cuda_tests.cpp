@@ -223,6 +223,17 @@ void cache_release_failure(){
     require(weak.expired(),"Failed cache release leaked source lease");probe::baseline("cache release failure");
     std::cout<<"PASS cache_release_completion_failure owned_after=0\n";
 }
+void selective_gather_failure(){
+    for(auto fault:{probe::Fault::Allocation,probe::Fault::Upload,probe::Fault::Record}){
+        probe::baseline("selective gather failure");
+        {CudaBackend b;setup(b,false);auto table=host_f32({32,16},std::vector<float>(32*16,0.25f));
+         auto indices=host_i64({2},{31,0});probe::arm(fault,1,fault==probe::Fault::Allocation?2:1);
+         bool failed=false;try{(void)b.indexed_gather(table,indices);}catch(const Error&){failed=true;}
+         require(failed && probe::injected && b.resource_session_terminal(),"Selective gather failure did not retire session");}
+        probe::baseline("selective gather failure");
+    }
+    std::cout<<"PASS selective_gather_upload_transaction_failures owned_after=0\n";
+}
 void budget_pressure(){
     probe::baseline("budget admission");
     {CudaBackend b;setup(b);const auto before=probe::count();ResourceEstimate e;e.resident_cache=2*MiB;
@@ -272,7 +283,7 @@ int main(int argc,char** argv){
         case_upload("upload",probe::Fault::Upload);
         case_upload("second_upload",probe::Fault::Upload,2,true);
         case_upload("record_after_submission",probe::Fault::Record,2);
-        cache_release_failure();publication();leases();admitted_leases();runtime_failure(false);runtime_failure(true);budget_pressure();owned_upload_lifetime();auxiliary();
+        selective_gather_failure();cache_release_failure();publication();leases();admitted_leases();runtime_failure(false);runtime_failure(true);budget_pressure();owned_upload_lifetime();auxiliary();
         const auto pid=fork();require(pid>=0,"fork failed");if(pid==0){execl(argv[0],argv[0],"--terminal-child",nullptr);_exit(80);}int status=0;require(waitpid(pid,&status,0)==pid && WIFEXITED(status) && WEXITSTATUS(status)==77,"Unconfirmed completion did not fail closed retaining owners");
         probe::baseline("final");std::cout<<"PASS unconfirmed_completion_fail_closed\nCUDA_RESOURCE_TRANSACTION=PASS owned_before=0 peak_events="<<probe::peak_events<<" peak_allocations="<<probe::peak_device<<" peak_owned="<<probe::peak_owned<<" owned_after=0 double_free=0\n";
     }catch(const std::exception& e){std::cerr<<"resource transaction qualification: "<<e.what()<<" live="<<probe::count()<<" double_free="<<probe::double_free<<'\n';return 1;}
