@@ -4,6 +4,7 @@
 #include <set>
 #include <limits>
 #include <algorithm>
+#include "vrhino/tensor_util.h"
 
 namespace vrhino::product {
 namespace {
@@ -15,14 +16,15 @@ void keys(const Json& j, std::initializer_list<const char*> expected) {
 DeclaredPrograms admit_program_declaration(const Json& j, const PackageDeclaration& package,
                                            const std::vector<std::string>& supported) {
     keys(j,{"schema","required_capabilities","execution","sampling"});
-    require(j.at("schema").string()=="vrhino.programs.v1", "Unsupported program schema");
+    const bool euler = j.at("schema").string()=="vrhino.programs.v2";
+    require(euler || j.at("schema").string()=="vrhino.programs.v1", "Unsupported program schema");
     std::set<std::string> caps;
     for (const auto& cap:j.at("required_capabilities").array()) {
         require(std::find(supported.begin(),supported.end(),cap.string())!=supported.end(),
                 "Unsupported required program capability");
         require(caps.insert(cap.string()).second,"Duplicate program capability");
     }
-    require(caps==std::set<std::string>{"execution.per_step.v1","sampling.flow_sigma_cfg.v1"},
+    require(caps==std::set<std::string>{"execution.per_step.v1",euler ? "sampling.flow_euler_cfg.v1" : "sampling.flow_sigma_cfg.v1"},
             "Incomplete program capability declaration");
     const auto& e=j.at("execution"); keys(e,{"kind","instance_ids"});
     require(e.at("kind").string()=="per_step","Unsupported execution declaration");
@@ -37,32 +39,49 @@ DeclaredPrograms admit_program_declaration(const Json& j, const PackageDeclarati
         interface=&g; ids.push_back({static_cast<uint32_t>(n)});
     }
     const auto& s=j.at("sampling");
-    keys(s,{"prediction","solver","maximum_order","schedule","branch_order","transitions"});
+    if (euler) {
+        keys(s,{"prediction","solver","maximum_order","schedule","model_timestep","branch_order","transitions"});
+        const auto& time = s.at("model_timestep"); keys(time,{"source","dtype","shape"});
+        const auto& shape=time.at("shape").array();
+        require(time.at("source").string()=="sigma" && time.at("dtype").string()=="float32" &&
+            shape.size()==2 && shape[0].integer()==1 && shape[1].integer()==1, "Unsupported FlowEuler timestep declaration");
+    } else keys(s,{"prediction","solver","maximum_order","schedule","branch_order","transitions"});
     require(s.at("prediction").string()=="flow" &&
-            s.at("solver").string()=="multistep_predictor_corrector" &&
-            s.at("maximum_order").integer()==2 && s.at("schedule").string()=="flow_sigma" &&
+            s.at("solver").string()==(euler ? "flow_euler" : "multistep_predictor_corrector") &&
+            s.at("maximum_order").integer()==(euler ? 1 : 2) && s.at("schedule").string()=="flow_sigma" &&
             s.at("branch_order").string()=="unconditional_then_conditional","Unsupported sampling semantics");
     require(!ids.empty() && ids.size()<=10000 && ids.size()==s.at("transitions").array().size(),
             "Execution/sampling step table length mismatch");
+    if (euler) require(ids.size()>=2 && ids.size()<=1000,"FlowEuler step bound");
     std::vector<FlowScheduleTransition> transitions;
     std::vector<GuidanceParameters> guidance;
     for (const auto& t:s.at("transitions").array()) {
-        keys(t,{"model_timestep","sigma","next_sigma","guidance_scale"});
-        const auto time=t.at("model_timestep").integer();
-        require(time>=0,"Invalid model timestep");
-        Tensor tensor=Tensor::host({},DType::I64); *tensor.data_as<int64_t>()=time;
+        Tensor tensor;
+        if (euler) keys(t,{"sigma","next_sigma","guidance_scale"});
+        else {
+            keys(t,{"model_timestep","sigma","next_sigma","guidance_scale"});
+            const auto time=t.at("model_timestep").integer();
+            require(time>=0,"Invalid model timestep");
+            tensor=Tensor::host({},DType::I64); *tensor.data_as<int64_t>()=time;
+        }
         for (auto key:{"sigma","next_sigma","guidance_scale"})
             require(std::isfinite(t.at(key).number()),"Nonfinite sampling parameter");
         require(t.at("guidance_scale").number()>=0,"Invalid CFG scale");
+        if (euler) {
+            for (auto key:{"sigma","next_sigma","guidance_scale"})
+                require(std::isfinite(static_cast<float>(t.at(key).number())), "F32 conversion overflow");
+            tensor=host_f32({1,1},{static_cast<float>(t.at("sigma").number())});
+        }
         transitions.push_back({tensor,static_cast<float>(t.at("sigma").number()),
                                static_cast<float>(t.at("next_sigma").number())});
         guidance.push_back(GuidanceParameters::cfg(static_cast<float>(t.at("guidance_scale").number())));
     }
     SamplingProgram sampling; sampling.steps=static_cast<int>(ids.size()); sampling.guidance_mode=GuidanceMode::CFG;
     sampling.contract=SamplingContract{{PredictionSemantic::Flow},
-        {SolverSemantic::MultistepPredictorCorrector,2},ScheduleContract::flow_sigma(std::move(transitions))};
+        {euler ? SolverSemantic::FlowEuler : SolverSemantic::MultistepPredictorCorrector,euler ? 1 : 2},ScheduleContract::flow_sigma(std::move(transitions))};
     sampling.guidance_schedule=GuidanceSchedule::per_step(std::move(guidance));
     sampling.guidance_schedule->validate(ids.size());
+    if (euler) validate_flow_euler_program(sampling);
     return {ExecutionProgram::per_step(std::move(ids)),std::move(sampling)};
 }
 } // namespace vrhino::product

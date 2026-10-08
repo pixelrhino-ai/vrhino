@@ -1,0 +1,42 @@
+{
+  "schema": "vrhino.text-product-wiring.v2",
+  "tokenizer_spec": {
+    "format": "sentencepiece",
+    "max_length": 128,
+    "pad_id": 0,
+    "suffix_ids": [
+      1
+    ],
+    "added_tokens": [
+      {
+        "content": "<extra_id_0>",
+        "id": 32099,
+        "lstrip": true,
+        "rstrip": true
+      }
+    ]
+  },
+  "geometry": {
+    "kind": "token_grid_thw.v1",
+    "spatial_scale": 32,
+    "temporal_scale": 8,
+    "temporal_origin": 1,
+    "channels": 128,
+    "flatten_order": "THW_W_FASTEST"
+  },
+  "tensor_bytes_bound": 2147483648,
+  "conditioning_bindings": [
+    {
+      "component_id": "positive-conditioning",
+      "text_source": "prompt",
+      "target": "positive",
+      "mask_target": "positive_mask"
+    },
+    {
+      "component_id": "negative-conditioning",
+      "text_source": "negative_prompt",
+      "target": "negative",
+      "mask_target": "negative_mask"
+    }
+  ]
+}

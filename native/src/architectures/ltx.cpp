@@ -1,5 +1,8 @@
 #include "vrhino/architecture.h"
 #include "ltx_self_attention_graph.h"
+#include "ltx_declaration.h"
+#include "vrhino/package_declaration.h"
+#include "vrhino/product/program_declaration.h"
 
 #include <array>
 #include <cmath>
@@ -300,7 +303,8 @@ public:
                 WeightMap weights, const Tensor& positive,
                 const Tensor& negative, const Tensor& positive_mask,
                 const Tensor& negative_mask, const Tensor& coordinates,
-                const std::array<float, 3>& coordinate_scale)
+                const std::array<float, 3>& coordinate_scale,
+                std::shared_ptr<const AdmittedArchitectureBinding> binding = {})
         : backend_(backend), weights_(std::move(weights)), policy_(policy),
           text_(backend.concat({backend.copy_to_device(negative, policy.boundary_dtype(
                                     PrecisionSemantic::Conditioning)),
@@ -308,7 +312,7 @@ public:
                                     PrecisionSemantic::Conditioning))}, 0)),
           text_mask_(backend.copy_to_device(combine_masks(negative_mask, positive_mask),
                                              DType::Bool)),
-          trace_enabled_(false) {
+          trace_enabled_(false), binding_(std::move(binding)) {
         require(coordinates.device() == Device::CPU && coordinates.dtype() == DType::F32 &&
                 coordinates.ndim() == 3 && coordinates.dim(0) == 1 && coordinates.dim(1) == 3 &&
                 coordinates.dim(2) > 0, "LTX coordinates contract mismatch");
@@ -369,6 +373,7 @@ private:
     PreparedTensorHandle rope_;
     bool trace_enabled_ = false;
     TensorBundle trace_;
+    std::shared_ptr<const AdmittedArchitectureBinding> binding_;
 };
 
 Tensor full_mask(const Tensor& text) {
@@ -505,7 +510,142 @@ private:
     std::array<float, 3> coordinate_scale_{1.0f, 1.0f, 1.0f};
 };
 
+// Owning Schema2 adapter: only fixed topology lowering and request binding.
+// All selection, CFG, solver state and iteration belong to generic Runtime.
+class LtxPackageArchitecture final : public Architecture {
+  public:
+    explicit LtxPackageArchitecture(std::shared_ptr<const VrmModel> owner)
+        : owner_(std::move(owner)), package_(PackageDeclaration::parse(owner_->graph())),
+          programs_(product::admit_program_declaration(
+              owner_->metadata().at("programs"), package_,
+              {"execution.per_step.v1", "sampling.flow_euler_cfg.v1"})) {
+        require(owner_->metadata().at("programs").at("schema").string() == "vrhino.programs.v2",
+                "LTX package requires programs.v2");
+        validate_flow_euler_program(programs_.sampling);
+        require(package_.graphs().size() == 1, "LTX package requires one shared topology");
+        definition_ = ltx_internal::lower_token_flow(package_.graphs().begin()->second);
+        package_.validate_tensor_references(*owner_);
+        for (const auto &[id, b] : package_.bindings()) {
+            std::map<std::string, const Tensor *> weights;
+            for (const auto &[role, name] : b.parameters)
+                weights.emplace(role, &owner_->tensor(name));
+            bindings_.emplace(id, AdmittedArchitectureBinding::admit(
+                                      definition_.parameters, weights,
+                                      BorrowedBindingLifetime::ExplicitOwners, {owner_}));
+        }
+        const auto &decoder = owner_->metadata().at("shared_components").at("decoder");
+        require(
+            decoder.object().size() == 4 && decoder.at("schema_version").integer() == 1 &&
+                decoder.at("implementation_id").string() == "dit_flow.ltx_v0_9_1.vae_decoder.v1" &&
+                decoder.at("latent_contract").serialize() ==
+                    Json::parse(
+                        R"JSON({"channels":128,"layout":"BCTHW","sampling_layout":"BLC","spatial_scale":32,"temporal_decode":"1+8*(F-1)"})JSON")
+                        .serialize(),
+            "Unsupported closed LTX decoder contract");
+        decoder_ = AdmittedArchitectureBinding::admit(
+            ltx_internal::decoder_slots(definition_.storage_dtype), owner_->bindings(decoder),
+            BorrowedBindingLifetime::ExplicitOwners, {owner_});
+    }
+    std::unique_ptr<Denoiser> create_denoiser(Backend &, const PrecisionPolicy &,
+                                              const TensorBundle &) override {
+        throw Error("Managed LTX requires typed execution setup; singleton fallback forbidden");
+    }
+    SamplingProgram create_program(const TensorBundle &input) override {
+        ltx_internal::validate_token_flow_inputs(input, false);
+        auto p = programs_.sampling;
+        p.seed = read_scalar_i64(input.at("seed"));
+        const auto &shape = input.at("latent_shape");
+        p.latent_shape.assign(shape.data_as<int64_t>(), shape.data_as<int64_t>() + 3);
+        validate_flow_euler_program(p);
+        return p;
+    }
+    ExecutionSetup create_execution_setup(Backend &backend, const PrecisionPolicy &policy,
+                                          const TensorBundle &input) override {
+        (void)create_program(input);
+        ltx_internal::validate_token_flow_inputs(input, true);
+        validate_self_attention_context(backend, policy);
+        require(backend.execution_dtype() != DType::BF16 ||
+                    definition_.storage_dtype == DType::BF16,
+                "LTX BF16 requires exact BF16 parameter storage");
+        const auto shape = create_program(input).latent_shape;
+        const auto output = policy.boundary_dtype(PrecisionSemantic::DenoiserOutput);
+        ComponentInterface interface{
+            {shape, policy.persistent_state_dtype(PrecisionSemantic::SamplingState)},
+            {{1, 1}, DType::F32},
+            {{shape, output}, {shape, output}},
+            GuidanceMode::CFG,
+            PredictionSemantic::Flow,
+            128};
+        std::vector<ExecutionTensorContract> parameters;
+        for (const auto &s : definition_.parameters->slots())
+            parameters.push_back({s.shape, s.dtype});
+        const auto slots = definition_.parameters;
+        const auto owner = owner_;
+        const auto positive = input.at("positive"), negative = input.at("negative"),
+                   pm = input.at("positive_mask"), nm = input.at("negative_mask"),
+                   coordinates = input.at("coordinates");
+        const bool trace =
+            input.contains("audit_trace") && read_scalar_i64(input.at("audit_trace")) != 0;
+        auto graph = std::make_shared<ComponentGraphDefinition>(
+            interface, parameters,
+            [slots, owner, &backend, policy, positive, negative, pm, nm, coordinates,
+             trace](const std::vector<Tensor> &p) {
+                std::map<std::string, const Tensor *> references;
+                require(p.size() == slots->slots().size(), "LTX endpoint slot count mismatch");
+                for (size_t i = 0; i < p.size(); ++i)
+                    references.emplace(slots->slots()[i].role, &p[i]);
+                auto binding = AdmittedArchitectureBinding::admit(
+                    slots, references, BorrowedBindingLifetime::ExplicitOwners, {owner});
+                auto endpoint = std::make_unique<LtxDenoiser>(
+                    backend, policy, WeightMap(binding->weights()), positive, negative, pm, nm,
+                    coordinates, std::array<float, 3>{0.32f, 32.0f, 32.0f}, binding);
+                if (trace)
+                    endpoint->enable_trace();
+                return endpoint;
+            });
+        // Endpoint construction prepares device resources. Publish mapping
+        // leases before that work, including its exceptional exit paths.
+        backend.retain_resource_owners({owner_});
+        std::vector<ComponentInstance> instances;
+        for (const auto &[id, i] : package_.instances())
+            instances.push_back(
+                ComponentInstance::bind({id}, {i.binding}, graph,
+                                        bindings_.at(i.binding)->parameters_for(*slots), {owner_}));
+        return {ExecutionContext(std::move(instances)), programs_.execution};
+    }
+    Tensor decode(Backend &backend, const PrecisionPolicy &policy, const Tensor &latent,
+                  const TensorBundle &input) override {
+        const auto p = create_program(input);
+        require(latent.shape() == p.latent_shape &&
+                    latent.dtype() == policy.boundary_dtype(PrecisionSemantic::VaeInput),
+                "LTX decoder token shape/dtype mismatch");
+        const auto &encoded = input.at("latent_grid");
+        std::vector<int64_t> g(encoded.data_as<int64_t>(), encoded.data_as<int64_t>() + 3);
+        backend.retain_resource_owners({owner_});
+        auto video = decode_ltx(backend, policy, WeightMap(decoder_->weights()), latent,
+                                read_scalar_i64(input.at("decode_seed")), g);
+        require(video.shape() ==
+                        std::vector<int64_t>({1, 3, 1 + 8 * (g[0] - 1), 32 * g[1], 32 * g[2]}) &&
+                    video.dtype() == policy.boundary_dtype(PrecisionSemantic::VideoOutput),
+                "LTX decoder output contract mismatch");
+        return video;
+    }
+
+  private:
+    std::shared_ptr<const VrmModel> owner_;
+    PackageDeclaration package_;
+    ltx_internal::TokenFlowDefinition definition_;
+    product::DeclaredPrograms programs_;
+    std::map<uint32_t, std::shared_ptr<const AdmittedArchitectureBinding>> bindings_;
+    std::shared_ptr<const AdmittedArchitectureBinding> decoder_;
+};
+
 }  // namespace
+
+std::unique_ptr<Architecture> make_ltx_package_architecture(std::shared_ptr<const VrmModel> model) {
+    require(model && model->architecture_id()=="ltx_v0_9_1" && model->graph().at("schema_version").integer()==2,"Invalid managed LTX model");
+    return std::make_unique<LtxPackageArchitecture>(std::move(model));
+}
 
 Tensor ltx_internal::transformer_block_forward(Backend& backend, const PrecisionPolicy& policy,
     const WeightMap& weights, const Tensor& input, const Tensor& context,

@@ -30,7 +30,7 @@ Json resource_stats(Backend& backend) {
 PreparedProductExecution execute_prepared_product(const PreparedTextProductRequest& request,
     const PrecisionPolicy& policy, const ProductBackendFactory& factory,
     const PreparedExecutionControl& control) {
-    require(request.owner && request.owner->architecture && bool(factory), "Missing prepared Product execution");
+    require(request.owner && request.owner->architecture && request.owner->conditioning && bool(factory), "Missing prepared Product execution");
     const bool prefix = control.qualification_prefix_steps.has_value();
     const int limit = control.qualification_prefix_steps.value_or(request.sampling.steps);
     require(limit > 0 && (!prefix || limit < request.sampling.steps), "Invalid qualification prefix");
@@ -41,6 +41,7 @@ PreparedProductExecution execute_prepared_product(const PreparedTextProductReque
     PreparedProductExecution output;
     const auto phase = [&](ProductExecutionPhase kind, const char* name, auto execute) {
         cancelled();
+        request.owner->conditioning->verify_backing_identity();
         {
             auto backend = factory();
             require(backend && backend->execution_dtype() == policy.requested_dtype(), "Product Backend/policy mismatch");

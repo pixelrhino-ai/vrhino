@@ -49,7 +49,7 @@ enum class GuidanceMode { Linear, CFG };
 enum class SchedulerKind { Euler };
 
 enum class PredictionSemantic { Flow, V, Epsilon };
-enum class SolverSemantic { MultistepPredictorCorrector, AffineFirstOrder };
+enum class SolverSemantic { MultistepPredictorCorrector, AffineFirstOrder, FlowEuler };
 enum class ScheduleSemantic { FlowSigma, AlphaCumprod };
 
 struct PredictionContract {
@@ -278,6 +278,9 @@ private:
 };
 
 DType effective_sampling_state_dtype(const PrecisionPolicy& policy);
+// Closed FlowEuler admission, also rechecked before every run. Other solver
+// contracts retain their existing validation and numerical behavior.
+void validate_flow_euler_program(const SamplingProgram& program);
 DType effective_denoiser_output_dtype(const PrecisionPolicy& policy);
 
 // Builds the deterministic eta=0 DDIM AlphaCumprod step table used by any

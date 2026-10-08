@@ -683,19 +683,34 @@ ModelPackageManifest load_model_package_manifest(const fs::path& path) {
                 ensure_required_reference(artifact_required, request->string(), "request wiring");
             }
             std::set<std::string> caps;
-            const std::set<std::string> supported{"binding_catalog.v1", "execution.per_step.v1", "sampling.flow_sigma_cfg.v1"};
+            const std::set<std::string> supported{"binding_catalog.v1", "execution.per_step.v1", "sampling.flow_sigma_cfg.v1", "sampling.flow_euler_cfg.v1"};
             for (const auto& cap : array_field(admission, "required_capabilities").array()) {
                 if (!supported.contains(cap.string()) || !caps.insert(cap.string()).second)
                     fail(ModelPackageErrorCode::PackageVersionUnsupported, "Unsupported or duplicate admission capability");
             }
-            if (caps != supported) fail(ModelPackageErrorCode::PackageInvalid, "Missing admission capability");
+            const std::set<std::string> old_caps{"binding_catalog.v1","execution.per_step.v1","sampling.flow_sigma_cfg.v1"};
+            const std::set<std::string> euler_caps{"binding_catalog.v1","execution.per_step.v1","sampling.flow_euler_cfg.v1"};
+            if (caps != old_caps && caps != euler_caps) fail(ModelPackageErrorCode::PackageInvalid, "Missing admission capability");
             const auto& resources = object_field(admission, "resources");
             const std::set<std::string> roles{"conditioning_declaration", "conditioning_index", "conditioning_weights", "tokenizer"};
             if (resources.object().size() != roles.size()) fail(ModelPackageErrorCode::PackageInvalid, "Incomplete resource roles");
             for (const auto& [role, id] : resources.object()) {
                 if (!roles.contains(role)) fail(ModelPackageErrorCode::PackageInvalid, "Unsupported resource role");
-                ensure_reference_exists(artifact_ids, id.string(), role);
-                ensure_required_reference(artifact_required, id.string(), role);
+                if (role=="conditioning_weights" && id.is_object()) {
+                    if (caps!=euler_caps || id.object().empty() || id.object().size()>16)
+                        fail(ModelPackageErrorCode::PackageInvalid,"Invalid indexed conditioning inventory");
+                    std::set<std::string> distinct;
+                    for (const auto& [logical,artifact]:id.object()) {
+                        if (logical.empty() || logical.find('/')!=std::string::npos || logical.find('\\')!=std::string::npos ||
+                            !logical.ends_with(".safetensors") || !distinct.insert(artifact.string()).second)
+                            fail(ModelPackageErrorCode::PackageInvalid,"Invalid conditioning shard identity");
+                        ensure_reference_exists(artifact_ids,artifact.string(),role);
+                        ensure_required_reference(artifact_required,artifact.string(),role);
+                    }
+                } else {
+                    ensure_reference_exists(artifact_ids, id.string(), role);
+                    ensure_required_reference(artifact_required, id.string(), role);
+                }
             }
             if (manifest.product.family != "text_to_video")
                 fail(ModelPackageErrorCode::PackageVersionUnsupported, "Product family has no schema2 adapter");

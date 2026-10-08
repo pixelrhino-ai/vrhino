@@ -24,6 +24,7 @@ std::unique_ptr<Architecture> create_architecture(std::shared_ptr<const VrmModel
     require(schema == 2, "Unsupported architecture package schema");
     // Family capability registration, never product-name dispatch.
     if (model->architecture_id() == "wan") return make_wan_package_architecture(std::move(model));
+    if (model->architecture_id() == "ltx_v0_9_1") return make_ltx_package_architecture(std::move(model));
     throw Error("Registered family does not support package graph admission: " + model->architecture_id());
 }
 }  // namespace vrhino
