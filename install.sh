@@ -3,11 +3,11 @@
 # Function wrapping prevents a truncated curl pipe from starting installation.
 vrhino_install_main() (
     set -eu
-    release=v0.9.3-alpha
-    core_name=vrhino-core-linux-x86_64-v0.9.3-alpha.tar.gz
-    core_sha=3f3ffc3fc1676c1616dac48749643136509ce299aec85e1d94479ccd9f26f4b0
-    core_root=vrhino-core-v0.9.3-alpha
-    core_version=v0.9.3-alpha
+    release=v0.9.4-alpha
+    core_name=vrhino-core-linux-x86_64-v0.9.4-alpha.tar.gz
+    core_sha=3acd613cfc1b22bd0ca09d61fc5c68ce08408edcce984c92c1653a59df7815ac
+    core_root=vrhino-core-v0.9.4-alpha
+    core_version=v0.9.4-alpha
     runtime_name=vrhino-nvidia-runtime-linux-x86_64-cuda12.8-cudnn9.8-r1.tar.gz
     runtime_sha=c3488da9a4d346ff791cb14ba012018e50b7876ab7dd4dbecc7ba53e088dbe83
     runtime_root=vrhino-nvidia-runtime-nvidia-linux-x86_64-cuda12.8.90-cublas12.8.4.1-cudnn9.8.0.87-nvrtc12.8.93-nvjitlink12.8.93-r1
@@ -43,7 +43,7 @@ vrhino_install_main() (
             --help|-h)
                 printf 'Usage: sh install.sh [--prefix ABSOLUTE_DIR] [--bin-dir ABSOLUTE_DIR]\n'
                 printf 'Offline: sh install.sh --bundle-dir DIR [--prefix DIR] [--bin-dir DIR]\n'
-                printf 'Release: %s; binary build: v0.9.1-alpha\n' "$release"
+                printf 'Release: %s; binary build: v0.9.4-alpha\n' "$release"
                 exit 0;;
             *) fail "unknown option: $1";;
         esac
@@ -85,7 +85,7 @@ EOF
     if [ -n "$bin_dir" ]; then set -- "$@" --bin-dir "$bin_dir"; fi
     if [ -n "$bundle" ]; then set -- "$@" --bundle-dir "$bundle"; fi
     sh "$helper" "$@"
-    printf 'Installed distribution %s (binary build v0.9.1-alpha).\n' "$release"
+    printf 'Installed distribution %s (binary build v0.9.4-alpha).\n' "$release"
     printf 'If needed in this terminal: export PATH="%s:$PATH"\n' "${bin_dir:-$HOME/.local/bin}"
 )
 vrhino_install_main "$@"

@@ -10,10 +10,10 @@ English | [简体中文](README.zh-CN.md)
 
 ## Install
 
-Linux x86_64 — install **v0.9.3-alpha Distribution v2** with one command (no sudo):
+Linux x86_64 — install **v0.9.4-alpha Distribution v2** with one command (no sudo):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/v0.9.3-alpha/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/v0.9.4-alpha/install.sh | sh
 ```
 
 The installer downloads and verifies the core and its exact private NVIDIA
@@ -30,6 +30,14 @@ vrhino doctor
 
 A compatible NVIDIA GPU/driver and sufficient memory are required. Model weights
 are separate; native execution needs no Python or CUDA Toolkit installation.
+
+## Measured Wan2.1 improvements
+
+On the tested RTX 4090 D / Wan2.1 T2V 1.3B task, controlled source A/B generation
+time fell **7.72%** and device-total sampled peak fell **30.93%**. Checkpoints and
+video outputs matched on the tested inputs. These are scoped measurements,
+not claims for every model/GPU or cross-framework quality.
+[Configuration, raw timing rows and limitations](docs/release/v0.9.4-alpha.md).
 
 ## Available models
 
@@ -76,7 +84,7 @@ LatentSync uses the same video/audio command shape with its package ID above.
 - [Installation and cache configuration](docs/install.md)
 - [Architecture](docs/architecture.md) · [Build from source](docs/source-build.md)
 - [Local Native API — v0.6.0-alpha contract](docs/api/native-api-v1.md) (`vrhino serve`)
-- [v0.9.3-alpha release and checksums](docs/release/v0.9.3-alpha.md) · [Windows v0.8 scope](docs/release/v0.8.0-alpha.md)
+- [v0.9.4-alpha release and checksums](docs/release/v0.9.4-alpha.md) · [Windows v0.8 scope](docs/release/v0.8.0-alpha.md)
 - [Contributing](CONTRIBUTING.md)
 
 Project-owned source: [Apache-2.0](LICENSE). Distributed binaries retain their

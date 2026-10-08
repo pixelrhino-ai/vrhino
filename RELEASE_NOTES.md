@@ -1,3 +1,18 @@
+# VRhino v0.9.4-alpha — Wan2.1 runtime and memory improvements
+
+Fresh Linux x86_64 multi-architecture binaries include the five merged general
+optimizations. In the measured Wan2.1 T2V 1.3B / RTX 4090 D scene, controlled
+source A/B complete generation time fell **7.72%**, sampled peak device memory
+fell **30.93%**, and checkpoints/video remained identical on the two tested inputs.
+The exact task, three runs per side, sampling limits and restricted platform
+scope are recorded in [v0.9.4 results](docs/release/v0.9.4-alpha.md).
+
+The private NVIDIA R1 runtime and media are unchanged; upgrades reuse the
+verified runtime. This is a new executable build, not the old binary renamed.
+Official same-task comparison is supplemental and explicitly has different
+execution/precision/media strategies; no equal-quality superiority is claimed.
+Older releases, model packages, precision gates and historical HOLDs are unchanged.
+
 # VRhino v0.9.2-alpha — Distribution v2
 
 This Linux x86_64 alpha release promotes the publicly qualified v0.9.2-rc1
