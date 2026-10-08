@@ -1,0 +1,28 @@
+{
+  "schema": "vrhino.release-publication-record.v1",
+  "version": "v0.9.4-alpha",
+  "prerelease": true,
+  "binary_build_version": "v0.9.4-alpha",
+  "binary_source_commit": "77bf96f5e6059f3643da378f274bbd58e7c5e835",
+  "accepted_performance_source": "55922514062f52fb2a9dc1f1cc03b725e9af443e",
+  "installer_helper": {
+    "path": "tools/install_distribution_v2.sh",
+    "sha256": "f6e5a44ab51f9ad7d4a331f5ec15773d33cfc9af8531c7fc186e67198ed7f042"
+  },
+  "assets": [
+    {
+      "name": "vrhino-core-linux-x86_64-v0.9.4-alpha.tar.gz",
+      "size_bytes": 36211068,
+      "sha256": "3acd613cfc1b22bd0ca09d61fc5c68ce08408edcce984c92c1653a59df7815ac",
+      "root": "vrhino-core-v0.9.4-alpha",
+      "package_change": "Fresh multi-architecture executables and current specifications; existing dependency/media bytes retained"
+    },
+    {
+      "name": "vrhino-nvidia-runtime-linux-x86_64-cuda12.8-cudnn9.8-r1.tar.gz",
+      "size_bytes": 1375432086,
+      "sha256": "c3488da9a4d346ff791cb14ba012018e50b7876ab7dd4dbecc7ba53e088dbe83",
+      "runtime_id": "nvidia-linux-x86_64-cuda12.8.90-cublas12.8.4.1-cudnn9.8.0.87-nvrtc12.8.93-nvjitlink12.8.93-r1",
+      "bytes_identical_to_qualified_r1": true
+    }
+  ]
+}

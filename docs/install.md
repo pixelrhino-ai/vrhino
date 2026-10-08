@@ -2,15 +2,17 @@
 
 ## Release status
 
-**Linux: [v0.9.3-alpha Distribution v2](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.9.3-alpha)**.
+**Linux: [v0.9.4-alpha Distribution v2](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.9.4-alpha)**.
 **Windows: v0.8.0-alpha** (existing qualified rc9 package).
-See the [v0.9.3 release and checksum record](release/v0.9.3-alpha.md) and the
+See the [v0.9.4 release and checksum record](release/v0.9.4-alpha.md) and the
 [v0.8 Windows qualification record](release/v0.8.0-alpha.md).
-The v0.9.1 monolithic release remains available and unchanged; v0.9 Windows binaries are not published.
+The v0.9.1 monolithic release remains available and unchanged; no new Windows
+binaries accompany v0.9.4. This release build is tested on RTX 4090 D; included
+CUDA images do not establish universal GPU/model qualification.
 
 ## Requirements
 
-- Linux v0.9.3 Distribution v2: x86_64, glibc 2.35 or newer; frozen CUDA 12.8 images for SM 80/86/89/90/120 plus compute 80 PTX
+- Linux v0.9.4 Distribution v2: x86_64, glibc 2.35 or newer; CUDA 12.8 images for SM 80/86/89/90/120 plus compute 80 PTX
 - Windows package: native Windows x64 CUDA; qualification baseline
   Windows 10 Pro 22H2 / build 19045, RTX 3090 24 GiB, NVIDIA driver 610.47
 - compatible NVIDIA GPU and NVIDIA Driver
@@ -33,7 +35,7 @@ Driver remains required.
 ## Linux one-command installation
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/v0.9.3-alpha/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/v0.9.4-alpha/install.sh | sh
 ```
 
 The versioned bootstrap pins both archive SHA256 values, the exact NVIDIA
@@ -44,13 +46,13 @@ verifies both outer and internal checksums, runs
 NVIDIA Driver is still required. No system CUDA Toolkit, cuDNN, FFmpeg, Python
 inference environment or sudo is required.
 
-The first installation downloads both archives: 35,828,650 bytes of core and
-1,375,432,086 bytes of NVIDIA runtime, or 1,411,260,736 bytes total. An upgrade
+The first installation downloads both archives: 36,211,068 bytes of core and
+1,375,432,086 bytes of NVIDIA runtime, or 1,411,643,154 bytes total. An upgrade
 that requires the same runtime downloads only the new core archive. Allow space
 for both extracted packages and staging, plus separate model storage.
 
-The distribution release is v0.9.3-alpha; `vrhino --version` reports the
-unchanged v0.9.1-alpha binary build identity.
+The distribution and fresh binary build are both v0.9.4-alpha;
+`vrhino --version` reports this real version and its source commit.
 
 Default locations:
 
@@ -67,13 +69,13 @@ recognized and preserved for rollback without a manual uninstall.
 To inspect the script first or choose locations:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/v0.9.3-alpha/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/v0.9.4-alpha/install.sh -o install.sh
 sh install.sh --help
 sh install.sh --prefix "$HOME/apps/vrhino-v2" --bin-dir "$HOME/.local/bin"
 ```
 
 For offline installation, put the exact core archive, NVIDIA runtime archive,
-and `tools/install_distribution_v2.sh` from the v0.9.3-alpha tag in one directory
+and `tools/install_distribution_v2.sh` from the v0.9.4-alpha tag in one directory
 (name the helper `install_distribution_v2.sh`). Run
 `sh install.sh --bundle-dir /absolute/path/to/bundle` with a local copy of the
 tagged `install.sh`. The bootstrap checks the helper and both archive pins

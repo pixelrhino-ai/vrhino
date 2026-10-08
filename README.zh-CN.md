@@ -10,10 +10,10 @@
 
 ## 安装
 
-Linux x86_64 一行安装 **v0.9.3-alpha Distribution v2**，无需 sudo：
+Linux x86_64 一行安装 **v0.9.4-alpha Distribution v2**，无需 sudo：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/v0.9.3-alpha/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/pixelrhino-ai/vrhino/v0.9.4-alpha/install.sh | sh
 ```
 
 脚本会下载并校验 core 与其精确指定的私有 NVIDIA runtime。首次安装需要下载两包；
@@ -27,6 +27,13 @@ vrhino doctor
 [Windows v0.8 CUDA 包](https://github.com/pixelrhino-ai/vrhino/releases/tag/v0.8.0-alpha)
 
 需要兼容的 NVIDIA GPU/驱动和足够的内存。模型权重单独下载；原生执行无需安装 Python 或 CUDA Toolkit。
+
+## 已测 Wan2.1 改善
+
+在所测 Wan2.1 T2V 1.3B／RTX 4090 D 场景中，同条件源码 A/B 的完整生成耗时
+减少 **7.72%**，设备采样峰值减少 **30.93%**；已测输入的检查点和视频输出一致。
+这不代表全部模型或 GPU 的收益，也不构成跨实现等质量领先的结论。
+[配置、逐次数据与适用范围](docs/release/v0.9.4-alpha.md)。
 
 ## 可用模型
 
@@ -70,7 +77,7 @@ LatentSync 使用相同的视频/音频命令格式，替换为上表中的模�
 - [安装与缓存配置](docs/install.md)
 - [架构](docs/architecture.md) · [源码构建](docs/source-build.md)
 - [本地 Native API — v0.6.0-alpha 合同](docs/api/native-api-v1.md)（`vrhino serve`）
-- [v0.9.3-alpha 发布与校验和](docs/release/v0.9.3-alpha.md) · [Windows v0.8 支持范围](docs/release/v0.8.0-alpha.md)
+- [v0.9.4-alpha 发布与校验和](docs/release/v0.9.4-alpha.md) · [Windows v0.8 支持范围](docs/release/v0.8.0-alpha.md)
 - [参与贡献](CONTRIBUTING.md)
 
 项目自有源码采用 [Apache-2.0](LICENSE)。已分发二进制遵循其[二进制许可证](licenses/VRHINO-BINARY-LICENSE.txt)，
