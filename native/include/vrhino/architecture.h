@@ -48,6 +48,7 @@ std::unique_ptr<Architecture> create_architecture(const VrmModel& model);
 // Managed package admission retains mmap backing through bindings and endpoints.
 std::unique_ptr<Architecture> create_architecture(std::shared_ptr<const VrmModel> model);
 std::unique_ptr<Architecture> make_wan_package_architecture(std::shared_ptr<const VrmModel> model);
+std::unique_ptr<Architecture> make_ltx_package_architecture(std::shared_ptr<const VrmModel> model);
 Tensor operation_linear(Backend& backend, const PrecisionPolicy& policy,
                         PrecisionOperation operation, PrecisionSemantic output_semantic,
                         const Tensor& input, const Tensor& weight,

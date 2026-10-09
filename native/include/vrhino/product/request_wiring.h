@@ -8,6 +8,7 @@ struct ConditioningInputRequest {
     Json graph;
     Tensor input_ids, attention_mask;
     std::vector<int64_t> expected_hidden_shape;
+    std::string mask_target{};
 };
 // Retains all borrowed component/decoder backing. It is a prepared request,
 // not sampling state, a synthetic hidden tensor, or permission to execute.

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <bit>
 
 #include "vrhino/error.h"
 #include "vrhino/tensor_util.h"
@@ -90,6 +91,39 @@ const Tensor& SamplingProgram::model_timestep_at(int step) const {
 
 DType effective_sampling_state_dtype(const PrecisionPolicy& policy) {
     return policy.persistent_state_dtype(PrecisionSemantic::SamplingState);
+}
+
+void validate_flow_euler_program(const SamplingProgram& p) {
+    require(p.contract && p.contract->prediction.semantic == PredictionSemantic::Flow &&
+        p.contract->solver.semantic == SolverSemantic::FlowEuler &&
+        p.contract->solver.maximum_order == 1 &&
+        p.contract->schedule.semantic() == ScheduleSemantic::FlowSigma,
+        "FlowEuler requires typed Flow/FlowSigma/order-one contract");
+    require(p.steps >= 2 && p.steps <= 1000 &&
+        p.contract->schedule.size() == static_cast<size_t>(p.steps), "FlowEuler step bound/count mismatch");
+    require(p.model_timesteps.empty() && p.sigmas.empty() && p.update_deltas.empty() &&
+        p.guidance_coefficients.empty() && !p.subtract_prediction && !p.zero_is_frozen,
+        "FlowEuler cannot contain competing legacy declarations");
+    require(p.guidance_mode == GuidanceMode::CFG && p.guidance_schedule.has_value(), "FlowEuler requires declared CFG");
+    p.guidance_schedule->validate(p.steps);
+    for (int i = 0; i < p.steps; ++i) {
+        const auto& t = p.contract->schedule.flow_at(i);
+        const auto& time = t.model_timestep;
+        require(std::isfinite(t.sigma) && std::isfinite(t.next_sigma) && !std::signbit(t.next_sigma) &&
+            t.sigma > 0 && t.sigma <= 1 && t.next_sigma >= 0 && t.next_sigma < t.sigma,
+            "FlowEuler sigma outside descending [0,1] bounds");
+        require((i != 0 || t.sigma == 1) && (i != p.steps-1 || t.next_sigma == 0), "FlowEuler endpoint mismatch");
+        if (i) require(t.sigma == p.contract->schedule.flow_at(i-1).next_sigma, "FlowEuler discontinuous sigma table");
+        require(time.defined() && !time.is_quantized() && time.device() == Device::CPU &&
+            time.dtype() == DType::F32 && time.logical_dtype() == DType::F32 &&
+            time.shape() == std::vector<int64_t>({1,1}) && time.strides() == contiguous_strides({1,1}) &&
+            time.bytes() == sizeof(float) && time.byte_offset() <= time.storage_bytes() &&
+            sizeof(float) <= time.storage_bytes() - time.byte_offset() && time.data(), "FlowEuler timestep must be dense CPU F32[1,1]");
+        require(std::bit_cast<uint32_t>(time.data_as<float>()[0]) == std::bit_cast<uint32_t>(t.sigma),
+            "FlowEuler timestep bits differ from sigma");
+        const auto& g = p.guidance_schedule->at(i);
+        require(g.mode == GuidanceMode::CFG && g.coefficients.empty() && std::isfinite(g.scale) && g.scale >= 0, "Invalid FlowEuler CFG");
+    }
 }
 
 DType effective_denoiser_output_dtype(const PrecisionPolicy& policy) {
@@ -321,6 +355,9 @@ SamplingResult SamplingRuntime::run_impl(const ExecutionContext& context,
                     contract->schedule.flow_at(static_cast<size_t>(step)).sigma);
             solver_sigmas.push_back(contract->schedule.flow_at(
                 static_cast<size_t>(program.steps - 1)).next_sigma);
+        } else if (contract->solver.semantic == SolverSemantic::FlowEuler) {
+            validate_flow_euler_program(program);
+            require(!context.is_legacy(), "FlowEuler requires typed execution context; legacy bridge forbidden");
         } else {
             require(contract->solver.semantic == SolverSemantic::AffineFirstOrder,
                     "Sampling Contract v1 solver semantic is unsupported");
@@ -432,7 +469,13 @@ SamplingResult SamplingRuntime::run_impl(const ExecutionContext& context,
                 for (size_t branch = 0; tensor_trace_enabled_ && branch < predictions.size(); ++branch) result.trace["step." + std::to_string(step) + ".prediction." + std::to_string(branch)] = trace_tensor(predictions[branch]);
                 if (tensor_trace_enabled_) result.trace["step." + std::to_string(step) + ".guidance"] = trace_tensor(guided);
                 if (!contract) next = primitives_.euler_update(latent, guided, scalar_f32(program.update_deltas.at(step)), program.subtract_prediction);
-                else if (contract->solver.semantic ==
+                else if (contract->solver.semantic == SolverSemantic::FlowEuler) {
+                    const auto& t = contract->schedule.flow_at(static_cast<size_t>(step));
+                    // Match native Euler: F32 subtraction first, then the
+                    // existing primitive's coefficient sign/multiply/add.
+                    const float delta = t.sigma - t.next_sigma;
+                    next = primitives_.euler_update(latent, guided, scalar_f32(delta), true);
+                } else if (contract->solver.semantic ==
                             SolverSemantic::MultistepPredictorCorrector) {
                     const FlowScheduleTransition& transition =
                         contract->schedule.flow_at(static_cast<size_t>(step));

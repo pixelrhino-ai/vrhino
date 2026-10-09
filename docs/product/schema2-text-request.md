@@ -92,3 +92,7 @@ modified files.
 
 Real text encoding, its output numerical qualification, production sampling,
 decoder execution, and media output remain separate work packages.
+
+The second architecture family uses the closed programs.v2/token-grid and padded
+conditioning contracts documented in [LTX Schema2 Native Product](ltx-schema2.md).
+Its qualification scope is separate from the existing Wan programs.v1 path.

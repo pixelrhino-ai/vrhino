@@ -47,7 +47,8 @@ Json admit_conditioned_sampling(Backend& backend,const PrecisionPolicy& policy,
     const PreparedTextProductRequest& request,const TensorBundle& input) {
     require(request.owner && request.owner->architecture,"Missing product architecture");
     require(policy.requested_dtype()==backend.execution_dtype(),"Policy/backend dtype mismatch");
-    require(input.size()==request.runtime_inputs.size()+request.conditioning.size(),
+    size_t masks=0;for(const auto& c:request.conditioning)if(!c.mask_target.empty())++masks;
+    require(input.size()==request.runtime_inputs.size()+request.conditioning.size()+masks,
             "Unexpected conditioned request field set");
     for(const auto& [name, expected]:request.runtime_inputs) {
         const auto& actual=input.at(name);
@@ -59,6 +60,10 @@ Json admit_conditioned_sampling(Backend& backend,const PrecisionPolicy& policy,
     for(const auto& c:request.conditioning) {
         require_finite_component_output(input.at(c.target));
         hidden.push_back(input.at(c.target));
+        if(!c.mask_target.empty()) {
+            const auto& m=input.at(c.mask_target);validate_architecture_tensor(m,c.attention_mask.shape(),DType::Bool);
+            require(std::memcmp(m.data(),c.attention_mask.data(),m.bytes())==0,"Conditioning validity mask drift");
+        }
     }
     (void)request.bind_conditioning_outputs(hidden);
     backend.retain_resource_owners({request.owner});

@@ -3,6 +3,7 @@
 #include "vrhino/product/vrm_verification.h"
 #include "vrhino/error.h"
 #include "vrhino/tensor_util.h"
+#include "vrhino/product/token_grid_geometry.h"
 #include <fstream>
 #include <set>
 #include <limits>
@@ -115,37 +116,71 @@ AdmittedLocalProduct preflight_resolved_product(ResolvedRunnableModel resources)
     require(provenance.at("manifest_sha256").string() == artifacts.at(
         admission.at("source_manifest_artifact").string()).declaration.sha256, "Source manifest identity mismatch");
     auto catalog = PackageDeclaration::parse(graph);
-    auto lowered_programs = admit_program_declaration(programs, catalog);
-    (void)lowered_programs;
+    const auto& programs_resource=artifacts.at(admission.at("programs_artifact").string());
+    (void)admit_verified_program_artifact(programs_resource.path,programs_resource.declaration.size,
+        programs_resource.declaration.sha256,*out.model);
+    const bool token_grid=programs.at("schema").string()=="vrhino.programs.v2";
+    const auto& required=admission.at("required_capabilities").array();
+    std::set<std::string> caps;for(const auto& c:required)caps.insert(c.string());
+    require(caps.contains(token_grid?"sampling.flow_euler_cfg.v1":"sampling.flow_sigma_cfg.v1"),"Package/program capability mismatch");
     out.architecture = create_architecture(out.model); // all canonical slots admitted here
     const auto& preset = declaration.at("defaults").at("presets").at(m.default_preset);
     const auto profile = read_artifact(preset.at("profile_artifact").string());
-    require(profile.object().size() == 2 && profile.at("latent_shape").array().size() == 5,
-            "Malformed structural run profile");
-    auto shape = Tensor::host({5}, DType::I64);
-    for (size_t i=0; i<5; ++i) shape.data_as<int64_t>()[i] = profile.at("latent_shape").array()[i].integer();
-    TensorBundle request{{"seed", scalar_i64(profile.at("seed").integer())}, {"latent_shape", shape}};
+    require(profile.object().size()==2,"Malformed structural run profile");
+    TensorBundle request;
+    if(token_grid) {
+        require(m.product.frozen_profile && m.product.frozen_profile->sampling &&
+            m.product.frozen_profile->sampling->program_artifact,"Token grid needs frozen program-backed profile");
+        const auto wiring=read_artifact(admission.at("request_artifact").string());
+        require(wiring.at("schema").string()=="vrhino.text-product-wiring.v2","Token grid requires closed wiring.v2");
+        const auto& f=m.product.frozen_profile->output;
+        require(wiring.at("tensor_bytes_bound").integer()>0 && profile.at("seed").integer()>=0,"Invalid frozen geometry budget/seed");
+        const auto geometry=admit_token_grid_geometry(wiring.at("geometry"),*f.width,*f.height,*f.frames,
+            static_cast<uint64_t>(profile.at("seed").integer()),wiring.at("tensor_bytes_bound").integer());
+        Json::Array shape;for(auto n:geometry.latent_shape)shape.emplace_back(n);
+        require(profile.at("latent_shape").serialize()==Json(shape).serialize(),"Frozen profile latent geometry mismatch");
+        request=geometry.runtime_inputs;
+    } else {
+        require(profile.at("latent_shape").array().size()==5,"Malformed structural run profile");
+        auto shape=Tensor::host({5},DType::I64);
+        for(size_t i=0;i<5;++i)shape.data_as<int64_t>()[i]=profile.at("latent_shape").array()[i].integer();
+        request={{"seed",scalar_i64(profile.at("seed").integer())},{"latent_shape",shape}};
+    }
     out.sampling = out.architecture->create_program(request);
     require(out.sampling.steps == static_cast<int>(programs.at("execution").at("instance_ids").array().size()),
             "Adapter lost declared program");
     const auto& roles = admission.at("resources");
     const auto resource = [&](const char* role) -> const ResolvedArtifact& { return artifacts.at(roles.at(role).string()); };
     const auto& shared = metadata.at("shared_components");
-    for (const auto& pair : {std::pair{"text_encoder_declaration", "conditioning_declaration"},
-                            std::pair{"text_encoder_resource", "conditioning_weights"},
-                            std::pair{"tokenizer_resource", "tokenizer"}})
-        require(shared.at(pair.first).string() == resource(pair.second).declaration.relative_path.generic_string(),
-                "Shared resource logical identity mismatch");
-    const auto index = read_json(resource("conditioning_index").path);
-    const auto& weight_resource = resource("conditioning_weights");
-    out.conditioning = std::make_unique<SafeTensorAsset>(SafeTensorAsset::indexed(
-        resource("conditioning_index").path, {{weight_resource.declaration.relative_path.generic_string(), weight_resource.path}}));
+    for (const auto& pair : {std::pair{"text_encoder_declaration","conditioning_declaration"},
+                            std::pair{"tokenizer_resource","tokenizer"}})
+        require(shared.at(pair.first).string()==resource(pair.second).declaration.relative_path.generic_string(),
+            "Shared resource logical identity mismatch");
+    const auto index=read_json(resource("conditioning_index").path);
+    if(roles.at("conditioning_weights").is_object()) {
+        require(token_grid,"Indexed resources require typed v2 Product");
+        std::map<std::string,VerifiedSafeTensorArtifact> shards;Json::Object logical;
+        for(const auto& [name,id]:roles.at("conditioning_weights").object()) {
+            const auto& a=artifacts.at(id.string());require(a.declaration.role=="conditioning.weights.shard","Wrong conditioning shard role");
+            shards.emplace(name,VerifiedSafeTensorArtifact{a.path,a.declaration.size,a.declaration.sha256});
+            logical.emplace(name,Json(a.declaration.relative_path.generic_string()));
+        }
+        require(shared.at("text_encoder_resource").serialize()==Json(logical).serialize(),"Shared shard logical identity mismatch");
+        out.conditioning=std::make_unique<SafeTensorAsset>(SafeTensorAsset::indexed_verified(index,shards));
+    } else {
+        const auto& a=resource("conditioning_weights");
+        require(shared.at("text_encoder_resource").string()==a.declaration.relative_path.generic_string(),"Shared resource logical identity mismatch");
+        out.conditioning=std::make_unique<SafeTensorAsset>(SafeTensorAsset::indexed(resource("conditioning_index").path,
+            {{a.declaration.relative_path.generic_string(),a.path}}));
+    }
     const auto conditioning = read_json(resource("conditioning_declaration").path);
     std::set<std::string> names;
     reference_weights(conditioning, out.conditioning->weights(), names);
     require(!names.empty() && names.size() == index.at("weight_map").object().size(), "Incomplete conditioning tensor references");
-    const auto tokenizer = read_json(resource("tokenizer").path);
-    require(tokenizer.at("model").is_object(), "Invalid tokenizer declaration");
+    if(!token_grid) {
+        const auto tokenizer=read_json(resource("tokenizer").path);
+        require(tokenizer.at("model").is_object(),"Invalid tokenizer declaration");
+    }
     // Metadata inspection is inside the same qualification interval. The
     // declaration is not a reusable permission to run later-mutated resources.
     for (const auto& [id, stamp] : observed_stamps) {

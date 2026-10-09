@@ -222,6 +222,7 @@ add_library(vrhino_native_common
     src/architectures/wan.cpp
     src/architectures/hunyuan_video.cpp
     src/architectures/ltx.cpp
+    src/architectures/ltx_declaration.cpp
     src/architectures/mochi.cpp
     src/architectures/cogvideox.cpp
 )
@@ -454,7 +455,7 @@ if(VRHINO_ENABLE_TOKENIZERS)
         COMMENT "Testing missing/corrupt tokenizer source failures")
 
     add_library(vrhino_native_tokenizer src/input/tokenizer.cpp)
-    target_include_directories(vrhino_native_tokenizer PUBLIC include)
+    target_include_directories(vrhino_native_tokenizer PUBLIC include PRIVATE "${VRHINO_TOKENIZER_BUILD_SOURCES}/tokenizers-cpp/sentencepiece/src")
     target_link_libraries(vrhino_native_tokenizer PUBLIC vrhino_native_common PRIVATE tokenizers_cpp)
     target_compile_options(vrhino_native_tokenizer PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
 
@@ -1661,9 +1662,23 @@ add_executable(vrhino-schema2-product-admission-tests tests/schema2_product_admi
 target_link_libraries(vrhino-schema2-product-admission-tests PRIVATE vrhino_product_preflight vrhino_converter vrhino_product_run_request)
 target_compile_options(vrhino-schema2-product-admission-tests PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
 
+# Bounded typed declarations and host geometry preparation, no Product migration.
+add_library(vrhino_product_token_grid STATIC src/product/token_grid_geometry.cpp src/product/program_artifact.cpp)
+target_link_libraries(vrhino_product_token_grid PUBLIC vrhino_model_package vrhino_native_common)
+target_include_directories(vrhino_product_token_grid PUBLIC include)
+target_compile_options(vrhino_product_token_grid PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+add_executable(vrhino-ltx-schema2-contract-tests tests/ltx_schema2_contract_tests.cpp)
+target_link_libraries(vrhino-ltx-schema2-contract-tests PRIVATE vrhino_product_token_grid vrhino_converter)
+target_compile_options(vrhino-ltx-schema2-contract-tests PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+if(VRHINO_ENABLE_CUDA)
+    add_executable(vrhino-ltx-schema2-cuda-tests tests/ltx_schema2_cuda_tests.cpp)
+    target_link_libraries(vrhino-ltx-schema2-cuda-tests PRIVATE vrhino_product_token_grid vrhino_converter vrhino_cuda_backend)
+    target_compile_options(vrhino-ltx-schema2-cuda-tests PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+endif()
+
 add_library(vrhino_product_request_wiring src/product/request_wiring.cpp)
 target_include_directories(vrhino_product_request_wiring PUBLIC include)
-target_link_libraries(vrhino_product_request_wiring PUBLIC vrhino_product_preflight vrhino_product_run_request)
+target_link_libraries(vrhino_product_request_wiring PUBLIC vrhino_product_preflight vrhino_product_run_request vrhino_product_token_grid)
 target_compile_options(vrhino_product_request_wiring PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
 if(VRHINO_ENABLE_TOKENIZERS)
     target_compile_definitions(vrhino_product_request_wiring PRIVATE VRHINO_PRODUCT_TOKENIZERS=1)
@@ -1739,4 +1754,45 @@ if(BUILD_TESTING AND TARGET vrhino AND TARGET vrhino-schema2-request-wiring-test
             --output "${CMAKE_CURRENT_BINARY_DIR}/sampling-video-cli-fixture")
     set_tests_properties(vrhino-product-sampling-video-cli-tests PROPERTIES
         LABELS "public;host" TIMEOUT 300 RUN_SERIAL TRUE)
+endif()
+
+# Closed geometry and verified typed artifacts are generic Product preflight capabilities.
+target_link_libraries(vrhino_product_preflight PUBLIC vrhino_product_token_grid)
+
+add_executable(vrhino-ltx-schema2-convert tools/ltx_schema2_convert.cpp)
+target_link_libraries(vrhino-ltx-schema2-convert PRIVATE vrhino_converter vrhino_product_preflight)
+target_compile_options(vrhino-ltx-schema2-convert PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+if(VRHINO_ENABLE_TOKENIZERS)
+    add_executable(vrhino-ltx-schema2-integration-tests tests/ltx_schema2_integration_tests.cpp)
+    target_link_libraries(vrhino-ltx-schema2-integration-tests PRIVATE vrhino_product_component_preparation vrhino_native_tokenizer sentencepiece-static)
+    target_include_directories(vrhino-ltx-schema2-integration-tests SYSTEM PRIVATE
+        "${VRHINO_TOKENIZER_BUILD_SOURCES}/tokenizers-cpp/sentencepiece/src"
+        "${VRHINO_TOKENIZER_BUILD_SOURCES}/tokenizers-cpp/sentencepiece/third_party/protobuf-lite")
+    target_compile_options(vrhino-ltx-schema2-integration-tests PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+endif()
+if(VRHINO_ENABLE_TOKENIZERS)
+    add_executable(vrhino-ltx-schema2-product-tests tests/ltx_schema2_product_tests.cpp)
+    target_link_libraries(vrhino-ltx-schema2-product-tests PRIVATE vrhino_product_component_preparation)
+    target_compile_options(vrhino-ltx-schema2-product-tests PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+endif()
+if(VRHINO_ENABLE_TOKENIZERS AND VRHINO_ENABLE_CUDA)
+    add_executable(vrhino-ltx-schema2-reference-compare tests/ltx_schema2_reference_compare.cpp)
+    target_link_libraries(vrhino-ltx-schema2-reference-compare PRIVATE vrhino_product_component_preparation vrhino_product_run vrhino_cuda_backend)
+    target_compile_options(vrhino-ltx-schema2-reference-compare PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+endif()
+
+# Small offline capability tests run in the normal host CI. Full-topology CUDA
+# and real-model harnesses require explicit asset/output paths and remain opt-in.
+if(BUILD_TESTING)
+    vrhino_public_test(vrhino-ltx-schema2-contract-tests host
+        "${CMAKE_CURRENT_BINARY_DIR}/ltx-schema2-contract-fixture"
+        "${CMAKE_CURRENT_SOURCE_DIR}/specs")
+    vrhino_public_test(vrhino-ltx-schema2-integration-tests host
+        "${CMAKE_CURRENT_BINARY_DIR}/ltx-schema2-integration-fixture")
+    vrhino_public_test(vrhino-schema2-product-admission-tests host
+        "${CMAKE_CURRENT_BINARY_DIR}/schema2-product-admission-fixture"
+        "${CMAKE_CURRENT_SOURCE_DIR}/specs")
+    vrhino_public_test(vrhino-schema2-request-wiring-tests host
+        "${CMAKE_CURRENT_BINARY_DIR}/schema2-request-wiring-fixture"
+        "${CMAKE_CURRENT_SOURCE_DIR}/specs")
 endif()

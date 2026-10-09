@@ -2,6 +2,7 @@
 #include "vrhino/product/declared_run.h"
 #include "vrhino/product/run_request.h"
 #include "vrhino/product/program_declaration.h"
+#include "vrhino/product/token_grid_geometry.h"
 #include "vrhino/conditioning.h"
 #include "vrhino/error.h"
 #include "vrhino/tensor_util.h"
@@ -41,10 +42,16 @@ const ResolvedArtifact& artifact(const AdmittedLocalProduct& p,const std::string
 }
 std::string verified_text(const AdmittedLocalProduct& p,const std::string& id) {
     const auto& a=artifact(p,id);
-    // Recheck the small request-time resource against the admitted identity.
-    require(std::filesystem::file_size(a.path)==a.declaration.size && sha256_file(a.path)==a.declaration.sha256,
+    // Hash the exact bounded bytes consumed by request preparation. A separate
+    // hash/read pair would permit pathname replacement between the two reads.
+    require(a.declaration.size <= 32*1024*1024 &&
+            std::filesystem::file_size(a.path)==a.declaration.size,
+            "Request resource size drift");
+    auto contents = text_file(a.path, static_cast<size_t>(a.declaration.size));
+    require(contents.size()==a.declaration.size &&
+            sha256_bytes(contents)==a.declaration.sha256,
             "Request resource identity drift");
-    return text_file(a.path);
+    return contents;
 }
 int64_t positive(const Json& j,const char* key,int64_t limit) {
     const auto n=j.at(key).integer();require(n>0 && n<=limit,"Request dimension outside declared bound");return n;
@@ -89,6 +96,15 @@ TensorBundle PreparedTextProductRequest::bind_conditioning_outputs(const std::ve
         const auto& t=outputs[n];require(t.dtype()==DType::F32 || t.dtype()==DType::BF16,"Unsupported conditioning result dtype");
         validate_architecture_tensor(t,conditioning[n].expected_hidden_shape,t.dtype());
         require(inputs.emplace(conditioning[n].target,t).second,"Duplicate conditioning result target");
+        if(!conditioning[n].mask_target.empty()) {
+            const auto& mask=conditioning[n].attention_mask;
+            validate_architecture_tensor(mask,{1,conditioning[n].expected_hidden_shape.at(1)},DType::Bool);
+            bool any=false;for(int64_t i=0;i<mask.numel();++i) {
+                require(mask.data_as<uint8_t>()[i]<=1,"Invalid conditioning validity byte");any|=mask.data_as<uint8_t>()[i]!=0;
+            }
+            require(any,"Conditioning mask has no valid token");
+            require(inputs.emplace(conditioning[n].mask_target,mask).second,"Duplicate conditioning mask target");
+        }
     }
     return inputs;
 }
@@ -112,58 +128,89 @@ PreparedTextProductRequest prepare_text_product_request(std::shared_ptr<Admitted
     const auto manifest=Json::parse(out.owner->resources.manifest.raw_json);
     const auto& admission=manifest.at("admission");
     const auto wiring=parse(verified_text(*out.owner,admission.at("request_artifact").string()));
-    keys(wiring,{"schema","tokenizer_spec","tokenizer_config_artifact","geometry","conditioning_bindings"});
-    require(wiring.at("schema").string()=="vrhino.text-product-wiring.v1","Unsupported text product wiring");
+    const bool token_grid=wiring.at("schema").string()=="vrhino.text-product-wiring.v2";
+    if(token_grid)keys(wiring,{"schema","tokenizer_spec","geometry","tensor_bytes_bound","conditioning_bindings"});
+    else {
+        keys(wiring,{"schema","tokenizer_spec","tokenizer_config_artifact","geometry","conditioning_bindings"});
+        require(wiring.at("schema").string()=="vrhino.text-product-wiring.v1","Unsupported text product wiring");
+    }
     const auto& shared=out.owner->model->metadata().at("shared_components");
-    const auto& decoder=shared.at("decoder");const auto& latent=decoder.at("latent_contract");
-    const auto& g=wiring.at("geometry");keys(g,{"spatial_scale","temporal_scale","temporal_origin"});
-    const auto spatial=positive(g,"spatial_scale",1024),temporal=positive(g,"temporal_scale",1024),origin=positive(g,"temporal_origin",1024);
-    require(latent.at("layout").string()=="BCTHW" && latent.at("spatial_scale").integer()==spatial &&
-        latent.at("temporal_decode").string()==std::to_string(origin)+"+"+std::to_string(temporal)+"*(F-1)","Decoder/request geometry mismatch");
-    require(width%spatial==0 && height%spatial==0 && frames>=origin && (frames-origin)%temporal==0,"Request does not fit decoder geometry");
-    std::vector<int64_t> latent_shape{1,latent.at("channels").integer(),(frames-origin)/temporal+1,height/spatial,width/spatial};
-    out.runtime_inputs={{"seed",scalar_i64(std::bit_cast<int64_t>(seed))},{"latent_shape",host_i64({5},latent_shape)}};
+    const auto& latent=shared.at("decoder").at("latent_contract");
+    std::vector<int64_t> latent_shape;
+    if(token_grid) {
+        auto geometry=admit_token_grid_geometry(wiring.at("geometry"),width,height,frames,seed,positive(wiring,"tensor_bytes_bound",INT64_MAX));
+        require(latent.at("layout").string()=="BCTHW" && latent.at("sampling_layout").string()=="BLC" &&
+            latent.at("channels").integer()==128 && latent.at("spatial_scale").integer()==32 &&
+            latent.at("temporal_decode").string()=="1+8*(F-1)","Decoder/request geometry mismatch");
+        latent_shape=geometry.latent_shape;out.runtime_inputs=std::move(geometry.runtime_inputs);
+    } else {
+        const auto& g=wiring.at("geometry");keys(g,{"spatial_scale","temporal_scale","temporal_origin"});
+        const auto spatial=positive(g,"spatial_scale",1024),temporal=positive(g,"temporal_scale",1024),origin=positive(g,"temporal_origin",1024);
+        require(latent.at("layout").string()=="BCTHW" && latent.at("spatial_scale").integer()==spatial &&
+            latent.at("temporal_decode").string()==std::to_string(origin)+"+"+std::to_string(temporal)+"*(F-1)","Decoder/request geometry mismatch");
+        require(width%spatial==0 && height%spatial==0 && frames>=origin && (frames-origin)%temporal==0,"Request does not fit decoder geometry");
+        latent_shape={1,latent.at("channels").integer(),(frames-origin)/temporal+1,height/spatial,width/spatial};
+        out.runtime_inputs={{"seed",scalar_i64(std::bit_cast<int64_t>(seed))},{"latent_shape",host_i64({5},latent_shape)}};
+    }
+    const auto& pa=artifact(*out.owner,admission.at("programs_artifact").string());
+    auto verified=admit_verified_program_artifact(pa.path,pa.declaration.size,pa.declaration.sha256,*out.owner->model);
+    require((out.owner->model->metadata().at("programs").at("schema").string()=="vrhino.programs.v2")==token_grid,
+        "Program/request geometry capability mismatch");
     out.sampling=out.owner->architecture->create_program(out.runtime_inputs);
+    out.execution=verified.programs.execution;
     const auto package=PackageDeclaration::parse(out.owner->model->graph());
-    out.execution=admit_program_declaration(out.owner->model->metadata().at("programs"),package).execution;
     require(package.graphs().size()==1,"Text request requires shared graph interface");
     const auto& conditioning_contract=package.graphs().begin()->second.at("conditioning");
     const int64_t features=conditioning_contract.at("text_feature_size").integer();
     const auto& roles=admission.at("resources");
     const auto graph=parse(verified_text(*out.owner,roles.at("conditioning_declaration").string()));
     require(graph.at("schema_version").integer()==1 && graph.at("kind").string()=="pre_norm_transformer" &&
-            graph.at("output_trim_to_mask").boolean(),"Unsupported conditioning output contract");
+            (token_grid ? (!graph.find("output_trim_to_mask") || !graph.at("output_trim_to_mask").boolean()) :
+                graph.at("output_trim_to_mask").boolean()),"Unsupported conditioning output contract");
     const auto weights=out.conditioning_weights();
     const auto& embedding=weights.at(graph.at("embedding").at("weight").string());
     require(embedding.ndim()==2 && embedding.dim(1)==features,"Text embedding/graph feature mismatch");
     for(const auto& b:graph.at("blocks").array()) (void)conditioning_mask_semantic(b.at("attention"));
     const auto tokenizer_blob=verified_text(*out.owner,roles.at("tokenizer").string());
-    const auto tokenizer_json=parse(tokenizer_blob);
-    // External config may carry an unbounded model_max_length sentinel. The
-    // actual sequence bound comes from the strict admitted graph/spec above.
-    const auto config=parse(verified_text(*out.owner,wiring.at("tokenizer_config_artifact").string()),true);
-    const auto& ts=wiring.at("tokenizer_spec");keys(ts,{"format","max_length","pad_id","suffix_ids"});
-    require(ts.at("format").string()=="huggingface_json","Unsupported text tokenizer format");
-    TokenizerSpec spec;spec.max_length=positive(ts,"max_length",1048576);
+    const auto& ts=wiring.at("tokenizer_spec");
+    if(token_grid)keys(ts,{"format","max_length","pad_id","suffix_ids","added_tokens"});
+    else keys(ts,{"format","max_length","pad_id","suffix_ids"});
+    require(ts.at("format").string()==(token_grid?"sentencepiece":"huggingface_json"),"Unsupported text tokenizer format");
+    TokenizerSpec spec;spec.format=token_grid?TokenizerAssetFormat::SentencePiece:TokenizerAssetFormat::HuggingFaceJson;
+    spec.max_length=positive(ts,"max_length",1048576);
     require(spec.max_length==conditioning_contract.at("text_token_limit").integer(),"Tokenizer/graph sequence bound mismatch");
     const auto pad=ts.at("pad_id").integer();require(pad>=0 && pad<embedding.dim(0) && pad<=INT32_MAX,"Invalid pad ID");spec.pad_id=static_cast<int32_t>(pad);
     const auto& suffix=ts.at("suffix_ids").array();require(suffix.size()==1,"Expected declared EOS suffix");
     const auto eos=suffix[0].integer();require(eos>=0 && eos<embedding.dim(0) && eos<=INT32_MAX,"Invalid EOS ID");spec.suffix_ids={static_cast<int32_t>(eos)};
-    // Validate declared special-token IDs against actual resource contents, not
-    // a model identity or values copied from a different product's spec.
-    const auto special_id=[&](const std::string& token){
-        for(const auto& item:tokenizer_json.at("added_tokens").array())
-            if(item.at("content").string()==token)return item.at("id").integer();
-        throw Error("Special token absent from tokenizer resource");
-    };
-    require(special_id(config.at("pad_token").string())==pad && special_id(config.at("eos_token").string())==eos,"Tokenizer special-token identity mismatch");
+    if(token_grid) {
+        std::set<std::string> names;std::set<int64_t> ids;
+        require(ts.at("added_tokens").array().size()<=100,"Too many added tokens");
+        for(const auto& t:ts.at("added_tokens").array()) {
+            keys(t,{"content","id","lstrip","rstrip"});const auto id=t.at("id").integer();
+            require(!t.at("content").string().empty() && names.insert(t.at("content").string()).second &&
+                id>=0 && id<embedding.dim(0) && id<=INT32_MAX && ids.insert(id).second,"Invalid added token identity");
+            spec.added_tokens.push_back({t.at("content").string(),static_cast<int32_t>(id),t.at("lstrip").boolean(),t.at("rstrip").boolean()});
+        }
+    } else {
+        const auto tokenizer_json=parse(tokenizer_blob);
+        const auto config=parse(verified_text(*out.owner,wiring.at("tokenizer_config_artifact").string()),true);
+        const auto special_id=[&](const std::string& token){
+            for(const auto& item:tokenizer_json.at("added_tokens").array())
+                if(item.at("content").string()==token)return item.at("id").integer();
+            throw Error("Special token absent from tokenizer resource");
+        };
+        require(special_id(config.at("pad_token").string())==pad && special_id(config.at("eos_token").string())==eos,"Tokenizer special-token identity mismatch");
+    }
     const auto& bindings=wiring.at("conditioning_bindings").array();require(bindings.size()==2,"CFG conditioning requires two declared inputs");
     std::set<std::string> targets;Json::Array token_evidence;
 #if VRHINO_PRODUCT_TOKENIZERS
     NativeTokenizer tokenizer(spec,tokenizer_blob);
+    if(token_grid)require(tokenizer.token_matches(spec.pad_id,"<pad>") && tokenizer.token_matches(spec.suffix_ids[0],"</s>"),
+        "SentencePiece special-token identity mismatch");
 #endif
     for(const auto& binding:bindings){
-        keys(binding,{"component_id","text_source","target"});
+        if(token_grid)keys(binding,{"component_id","text_source","target","mask_target"});
+        else keys(binding,{"component_id","text_source","target"});
         const auto target=binding.at("target").string(),source=binding.at("text_source").string();
         require((target=="positive" && source=="prompt") || (target=="negative" && source=="negative_prompt"),"Invalid conditioning binding contract");
         require(targets.insert(target).second,"Duplicate conditioning target");
@@ -171,15 +218,20 @@ PreparedTextProductRequest prepare_text_product_request(std::shared_ptr<Admitted
         const ComponentDeclaration* component=nullptr;
         for(const auto& c:out.owner->resources.manifest.components)if(c.id==component_id)component=&c;
         require(component && component->kind=="conditioning.text_encoder","Unknown conditioning component");
-        for(const auto* key:{"conditioning_declaration","conditioning_index","conditioning_weights","tokenizer"})
+        for(const auto* key:{"conditioning_declaration","conditioning_index","tokenizer"})
             require(std::find(component->artifact_ids.begin(),component->artifact_ids.end(),roles.at(key).string())!=component->artifact_ids.end(),"Component resource reference mismatch");
+        const auto component_weight=[&](const std::string& id){require(std::find(component->artifact_ids.begin(),component->artifact_ids.end(),id)!=component->artifact_ids.end(),"Component shard reference mismatch");};
+        if(roles.at("conditioning_weights").is_object())for(const auto& [name,id]:roles.at("conditioning_weights").object()){(void)name;component_weight(id.string());}
+        else component_weight(roles.at("conditioning_weights").string());
+        const std::string mask_target=token_grid?binding.at("mask_target").string():"";
+        if(token_grid)require(mask_target==target+"_mask","Invalid conditioning mask target");
 #if VRHINO_PRODUCT_TOKENIZERS
         const auto tokens=tokenizer.encode(request.at(source).string());
         require(tokens.valid_length>0 && tokens.valid_length<=spec.max_length,"Invalid conditioning token count");
         std::vector<int64_t> ids(tokens.input_ids.begin(),tokens.input_ids.end());
         for(auto id:ids)require(id>=0 && id<embedding.dim(0),"Tokenizer ID outside embedding table");
         out.conditioning.push_back({target,graph,host_i64({1,spec.max_length},ids),
-            host_bool({1,spec.max_length},tokens.attention_mask),{1,tokens.valid_length,features}});
+            host_bool({1,spec.max_length},tokens.attention_mask),{1,token_grid?spec.max_length:tokens.valid_length,features},mask_target});
         Json::Array ids_json;for(auto id:ids)ids_json.emplace_back(id);
         token_evidence.emplace_back(Json::Object{{"target",Json(target)},{"valid_length",Json(tokens.valid_length)},
             {"input_ids",Json(std::move(ids_json))},{"expected_hidden_shape",shape_json(out.conditioning.back().expected_hidden_shape)}});
@@ -191,7 +243,7 @@ PreparedTextProductRequest prepare_text_product_request(std::shared_ptr<Admitted
     for(size_t n=0;n<ids.size();++n){const auto instance=static_cast<uint32_t>(ids[n].integer());
         trace.emplace_back(Json::Object{{"step",Json(int64_t(n))},{"instance_id",Json(int64_t(instance))},
             {"binding_id",Json(int64_t(package.instances().at(instance).binding))},
-            {"model_timestep",Json(read_scalar_i64(out.sampling.model_timestep_at(static_cast<int>(n))))},
+            {"model_timestep",token_grid?verified.evidence.at("steps").array().at(n).at("model_timestep"):Json(read_scalar_i64(out.sampling.model_timestep_at(static_cast<int>(n))))},
             {"guidance",Json(double(out.sampling.guidance_schedule->at(n).scale))}});
     }
     out.evidence=Json(Json::Object{{"request_prepared",Json(true)},{"native_tokenization_executed",Json(true)},
@@ -200,6 +252,10 @@ PreparedTextProductRequest prepare_text_product_request(std::shared_ptr<Admitted
         {"latent_shape",shape_json(latent_shape)},{"expected_video_shape",shape_json(out.expected_video_shape)},
         {"seed",seed<=static_cast<uint64_t>(INT64_MAX)?Json(static_cast<int64_t>(seed)):Json(std::to_string(seed))},
         {"conditioning",Json(std::move(token_evidence))},{"execution_intent",Json(std::move(trace))}});
+    if(token_grid) {
+        auto evidence=out.evidence.object();evidence.emplace("verified_programs",verified.evidence);out.evidence=Json(evidence);
+    }
+    out.owner->conditioning->verify_backing_identity();
     (void)out.decoder_weights();
     return out;
 }

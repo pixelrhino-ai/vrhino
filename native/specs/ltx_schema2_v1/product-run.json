@@ -1,0 +1,15 @@
+{
+  "schema": "vrhino.product-text-run.v1",
+  "negative_prompt": "worst quality, inconsistent motion, blurry, jittery, distorted",
+  "precision_artifact": "precision",
+  "memory": {
+    "device_budget_bytes": 22548578304,
+    "host_budget_bytes": 68719476736,
+    "workspace_bytes": 2147483648,
+    "safety_margin_bytes": 1073741824
+  },
+  "media_range": [
+    0,
+    1
+  ]
+}

@@ -3,6 +3,9 @@
 #include <fcntl.h>
 #include <fstream>
 #include <limits>
+#include <algorithm>
+#include <utility>
+#include "vrhino/product/model_package.h"
 #include <set>
 #ifdef _WIN32
 #define NOMINMAX
@@ -20,6 +23,39 @@
 
 namespace vrhino::product {
 namespace {
+
+struct FileSnapshot {
+    uint64_t bytes;
+    int64_t modified;
+    int64_t changed;
+};
+
+FileSnapshot file_snapshot(int fd) {
+#ifdef _WIN32
+    const auto handle = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
+    FILE_STANDARD_INFO size{};
+    FILE_BASIC_INFO times{};
+    require(handle != INVALID_HANDLE_VALUE &&
+            GetFileInformationByHandleEx(handle, FileStandardInfo, &size, sizeof(size)) &&
+            GetFileInformationByHandleEx(handle, FileBasicInfo, &times, sizeof(times)) &&
+            size.EndOfFile.QuadPart >= 0, "Cannot inspect safetensors backing");
+    return {static_cast<uint64_t>(size.EndOfFile.QuadPart),
+            times.LastWriteTime.QuadPart, times.ChangeTime.QuadPart};
+#else
+    struct stat info{};
+    require(fstat(fd, &info)==0 && info.st_size>=0, "Cannot inspect safetensors backing");
+#ifdef __APPLE__
+    const auto modified = info.st_mtimespec;
+    const auto changed = info.st_ctimespec;
+#else
+    const auto modified = info.st_mtim;
+    const auto changed = info.st_ctim;
+#endif
+    return {static_cast<uint64_t>(info.st_size),
+            int64_t(modified.tv_sec)*1000000000 + modified.tv_nsec,
+            int64_t(changed.tv_sec)*1000000000 + changed.tv_nsec};
+#endif
+}
 
 uint64_t little_u64(const uint8_t* bytes) {
     uint64_t value = 0;
@@ -52,10 +88,37 @@ SafeTensorAsset::Mapping::~Mapping() {
     if (data != nullptr) UnmapViewOfFile(data);
     if (fd >= 0) _close(fd);
 }
+#else
+SafeTensorAsset::Mapping::~Mapping() {
+    if (data != nullptr && data != MAP_FAILED) munmap(data, bytes);
+    if (fd >= 0) close(fd);
+}
+
+#endif
+
 SafeTensorAsset::Mapping::Mapping(Mapping&& other) noexcept
     : fd(std::exchange(other.fd, -1)), data(std::exchange(other.data, nullptr)),
-      bytes(std::exchange(other.bytes, 0)), path(std::move(other.path)) {}
-#endif
+      bytes(std::exchange(other.bytes, 0)), path(std::move(other.path)),
+      verified(other.verified), modified_stamp(other.modified_stamp),
+      changed_stamp(other.changed_stamp) {}
+
+SafeTensorAsset SafeTensorAsset::indexed_verified(const Json& index,
+        const std::map<std::string, VerifiedSafeTensorArtifact>& shards) {
+    std::map<std::string,std::string> owners;
+    std::set<std::string> required;
+    for (const auto& [name,value] : index.at("weight_map").object()) {
+        require(!name.empty(), "Empty indexed tensor name");
+        owners.emplace(name,value.string()); required.insert(value.string());
+    }
+    require(!owners.empty() && required.size()==shards.size(), "Strict shard inventory mismatch");
+    SafeTensorAsset result;
+    for (const auto& name:required) {
+        const auto& a=shards.at(name);
+        result.add_file(a.path,name,&owners,&a);
+    }
+    require(result.tensors_.size()==owners.size(), "Strict tensor index coverage mismatch");
+    return result;
+}
 
 SafeTensorAsset SafeTensorAsset::single(const std::filesystem::path& path) {
     SafeTensorAsset result;
@@ -86,7 +149,8 @@ SafeTensorAsset SafeTensorAsset::indexed(
 
 void SafeTensorAsset::add_file(
         const std::filesystem::path& path, const std::string& logical_name,
-        const std::map<std::string, std::string>* owners) {
+        const std::map<std::string, std::string>* owners,
+        const VerifiedSafeTensorArtifact* verified) {
     Mapping mapping;
     mapping.path = path;
 #ifdef _WIN32
@@ -105,6 +169,7 @@ void SafeTensorAsset::add_file(
     require(static_cast<uint64_t>(size.QuadPart) <= std::numeric_limits<size_t>::max(),
             "safetensors file is too large for this host");
     mapping.bytes = static_cast<size_t>(size.QuadPart);
+    const auto initial = file_snapshot(mapping.fd);
     HANDLE section = CreateFileMappingW(file, nullptr, PAGE_READONLY, 0, 0, nullptr);
     require(section != nullptr, "safetensors file mapping failed: " + path.string());
     mapping.data = MapViewOfFile(section, FILE_MAP_READ, 0, 0, mapping.bytes);
@@ -120,21 +185,33 @@ void SafeTensorAsset::add_file(
                 std::numeric_limits<size_t>::max(),
             "safetensors file is too large for this host");
     mapping.bytes = static_cast<size_t>(info.st_size);
+    const auto initial = file_snapshot(mapping.fd);
     mapping.data = mmap(nullptr, mapping.bytes, PROT_READ, MAP_PRIVATE, mapping.fd, 0);
     require(mapping.data != MAP_FAILED, "safetensors mmap failed: " + path.string());
 #endif
+    mapping.verified = verified != nullptr;
+    mapping.modified_stamp = initial.modified;
+    mapping.changed_stamp = initial.changed;
+    require(initial.bytes == mapping.bytes, "Safetensors size changed before mapping");
     const auto* bytes = static_cast<const uint8_t*>(mapping.data);
+    if (verified) require(mapping.bytes==verified->bytes &&
+        sha256_bytes(std::string_view(reinterpret_cast<const char*>(bytes),mapping.bytes))==verified->sha256,
+        "Mapped safetensors identity mismatch");
     const uint64_t header_length_u64 = little_u64(bytes);
     require(header_length_u64 > 0 && header_length_u64 <= mapping.bytes - 8,
             "Invalid safetensors header length: " + path.string());
     const size_t header_length = static_cast<size_t>(header_length_u64);
+    require(!verified || header_length<=32*1024*1024, "Oversized safetensors header");
     const Json header = Json::parse(
         std::string(reinterpret_cast<const char*>(bytes + 8), header_length));
     const size_t data_start = 8 + header_length;
+    std::vector<std::pair<size_t,size_t>> ranges;
     for (const auto& [name, descriptor] : header.object()) {
         if (name == "__metadata__") continue;
         if (owners) {
             const auto found = owners->find(name);
+            if (verified) require(found!=owners->end() && found->second==logical_name,
+                "Unindexed or incorrectly owned safetensors tensor");
             if (found == owners->end() || found->second != logical_name) continue;
         }
         std::vector<int64_t> shape;
@@ -155,10 +232,21 @@ void SafeTensorAsset::add_file(
         require(begin <= end && end <= mapping.bytes - data_start &&
                     end - begin == expected,
                 "Invalid safetensors tensor range: " + name);
+        ranges.emplace_back(begin,end);
         Tensor tensor = Tensor::borrowed(const_cast<uint8_t*>(bytes + data_start + begin),
                                          end - begin, shape, dtype);
         require(tensors_.emplace(name, std::move(tensor)).second,
                 "Duplicate safetensors tensor: " + name);
+    }
+    if (verified) {
+        std::sort(ranges.begin(),ranges.end()); size_t end=0;
+        for (const auto& r:ranges) { require(r.first==end,"Safetensors overlapping/gapped payload");end=r.second; }
+        require(end==mapping.bytes-data_start,"Unindexed safetensors payload bytes");
+    }
+    if (verified) {
+        const auto after = file_snapshot(mapping.fd);
+        require(after.bytes==initial.bytes && after.modified==initial.modified &&
+                after.changed==initial.changed, "Safetensors changed during mapped admission");
     }
     mappings_.push_back(std::move(mapping));
 }
@@ -181,19 +269,19 @@ SafeTensorAsset& SafeTensorAsset::operator=(SafeTensorAsset&& other) noexcept {
 }
 void SafeTensorAsset::clear() {
     tensors_.clear();
-#ifndef _WIN32
-    for (Mapping& mapping : mappings_) {
-        if (mapping.data != nullptr && mapping.data != MAP_FAILED)
-            munmap(mapping.data, mapping.bytes);
-        if (mapping.fd >= 0) close(mapping.fd);
-    }
-#endif
     mappings_.clear();
 }
 WeightMap SafeTensorAsset::weights() const {
     std::map<std::string, const Tensor*> values;
     for (const auto& [name, tensor] : tensors_) values.emplace(name, &tensor);
     return WeightMap(std::move(values));
+}
+void SafeTensorAsset::verify_backing_identity() const {
+    for (const auto& mapping : mappings_) if (mapping.verified) {
+        const auto current = file_snapshot(mapping.fd);
+        require(current.bytes==mapping.bytes && current.modified==mapping.modified_stamp &&
+                current.changed==mapping.changed_stamp, "Admitted safetensors backing changed");
+    }
 }
 size_t SafeTensorAsset::mapped_bytes() const {
     size_t total = 0;

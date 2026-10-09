@@ -6,6 +6,7 @@
 #include <utility>
 
 #include <tokenizers_cpp.h>
+#include <sentencepiece_processor.h>
 
 #include "vrhino/error.h"
 
@@ -50,6 +51,9 @@ public:
         if (spec_.format == TokenizerAssetFormat::HuggingFaceJson) {
             tokenizer_ = tokenizers::Tokenizer::FromBlobJSON(blob);
         } else {
+            sentencepiece::SentencePieceProcessor verifier;
+            require(verifier.LoadFromSerializedProto(blob).ok() && verifier.GetPieceSize()>0,
+                    "Invalid SentencePiece tokenizer resource");
             tokenizer_ = tokenizers::Tokenizer::FromBlobSentencePiece(blob);
         }
         require(tokenizer_ != nullptr, "Tokenizer asset could not be loaded");
@@ -89,6 +93,9 @@ public:
         return result;
     }
 
+    bool token_matches(int32_t id, const std::string& token) const {
+        return id>=0 && static_cast<size_t>(id)<tokenizer_->GetVocabSize() && tokenizer_->IdToToken(id)==token;
+    }
 private:
     std::vector<int32_t> encode_body(const std::string& text) const {
         if (spec_.added_tokens.empty()) return tokenizer_->Encode(text);
@@ -154,5 +161,6 @@ NativeTokenizer::~NativeTokenizer() = default;
 NativeTokenizer::NativeTokenizer(NativeTokenizer&&) noexcept = default;
 NativeTokenizer& NativeTokenizer::operator=(NativeTokenizer&&) noexcept = default;
 TokenizedInput NativeTokenizer::encode(const std::string& text) const { return impl_->encode(text); }
+bool NativeTokenizer::token_matches(int32_t id,const std::string& token) const { return impl_->token_matches(id,token); }
 
 }  // namespace vrhino

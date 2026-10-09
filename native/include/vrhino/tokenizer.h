@@ -58,6 +58,7 @@ public:
     NativeTokenizer& operator=(const NativeTokenizer&) = delete;
 
     TokenizedInput encode(const std::string& text) const;
+    bool token_matches(int32_t id, const std::string& token) const;
 
 private:
     class Impl;
