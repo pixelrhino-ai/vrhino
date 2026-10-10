@@ -3,7 +3,7 @@
 This source candidate adds the second independent DiT/Flow architecture family to
 Schema2. It reuses Native conditioning, execution, sampling, decoding and Product
 resource lifetimes. It does not change any published package, release or numerical
-qualification. The converter emits a separate `review/ltx-video-v0.9.1-schema2:0.1.0`
+qualification. The converter emits a separate `review/ltx-video-v0.9.1-schema2:0.2.0`
 package with `alpha_unqualified` eligibility. That identity is a local qualification
 fixture, not a published registry entry.
 
@@ -118,21 +118,47 @@ full synthetic fixture uses about 5.7 GB disk and the actual 715/297-slot topolo
 ```sh
 build/vrhino-ltx-schema2-cuda-tests "$SYNTHETIC_OUTPUT_DIR"
 build/vrhino-ltx-schema2-integration-tests "$TEST_OUTPUT_DIR" "$SENTENCEPIECE_MODEL"
-build/vrhino-ltx-schema2-convert "$LEGACY_VRM" "$SOURCE_DIR" \
-  native/specs/ltx_schema2_v1 "$FRESH_PACKAGE_DIR"
+build/vrhino-ltx-schema2-convert "$SOURCE_DIR" \
+  native/specs "$FRESH_PACKAGE_DIR"
 build/vrhino-ltx-schema2-product-tests "$FRESH_PACKAGE_DIR" "$TEST_OUTPUT_DIR" "$PROMPT"
 build/vrhino-ltx-schema2-reference-compare "$FRESH_PACKAGE_DIR" "$LEGACY_VRM" \
   "$COMPARISON_OUTPUT_DIR" "$PROMPT"
 ```
 
-The converter accepts the frozen source-contract identities, copies all 1012
-parameter payloads byte for byte and creates new declarations. It writes physical
-paths only in the machine-local `local.json`; that file, weights, private media,
-builds and qualification archives must stay outside Git. Once the fixture package
-is installed through a private test registry's normal `pull`, normal `run` uses its
-verified program-backed Product profile. No public package is overwritten.
+The converter reads the original frozen LTX Safetensors checkpoint directly;
+no Schema1 VRM is an input or intermediate. It reuses the existing LTX mapping,
+source descriptor checks and Native streaming writer, then compares dtype, shape
+and every byte of all 1012 parameter payloads. The direct source contract and
+mapping have frozen SHA256 identities. Full existing Product preflight admits the
+715 denoiser slots, 297 decoder slots, programs and resource references before
+returning the standalone Package. Resource files are included under relative
+Package paths; no machine-specific path is a runtime dependency.
+
+The separate candidate is `review/ltx-video-v0.9.1-schema2:0.2.0`, with
+`alpha_unqualified` execution eligibility and `local_test_only` distribution
+status. Its installed source/pull plans reuse normal Native source acquisition,
+conversion, verified CAS admission and immutable package publication. Existing
+`vrhino/ltx-video-v0.9.1:1.1.1` Schema1 identities and artifacts remain unchanged.
+After staging the converter specifications beside the executable, the normal
+source-backed command is:
+
+```sh
+vrhino pull review/ltx-video-v0.9.1-schema2:0.2.0
+```
+
+This review identity is not a public Registry publication. An isolated Registry
+can distribute the generated Package through normal Native `pull`; source-backed
+and Registry-package pulls are distinct paths and need separate evidence. The
+opt-in `native/tests/ltx_schema2_source_product_smoke.py` uses verified existing
+source assets, a fresh model CAS, then a second empty model cache and a private
+loopback HTTPS fixture. Python serves and observes the test; Native performs all
+model acquisition, conversion and execution. The final run retains 704×480,
+121 frames, 25 FPS, all 40 typed steps and complete MP4 output. Weights, local
+fixture keys, private media, builds and qualification archives must stay outside Git.
 
 ## Qualification limits
+
+Direct Native source-to-product evidence is recorded in the [Stage 2A FACT / REPORT](../protocol/ltx-schema2-stage2a.md). Its PASS is limited to the Linux isolated candidate; public distribution and numerical qualification remain separate.
 
 See [consolidation evidence](../protocol/ltx-schema2-stage1d.md) for the source and
 binary identities, affected regressions and exact comparison scope. Synthetic

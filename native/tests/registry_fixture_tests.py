@@ -228,7 +228,7 @@ def main() -> None:
         publish(registry_root, base, "vrhino/wrong-length:1.0.0", declarations(runtime_f),
                 urls(runtime_f, "wrong-length/"))
         publish(registry_root, base, "vrhino/unsupported:1.0.0", declarations(runtime_b),
-                urls(runtime_b), schema=2)
+                urls(runtime_b), schema=99)
         publish(registry_root, base, "vrhino/no-space:1.0.0",
                 declarations(runtime_b, huge_size=10**15), urls(runtime_b))
         publish(registry_root, base, "vrhino/concurrent:1.0.0", declarations(runtime_g),

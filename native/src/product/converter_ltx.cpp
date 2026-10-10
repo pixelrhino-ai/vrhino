@@ -1,4 +1,5 @@
 #include "vrhino/product/converter.h"
+#include "converter_ltx_internal.h"
 #include "vrhino/product/wan_family_conversion.h"
 
 #include <algorithm>
@@ -508,26 +509,7 @@ ImportResult import_ltx(const fs::path& source_directory, LocalModelCache& cache
     SafeTensorReader reader(checkpoint);
     const std::vector<TensorMapping> mappings =
         load_tensor_map(specification / "tensor-mapping.tsv");
-    if (mappings.size() != reader.tensors().size())
-        fail(ModelPackageErrorCode::PackageVersionUnsupported,
-             "LTX tensor count does not match converter specification");
-    std::set<std::string> mapped_sources;
-    for (const TensorMapping& mapping : mappings) {
-        if (!mapped_sources.insert(mapping.source_name).second)
-            fail(ModelPackageErrorCode::PackageInvalid,
-                 "duplicate LTX source tensor mapping: " + mapping.source_name);
-        const auto found = reader.tensors().find(mapping.source_name);
-        if (found == reader.tensors().end() || found->second.dtype != mapping.source_dtype ||
-            found->second.shape != mapping.source_shape ||
-            mapping.source_dtype != mapping.destination_dtype ||
-            mapping.source_shape != mapping.destination_shape ||
-            mapping.transformation != "identity_bytes")
-            fail(ModelPackageErrorCode::PackageVersionUnsupported,
-                 "LTX upstream tensor layout drift: " + mapping.source_name);
-    }
-    if (mapped_sources.size() != reader.tensors().size())
-        fail(ModelPackageErrorCode::PackageVersionUnsupported,
-             "LTX source contains an unmapped tensor");
+    validate_ltx_source_mappings(reader, mappings);
 
     const Json* configuration = reader.metadata().find("config");
     if (configuration == nullptr || !configuration->is_string())
@@ -662,6 +644,115 @@ ImportResult import_ltx(const fs::path& source_directory, LocalModelCache& cache
 
 }  // namespace
 
+fs::path checked_ltx_source(const fs::path& root, const fs::path& relative) {
+    return checked_source(root, relative);
+}
+std::vector<TensorMapping> load_ltx_source_mappings(const fs::path& path) {
+    return load_tensor_map(path);
+}
+Json::Object ltx_source_bindings(const std::vector<TensorMapping>& mappings,
+                                const std::string& prefix) {
+    return bindings_for(mappings, prefix);
+}
+void validate_ltx_source_mappings(const SafeTensorReader& reader,
+                                  const std::vector<TensorMapping>& mappings) {
+    if (mappings.size() != reader.tensors().size())
+        fail(ModelPackageErrorCode::PackageVersionUnsupported,
+             "LTX tensor count does not match converter specification");
+    std::set<std::string> mapped_sources;
+    for (const TensorMapping& mapping : mappings) {
+        if (!mapped_sources.insert(mapping.source_name).second)
+            fail(ModelPackageErrorCode::PackageInvalid,
+                 "duplicate LTX source tensor mapping: " + mapping.source_name);
+        const auto found = reader.tensors().find(mapping.source_name);
+        if (found == reader.tensors().end() || found->second.dtype != mapping.source_dtype ||
+            found->second.shape != mapping.source_shape ||
+            mapping.source_dtype != mapping.destination_dtype ||
+            mapping.source_shape != mapping.destination_shape ||
+            mapping.transformation != "identity_bytes")
+            fail(ModelPackageErrorCode::PackageVersionUnsupported,
+                 "LTX upstream tensor layout drift: " + mapping.source_name);
+    }
+    if (mapped_sources.size() != reader.tensors().size())
+        fail(ModelPackageErrorCode::PackageVersionUnsupported,
+             "LTX source contains an unmapped tensor");
+
+}
+
+namespace {
+constexpr const char* kLtxSchema2Reference = "review/ltx-video-v0.9.1-schema2:0.2.0";
+ImportResult import_ltx_schema2(const fs::path& source_directory, LocalModelCache& cache,
+                               const ImportOptions& options) {
+    const auto started = std::chrono::steady_clock::now();
+    const auto root = options.converter_spec_root.empty()
+        ? discover_converter_spec_root() : fs::canonical(options.converter_spec_root);
+    const auto manifest_path = options.package_manifest.empty()
+        ? root / "ltx_schema2_v1/vrhino-model.json" : fs::canonical(options.package_manifest);
+    const auto expected = load_model_package_manifest(manifest_path);
+    if (expected.identity.reference() != kLtxSchema2Reference ||
+        (!options.expected_model_reference.empty() &&
+         options.expected_model_reference != kLtxSchema2Reference))
+        fail(ModelPackageErrorCode::PackageInvalid, "LTX Schema2 candidate identity mismatch");
+    for (const auto& installed : cache.list())
+        if (installed.identity.reference() == kLtxSchema2Reference)
+            fail(ModelPackageErrorCode::InstallFailed, "immutable Schema2 candidate is installed");
+    uint64_t required = artifact_by_id(expected, "runtime").size;
+    for (const auto& artifact : expected.artifacts)
+        if (!cache.contains_blob(artifact, false))
+            required = checked_work_add(required, artifact.size);
+    fs::create_directories(cache.layout().temporary / "imports");
+    require_conversion_disk_space(required, options.available_space_override.value_or(
+        fs::space(cache.layout().root).available), 64ULL * 1024 * 1024, cache.layout().root);
+    const auto staging = unique_import_path(cache.layout().temporary / "imports", "ltx-schema2");
+    try {
+        if (options.progress) options.progress(0, 1);
+        const auto written = convert_ltx_schema2_package(source_directory, root, staging, options);
+        const auto generated = load_model_package_manifest(staging / "vrhino-model.json");
+        if (canonical_json(Json::parse(generated.raw_json)) !=
+            canonical_json(Json::parse(expected.raw_json)))
+            fail(ModelPackageErrorCode::ChecksumMismatch,
+                 "direct LTX Schema2 package differs from fixed candidate manifest");
+        if (options.progress) options.progress(1, 1);
+        const auto converted = std::chrono::steady_clock::now();
+        uint64_t total = 0;
+        for (const auto& artifact : expected.artifacts)
+            total = checked_work_add(total, checked_work_add(artifact.size, artifact.size));
+        WorkProgressTracker finalization(options.cancellation_requested,
+            options.finalization_progress, total, "LTX Schema2 finalization interrupted");
+        finalization.begin();
+        const auto work = finalization.work_callback();
+        ImportResult result;
+        for (const auto& artifact : expected.artifacts) {
+            const auto admitted = cache.admit_local_blob(staging / artifact.relative_path, artifact, work);
+            (admitted.created ? result.copied_artifact_bytes : result.reused_artifact_bytes) += artifact.size;
+        }
+        if (options.cancellation_requested && options.cancellation_requested())
+            fail(ModelPackageErrorCode::Cancelled, "LTX Schema2 finalization interrupted");
+        result.installation = cache.publish_manifest(staging / "vrhino-model.json");
+        // As in Schema1, publication is the commit point for cancellation.
+        finalization.finish_committed();
+        result.runtime_vrm_sha256 = artifact_by_id(expected, "runtime").sha256;
+        result.runtime_vrm_path = cache.artifact_path(result.runtime_vrm_sha256);
+        result.source_checkpoint_bytes = kLtxCheckpointBytes;
+        result.output_vrm_bytes = written.file_size;
+        result.temporary_disk_peak_bytes = written.file_size;
+        result.largest_temporary_buffer_bytes = written.largest_buffer_bytes;
+        result.mapping_count = 1012;
+        result.conversion_performed = true;
+        result.conversion_seconds = std::chrono::duration<double>(converted - started).count();
+        result.finalization_seconds = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - converted).count();
+        std::error_code ignored;
+        fs::remove_all(staging, ignored);
+        return result;
+    } catch (...) {
+        std::error_code ignored;
+        fs::remove_all(staging, ignored);
+        throw;
+    }
+}
+} // namespace
+
 ImportResult import_local_model(const std::string& catalog_reference,
                                 const std::filesystem::path& source_directory,
                                 LocalModelCache& cache,
@@ -689,6 +780,8 @@ ImportResult import_local_model(const std::string& catalog_reference,
             resolved_options.package_manifest = specification_root /
                 "public_latentsync_16/successors/1.0.1/vrhino-model.json";
     }
+    if (catalog_reference == kLtxSchema2Reference)
+        return import_ltx_schema2(source_directory, cache, resolved_options);
     if (catalog_reference == kLtxReference)
         return import_ltx(source_directory, cache, resolved_options);
     if (catalog_reference == "vrhino/ltx-video-v0.9.1:1.1.1")

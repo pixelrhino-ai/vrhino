@@ -636,6 +636,7 @@ add_library(vrhino_converter
     src/product/indexed_tensor_source.cpp
     src/product/pytorch_zip.cpp
     src/product/converter_ltx.cpp
+    src/product/converter_ltx_schema2.cpp
     src/product/converter_wan.cpp
     src/product/converter_wan_family.cpp
     src/product/converter_mochi.cpp)
@@ -1758,6 +1759,7 @@ endif()
 
 # Closed geometry and verified typed artifacts are generic Product preflight capabilities.
 target_link_libraries(vrhino_product_preflight PUBLIC vrhino_product_token_grid)
+target_link_libraries(vrhino_converter PRIVATE vrhino_product_preflight)
 
 add_executable(vrhino-ltx-schema2-convert tools/ltx_schema2_convert.cpp)
 target_link_libraries(vrhino-ltx-schema2-convert PRIVATE vrhino_converter vrhino_product_preflight)
@@ -1794,5 +1796,14 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/specs")
     vrhino_public_test(vrhino-schema2-request-wiring-tests host
         "${CMAKE_CURRENT_BINARY_DIR}/schema2-request-wiring-fixture"
+        "${CMAKE_CURRENT_SOURCE_DIR}/specs")
+endif()
+
+add_executable(vrhino-ltx-schema2-converter-tests tests/ltx_schema2_converter_tests.cpp)
+target_link_libraries(vrhino-ltx-schema2-converter-tests PRIVATE vrhino_converter)
+target_compile_options(vrhino-ltx-schema2-converter-tests PRIVATE ${VRHINO_PRODUCT_CXX_WARNINGS})
+if(BUILD_TESTING)
+    vrhino_public_test(vrhino-ltx-schema2-converter-tests host
+        "${CMAKE_CURRENT_BINARY_DIR}/ltx-schema2-converter-fixture"
         "${CMAKE_CURRENT_SOURCE_DIR}/specs")
 endif()
