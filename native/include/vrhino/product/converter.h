@@ -334,6 +334,14 @@ struct ImportResult {
     std::string runtime_vrm_sha256;
 };
 
+// Frozen LTX Schema2 Product conversion. Reads the original Safetensors directly;
+// output contains all declared resources and no machine-specific runtime paths.
+VrmWriteResult convert_ltx_schema2_package(
+    const std::filesystem::path& source_directory,
+    const std::filesystem::path& converter_spec_root,
+    const std::filesystem::path& output_directory,
+    const ImportOptions& options = {});
+
 // Product-layer converter registry. Architecture identity is resolved here,
 // never in Shared Runtime, CUDA, or PrecisionPolicy.
 ImportResult import_local_model(const std::string& catalog_reference,
